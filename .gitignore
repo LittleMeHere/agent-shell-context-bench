@@ -1,0 +1,57 @@
+# .gitignore for the PUBLIC agent-shell-context-bench repo.
+# (The public repo is a verbatim copy of this benchmark/ directory, so this
+#  file ships with it and governs it standalone.)
+
+# --- Secrets: never commit ---
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+client_secret*.json
+service-account*.json
+*-api-key*
+*token*.json
+
+# --- Raw trial data ---
+# Agent transcripts can contain absolute machine paths, usernames, and
+# environment fingerprints. RAW data is NOT auto-committed. Only data that
+# has passed a redaction review is added deliberately and explicitly
+# (force-added past this rule), never by a blanket `git add`.
+data/*
+!data/.gitkeep
+!data/README.md
+# Pre-registration subtree: the README documenting data hygiene policy
+# IS tracked (so readers see the rule). Raw smoke-trial JSONs under it
+# stay gitignored.
+!data/pre-registration/
+data/pre-registration/*
+!data/pre-registration/README.md
+
+# --- IRR / classification working files ---
+# Coder outputs may embed transcript excerpts; same redaction rule.
+analysis/_scratch/
+*-coder-raw.*
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Local scratch dirs (e.g. tmp_codex_smoke/) ---
+# Any directory at the repo root prefixed with `tmp_` is presumed scratch
+# and excluded. Use `data/pre-registration/` for any artifact that needs
+# to ship with the repo.
+tmp_*/
