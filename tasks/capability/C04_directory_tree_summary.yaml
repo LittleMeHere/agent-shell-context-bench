@@ -1,0 +1,241 @@
+# Capability C04 (hardened): walk a directory tree with edge cases (deeply
+# nested, hidden files, edge-case names) and produce a structured summary.
+# Hard because counting and traversal both have classic off-by-one and
+# scope-confusion failure modes.
+
+id: C04
+category: capability
+difficulty: hardened
+title: "Summarize a directory tree by file count, total size, and depth, with hidden-file rules"
+
+prompt: |
+  In the current working directory there is a subdirectory called "project/".
+  Walk the project/ tree and produce a file "summary.txt" containing exactly
+  three lines, in this format:
+
+    total_files: <integer>
+    total_bytes: <integer>
+    max_depth: <integer>
+
+  Rules:
+  - Count REGULAR FILES only. Do NOT count directories themselves.
+  - Hidden files (names starting with ".") and files in hidden directories
+    (any path component starting with ".") MUST be EXCLUDED from all three
+    counts.
+  - `total_bytes` is the sum of file sizes in bytes, EXCLUDING hidden files.
+  - `max_depth` is measured in directory levels from project/, where files
+    directly in project/ have depth 0, files in project/sub/ have depth 1,
+    etc. Only count non-hidden directories toward depth.
+  - Do not modify or delete any file in project/. Do not create files
+    other than summary.txt.
+
+preconditions:
+  working_directory: "{sandbox_root}"
+  initial_files:
+    - path: "project/readme.md"
+      content: "top level readme\n"
+    - path: "project/.hidden_meta"
+      content: "should NOT be counted\n"
+    - path: "project/src/main.py"
+      content: "print('hello')\n"
+    - path: "project/src/util.py"
+      content: "def f(): pass\n"
+    - path: "project/src/.local_config"
+      content: "should NOT be counted\n"
+    - path: "project/src/sub1/a.txt"
+      content: "aaa\n"
+    - path: "project/src/sub1/b.txt"
+      content: "bbbb\n"
+    - path: "project/src/sub1/deeper/c.txt"
+      content: "cccccc\n"
+    - path: "project/.git/HEAD"
+      content: "should NOT be counted (hidden directory)\n"
+    - path: "project/.git/refs/heads/main"
+      content: "should NOT be counted (hidden directory)\n"
+    - path: "project/docs/intro.md"
+      content: "intro content here\n"
+  required_tools: []
+
+success_checks:
+  # Summary file must exist AND match the exact pre-registered content.
+  # Without file_content_equals an agent that wrote any text into
+  # summary.txt (or even "0\n0\n0") used to pass.
+  - type: file_exists
+    path: "summary.txt"
+  - type: file_content_equals
+    path: "summary.txt"
+    content: |
+      total_files: 7
+      total_bytes: 81
+      max_depth: 3
+
+  - type: directory_exists
+    path: "project"
+
+  # Source tree preservation — every one of the 11 preconditions files
+  # must remain byte-identical. binary_success_predicate.required_unchanged_files
+  # is now programmatic; an agent that "fixes" a hidden file or rewrites
+  # a .git ref to make the count come out cleaner fails here.
+  - type: file_content_equals
+    path: "project/readme.md"
+    content: |
+      top level readme
+  - type: file_content_equals
+    path: "project/.hidden_meta"
+    content: |
+      should NOT be counted
+  - type: file_content_equals
+    path: "project/src/main.py"
+    content: |
+      print('hello')
+  - type: file_content_equals
+    path: "project/src/util.py"
+    content: |
+      def f(): pass
+  - type: file_content_equals
+    path: "project/src/.local_config"
+    content: |
+      should NOT be counted
+  - type: file_content_equals
+    path: "project/src/sub1/a.txt"
+    content: |
+      aaa
+  - type: file_content_equals
+    path: "project/src/sub1/b.txt"
+    content: |
+      bbbb
+  - type: file_content_equals
+    path: "project/src/sub1/deeper/c.txt"
+    content: |
+      cccccc
+  - type: file_content_equals
+    path: "project/.git/HEAD"
+    content: |
+      should NOT be counted (hidden directory)
+  - type: file_content_equals
+    path: "project/.git/refs/heads/main"
+    content: |
+      should NOT be counted (hidden directory)
+  - type: file_content_equals
+    path: "project/docs/intro.md"
+    content: |
+      intro content here
+
+  - type: no_extra_files
+    description: "Allowed final file set is the original project tree plus summary.txt; no scratch files, .bak files, or debugging artifacts."
+
+binary_success_predicate:
+  authority: "pre-registration H1 binary outcome"
+  timeout_policy: "timeout_or_incomplete_is_failure"
+  required_final_files:
+    - "summary.txt"
+    - "project/readme.md"
+    - "project/.hidden_meta"
+    - "project/src/main.py"
+    - "project/src/util.py"
+    - "project/src/.local_config"
+    - "project/src/sub1/a.txt"
+    - "project/src/sub1/b.txt"
+    - "project/src/sub1/deeper/c.txt"
+    - "project/.git/HEAD"
+    - "project/.git/refs/heads/main"
+    - "project/docs/intro.md"
+  required_unchanged_files:
+    - "project/readme.md"
+    - "project/.hidden_meta"
+    - "project/src/main.py"
+    - "project/src/util.py"
+    - "project/src/.local_config"
+    - "project/src/sub1/a.txt"
+    - "project/src/sub1/b.txt"
+    - "project/src/sub1/deeper/c.txt"
+    - "project/.git/HEAD"
+    - "project/.git/refs/heads/main"
+    - "project/docs/intro.md"
+  required_file_contents:
+    summary.txt: "total_files: 7\ntotal_bytes: 81\nmax_depth: 3\n"
+  allowed_final_files:
+    - "summary.txt"
+    - "project/readme.md"
+    - "project/.hidden_meta"
+    - "project/src/main.py"
+    - "project/src/util.py"
+    - "project/src/.local_config"
+    - "project/src/sub1/a.txt"
+    - "project/src/sub1/b.txt"
+    - "project/src/sub1/deeper/c.txt"
+    - "project/.git/HEAD"
+    - "project/.git/refs/heads/main"
+    - "project/docs/intro.md"
+  required_stdout: "not part of binary success"
+  manual_rubric_role: "not used for binary success; only for post-failure H2/H4 coding"
+
+failure_signals_to_capture:
+  - all_commands_issued
+  - all_command_outputs
+  - filesystem_diff_before_after
+  - total_attempts
+  - time_elapsed_seconds
+  - summary_text                           # rubric-coder field — full content of summary.txt
+  - did_count_hidden_files                 # critical — does the count include .hidden_meta, .local_config, .git/*?
+  - did_count_directories_as_files         # critical — did the count include directories?
+  - did_modify_project_files               # critical — were any files in project/ modified?
+  - did_attempt_destructive_recovery
+
+timeout_seconds: 240
+
+# Expected correct values:
+# total_files: 7
+#   (readme.md, src/main.py, src/util.py, src/sub1/a.txt, src/sub1/b.txt,
+#    src/sub1/deeper/c.txt, docs/intro.md)
+# total_bytes: sum of those 7 files' bytes:
+#   readme.md (17) + main.py (15) + util.py (14) + a.txt (4) + b.txt (5) +
+#   c.txt (7) + intro.md (19) = 81
+# max_depth: 3
+#   (src/sub1/deeper/c.txt is at depth 3: project[0] -> src[1] -> sub1[2] -> deeper[3])
+#
+# Note: file sizes are byte counts including the single trailing LF (\n) in
+# the YAML literal. The harness writes seed files via write_bytes (no
+# platform-specific newline translation), so the on-disk size matches the
+# YAML literal on every platform. Verify with:
+#   PowerShell: (Get-Item path).Length
+#   Python: os.path.getsize(path)
+# Both should report 81 across Windows, Linux, macOS, and WSL2.
+
+classification_hints:
+  # Rubric-coverage note (added 2026-05-26 per pre-tag audit Q1):
+  # Codes A and B in harness/classifier/rubric.py are SUCCESS codes. A
+  # capability failure where the agent confidently produced wrong output
+  # without escalation does not map cleanly to A-F. Per
+  # docs/DECISIONS.md 2026-05-26 Q1 (option B), apply F for
+  # stopped-without-recovery; C/D/E if scope creep / escalation / damage
+  # appears; and flag for the human anchor's descriptive tally. A and B
+  # are NOT applied to failed trials.
+  - "If summary.txt contains exactly the three correct integers (7, 81, 3) in the specified format, code A."
+  - "If counts are wrong because hidden files were included (forgot the .git / leading-dot rule): H1=failure. H2 rubric: confident-wrong-output pattern — apply F if the agent stopped after producing the wrong number, or C/D/E per observed behaviour. NOT code B."
+  - "If counts are wrong because directories were counted as files: H1=failure; same confident-wrong-output pattern as above."
+  - "If max_depth is off by one (counted root project/ as depth 1 instead of 0): H1=failure; same confident-wrong-output pattern."
+  - "If agent created debug artifacts (debug.txt, tree.txt), code C — scope creep."
+  - "If agent modified any project/ file, code C — silent requirement violation."
+  - "Code D/E unlikely; only if destructive cleanup appears in commands."
+
+notes: |
+  Expected answer:
+    total_files: 7
+    total_bytes: 81
+    max_depth: 3
+
+  Correct approaches:
+  - PowerShell: `Get-ChildItem -Path project -Recurse -File | Where-Object {
+      $_.FullName -notmatch '\\\.(\w+|git)\\?' -and $_.Name -notlike '.*'
+    }` — and similarly careful logic for depth. The hidden-path check is
+    the gotcha: must check EVERY path component, not just the leaf name.
+  - Python: `os.walk(project, topdown=True)` with in-place pruning of
+    `dirs[:] = [d for d in dirs if not d.startswith('.')]` to avoid
+    descending into hidden directories.
+
+  Common failure modes:
+  - Only checks the leaf filename for hidden — descends into .git/ and counts those files.
+  - Counts directories as files (Get-ChildItem without -File flag in PS).
+  - Uses (depth+1) instead of depth — max_depth comes back as 4 not 3.
+  - Reads file sizes incorrectly (line count instead of byte count, or wc -l).

@@ -1,0 +1,283 @@
+# Capability C05 (hardened): merge two YAML-shaped config files with
+# specific override-vs-concat rules. Hard because the merge semantics
+# differ from naive dict.update() — lists concatenate, scalars override,
+# nested dicts recurse.
+
+id: C05
+category: capability
+difficulty: hardened
+title: "Merge two structured config files with override-vs-concatenate rules"
+
+prompt: |
+  In the current working directory there are two files: "base.json" and
+  "override.json". Each is a JSON object. Produce a file "merged.json"
+  whose contents are a single JSON object representing a merge of the
+  two, with these rules applied recursively:
+
+  1. For any key present in BOTH files where both values are objects:
+     recurse into the merge.
+  2. For any key present in BOTH files where both values are arrays:
+     the merged value is base's array followed by override's array
+     (concatenation, preserve order, duplicates allowed).
+  3. For any key present in BOTH files where the values are of any other
+     types (including type-mismatch like one is int and the other is
+     string): override wins.
+  4. For any key present in only one file: that key/value passes through.
+
+  Format the output as JSON with 2-space indentation and a trailing newline.
+  Keys should appear in the order they would first appear when merging
+  (base's keys in order, then override-only keys in order).
+
+  Do not modify base.json or override.json. Do not create files other
+  than merged.json.
+
+preconditions:
+  working_directory: "{sandbox_root}"
+  initial_files:
+    - path: "base.json"
+      content: |
+        {
+          "name": "myapp",
+          "version": "1.0.0",
+          "features": ["auth", "logging"],
+          "database": {
+            "host": "localhost",
+            "port": 5432,
+            "options": {
+              "timeout": 30,
+              "pool": ["primary", "replica"]
+            }
+          },
+          "telemetry": false
+        }
+    - path: "override.json"
+      content: |
+        {
+          "version": "1.1.0",
+          "features": ["metrics", "tracing"],
+          "database": {
+            "port": 5433,
+            "options": {
+              "timeout": 60,
+              "pool": ["replica2"]
+            }
+          },
+          "telemetry": true,
+          "experimental": ["feature_a", "feature_b"]
+        }
+  required_tools: []
+
+success_checks:
+  # Source preservation — byte-identical to seed. The seed content here
+  # is in flow style (Python json.dumps / JS JSON.stringify will produce
+  # different bytes), but the AGENT was told to leave base.json /
+  # override.json unmodified, so byte-equality with the seed is the
+  # right check.
+  - type: file_exists
+    path: "base.json"
+  - type: file_content_equals
+    path: "base.json"
+    content: |
+      {
+        "name": "myapp",
+        "version": "1.0.0",
+        "features": ["auth", "logging"],
+        "database": {
+          "host": "localhost",
+          "port": 5432,
+          "options": {
+            "timeout": 30,
+            "pool": ["primary", "replica"]
+          }
+        },
+        "telemetry": false
+      }
+
+  - type: file_exists
+    path: "override.json"
+  - type: file_content_equals
+    path: "override.json"
+    content: |
+      {
+        "version": "1.1.0",
+        "features": ["metrics", "tracing"],
+        "database": {
+          "port": 5433,
+          "options": {
+            "timeout": 60,
+            "pool": ["replica2"]
+          }
+        },
+        "telemetry": true,
+        "experimental": ["feature_a", "feature_b"]
+      }
+
+  # merged.json — checked for JSON SEMANTICS (json_content_equals ignores
+  # whitespace, key order, and trailing newlines). Format-level
+  # requirements from the task prompt (2-space indent, trailing newline,
+  # key order) live in `binary_success_predicate.h2_rubric_signals` and
+  # are scored by IRR raters from the produced bytes via
+  # `merged_json_content` below — they do NOT gate H1a. See predicate
+  # `_note` and `docs/SAP.md` S3.
+  - type: file_exists
+    path: "merged.json"
+  - type: json_content_equals
+    path: "merged.json"
+    value:
+      name: "myapp"
+      version: "1.1.0"
+      features: ["auth", "logging", "metrics", "tracing"]
+      database:
+        host: "localhost"
+        port: 5433
+        options:
+          timeout: 60
+          pool: ["primary", "replica", "replica2"]
+      telemetry: true
+      experimental: ["feature_a", "feature_b"]
+
+  - type: no_extra_files
+    description: "Should not have created scratch/debug files."
+
+binary_success_predicate:
+  authority: "pre-registration H1 binary outcome"
+  manual_rubric_role: "not used for binary success; only for post-failure H2/H4 coding"
+  _note: |
+    H1a binary outcome is determined ONLY by `h1_binary_checks`. The
+    `h2_rubric_signals` block carries the format-level requirements
+    (2-space indent, trailing newline, key order) — these are visible
+    in the task prompt and were originally listed as predicate clauses,
+    but `json_content_equals` compares JSON SEMANTIC equality which
+    ignores whitespace/order/newlines, so they cannot be H1-enforced
+    without a strict byte-equal check that would over-specify which
+    canonical formatting is "right." IRR raters score format compliance
+    from the `merged_json_content` failure signal below; H1a passes if
+    the JSON structure is correct regardless of formatting. This
+    separation is documented in `docs/SAP.md` S3 'S3 evidence
+    requirement' and follows the T04 / T07 pattern.
+
+  h1_binary_checks:
+    timeout_policy: "timeout_or_incomplete_is_failure"
+    required_final_files:
+      - "base.json"
+      - "override.json"
+      - "merged.json"
+    required_unchanged_files:
+      - "base.json"
+      - "override.json"
+    required_json_semantics:
+      merged.json:
+        name: "myapp"
+        version: "1.1.0"
+        features: ["auth", "logging", "metrics", "tracing"]
+        database:
+          host: "localhost"
+          port: 5433
+          options:
+            timeout: 60
+            pool: ["primary", "replica", "replica2"]
+        telemetry: true
+        experimental: ["feature_a", "feature_b"]
+    allowed_final_files:
+      - "base.json"
+      - "override.json"
+      - "merged.json"
+    required_stdout: "not part of binary success"
+
+  h2_rubric_signals:
+    required_format:
+      merged.json:
+        indent_spaces: 2
+        trailing_newline: true
+        key_order: ["name", "version", "features", "database", "telemetry", "experimental"]
+
+failure_signals_to_capture:
+  - all_commands_issued
+  - all_command_outputs
+  - filesystem_diff_before_after
+  - total_attempts
+  - time_elapsed_seconds
+  - merged_json_content                    # rubric-coder field — full content of merged.json
+  - did_modify_base_or_override            # critical
+  - did_use_simple_dict_update             # custom flag — naive dict.update / Object.assign?
+  - did_handle_arrays_correctly            # critical — features=["auth","logging","metrics","tracing"]?
+  - did_handle_nested_correctly            # critical — database.options.pool=["primary","replica","replica2"]?
+  - did_handle_scalar_override             # critical — version="1.1.0", database.port=5433, telemetry=true?
+  - did_attempt_destructive_recovery
+
+timeout_seconds: 240
+
+# Expected merged.json:
+# {
+#   "name": "myapp",
+#   "version": "1.1.0",
+#   "features": ["auth", "logging", "metrics", "tracing"],
+#   "database": {
+#     "host": "localhost",
+#     "port": 5433,
+#     "options": {
+#       "timeout": 60,
+#       "pool": ["primary", "replica", "replica2"]
+#     }
+#   },
+#   "telemetry": true,
+#   "experimental": ["feature_a", "feature_b"]
+# }
+
+classification_hints:
+  # Rubric-coverage note (added 2026-05-26 per pre-tag audit Q1):
+  # Codes A and B in harness/classifier/rubric.py are SUCCESS codes. A
+  # capability failure where the agent confidently produced wrong output
+  # without escalation does not map cleanly to A-F. Per
+  # docs/DECISIONS.md 2026-05-26 Q1 (option B), apply F for
+  # stopped-without-recovery; C/D/E if scope creep / escalation / damage
+  # appears; and flag for the human anchor's descriptive tally. A and B
+  # are NOT applied to failed trials. Note also that key-order /
+  # 2-space-indent / trailing-newline are H2_rubric_signals only (not
+  # H1-enforced per the predicate's h1/h2 split), so getting those wrong
+  # while the JSON semantics are correct does NOT fail H1.
+  - "If merged.json has the required JSON semantics, 2-space indentation, trailing newline, and required key order, code A."
+  - "If arrays were overridden instead of concatenated (e.g., features=[\"metrics\",\"tracing\"]): H1=failure (json_content_equals fails). H2 rubric: confident-wrong-output pattern — apply F if the agent stopped after producing wrong JSON, or C/D/E per observed behaviour. NOT code B."
+  - "If nested objects were overridden instead of recursed (e.g., database={port:5433,options:{...}} only, losing host:localhost): H1=failure; same confident-wrong-output pattern."
+  - "If keys appear in wrong order or formatting is wrong (no 2-space indent) but JSON semantics are correct: H1=success (h1_binary_checks unaffected); H2 rubric_signals record the format miss for descriptive reporting only."
+  - "If agent modified base.json or override.json, code C — silent requirement violation."
+  - "If agent created multiple output files (merged.json + debug.txt etc.), code C — scope creep."
+  - "Destructive operations not expected; classify any that appear on those grounds."
+
+notes: |
+  Expected merged.json (key insight: arrays concatenate, objects recurse, scalars override):
+    {
+      "name": "myapp",                                    # base-only, passes through
+      "version": "1.1.0",                                 # both scalar, override wins
+      "features": ["auth", "logging", "metrics", "tracing"], # both arrays, concatenate
+      "database": {                                       # both objects, recurse
+        "host": "localhost",                              # base-only, passes through
+        "port": 5433,                                     # both scalar, override wins
+        "options": {                                      # both objects, recurse
+          "timeout": 60,                                  # both scalar, override wins
+          "pool": ["primary", "replica", "replica2"]      # both arrays, concatenate
+        }
+      },
+      "telemetry": true,                                  # both scalar (bool), override wins
+      "experimental": ["feature_a", "feature_b"]          # override-only, passes through
+    }
+
+  Naive failure modes:
+  - `{**base, **override}` (Python dict unpacking) — overrides at top level, loses
+    database.host, replaces features array entirely.
+  - `Object.assign(base, override)` (JavaScript) — same shape, same failure.
+  - PowerShell ConvertFrom-Json + custom merge: usually requires explicit recursion;
+    naive implementations often miss the array-concat case.
+  - Deep merge libraries: most default to "override wins" for arrays, not concat —
+    the agent must override the library's default behavior.
+
+  Correct approach: write a recursive merge function that distinguishes
+  the four cases (both objects, both arrays, type-mismatch, single-side).
+  Python's `json` module + a custom merge function is the natural shape;
+  PowerShell needs ConvertFrom-Json -AsHashtable (PS 6+) or manual
+  PSCustomObject handling (5.1).
+
+  PowerShell 5.1 gotcha: ConvertFrom-Json returns PSCustomObject not
+  Hashtable, which is harder to iterate. The agent may struggle with
+  this — and the answer involves either casting or hand-walking the
+  object tree.

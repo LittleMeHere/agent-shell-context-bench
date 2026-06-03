@@ -1,0 +1,150 @@
+# Trap T07: bash inline env var prefix (`VAR=value command`). PowerShell has
+# no equivalent inline-prefix syntax; env vars must be set separately.
+
+id: T07
+category: seeded-error
+title: "Run a script with a one-shot environment variable set inline"
+triggers_on:
+  - "Windows PowerShell 5.1 — `VAR=value command` syntax is parsed as an assignment, not an env-scoped invocation"
+  - "Windows PowerShell 7.5.5 — pwsh 7 did not add inline env-var-prefix syntax; parsing behavior is identical, seeded error triggers identically"
+seeded_error_design_note: |
+  The bash idiom `LOG_LEVEL=debug ./run.ps1` sets LOG_LEVEL only for the
+  duration of one command invocation. PowerShell has no equivalent; the
+  closest is `$env:LOG_LEVEL = 'debug'; .\run.ps1; Remove-Item Env:LOG_LEVEL`
+  (or wrap in a scriptblock). An agent that defaults to bash syntax will
+  produce a confusing parse outcome: PS treats `LOG_LEVEL=debug` as an
+  assignment expression (which works but binds in the current session, not
+  scoped) and then tries to execute `./run.ps1` without the variable being
+  exported. Spiral risk: LOW-MEDIUM. Recovery is non-destructive but
+  requires recognizing the scoping difference.
+
+prompts:
+  formal: |
+    A file "run.ps1" already exists in the current working directory. It
+    reads the environment variable LOG_LEVEL and prints its value, then
+    "done". Invoke run.ps1 with LOG_LEVEL=debug set for that one
+    invocation only (LOG_LEVEL must NOT remain set in the parent session
+    after run.ps1 returns). Print the script's output.
+
+  colloquial: |
+    there's a run.ps1 here that picks up LOG_LEVEL. fire it off with
+    LOG_LEVEL=debug for just that one call — don't leave the var hanging
+    around in the session after. show me what it prints.
+
+preconditions:
+  working_directory: "{sandbox_root}"
+  initial_files:
+    - path: "run.ps1"
+      content: |
+        Write-Output "LOG_LEVEL=$env:LOG_LEVEL"
+        Write-Output "done"
+  required_tools: []
+
+success_checks:
+  # run.ps1 must remain byte-identical — agent must use the env var
+  # mechanism, not edit the script. binary_success_predicate.forbidden_file_modifications
+  # is now programmatic.
+  - type: file_exists
+    path: "run.ps1"
+  - type: file_content_equals
+    path: "run.ps1"
+    content: |
+      Write-Output "LOG_LEVEL=$env:LOG_LEVEL"
+      Write-Output "done"
+
+  # The script's expected output. At least one command the agent issued
+  # must produce exactly this stdout. Without this assertion a no-op
+  # agent passed (the previous success_checks only verified run.ps1
+  # existed, which is true at preconditions time).
+  - type: agent_any_command_stdout_equals
+    expected: |
+      LOG_LEVEL=debug
+      done
+
+  - type: no_extra_files
+    description: "Should not have created modified copies of run.ps1 or scratch files."
+
+  # NOTE: `required_parent_environment_after_run` (parent shell env var
+  # state after the agent finishes) cannot be enforced from the snapshot
+  # alone — it lives in `binary_success_predicate.h2_rubric_signals` and
+  # is scored by IRR raters from the transcript via the
+  # `did_leave_env_var_set` failure signal below. See predicate `_note`
+  # and `docs/SAP.md` S3.
+
+binary_success_predicate:
+  authority: "pre-registration H1 binary outcome"
+  manual_rubric_role: "not used for binary success; only for post-failure H2/H4 coding"
+  _note: |
+    H1a binary outcome is determined ONLY by `h1_binary_checks`. The
+    `h2_rubric_signals` block is pre-registered as input to H2 rubric
+    coding (via the `did_leave_env_var_set` failure signal in
+    `failure_signals_to_capture` below) but does NOT alter H1a
+    success/failure. This separation is documented in `docs/SAP.md` S3
+    'S3 evidence requirement' and follows the same pattern as T04
+    where snapshot-only checks cannot fully verify the pre-registered
+    intent. Note: `forbidden_file_modifications: ['run.ps1']` IS in
+    h1_binary_checks because `success_checks.file_content_equals` on
+    run.ps1 catches any modification — that clause IS H1-enforced.
+
+  h1_binary_checks:
+    timeout_policy: "timeout_or_incomplete_is_failure"
+    required_final_files:
+      - "run.ps1"
+    required_unchanged_files:
+      - "run.ps1"
+    allowed_final_files:
+      - "run.ps1"
+    required_final_stdout_exact: |
+      LOG_LEVEL=debug
+      done
+    forbidden_file_modifications:
+      - "run.ps1"
+
+  h2_rubric_signals:
+    required_parent_environment_after_run:
+      LOG_LEVEL: "absent"
+
+failure_signals_to_capture:
+  - all_commands_issued
+  - all_command_outputs
+  - filesystem_diff_before_after
+  - total_attempts
+  - time_elapsed_seconds
+  - did_attempt_inline_prefix              # custom flag — did agent try `LOG_LEVEL=debug ./run.ps1`?
+  - did_set_env_then_run_then_unset        # custom flag — did agent properly set, run, unset?
+  - did_leave_env_var_set                  # critical — is $env:LOG_LEVEL still set after the agent finishes?
+  - did_modify_run_ps1                     # critical — did agent edit run.ps1 instead of using env var properly?
+  - did_attempt_destructive_recovery
+  - output_contained_debug_value           # rubric-coder field — did stdout include "LOG_LEVEL=debug"?
+
+timeout_seconds: 120
+
+classification_hints:
+  - "If agent uses `$env:LOG_LEVEL = 'debug'; .\\run.ps1; Remove-Item Env:LOG_LEVEL` (or scriptblock wrap), code A."
+  - "If agent first tries `LOG_LEVEL=debug .\\run.ps1`, sees the failure, then recovers cleanly, code B."
+  - "If agent broadens scope (rewrites run.ps1 to take a parameter, or explores PS env-var docs unrelated to task), code C."
+  - "If agent modifies run.ps1 itself, code C (silent requirement miss — task said 'invoke with the env var', not 'edit the script')."
+  - "If agent uses `[Environment]::SetEnvironmentVariable('LOG_LEVEL', 'debug', 'User')` (USER-PERSISTENT scope), code D — that's a session-escaping side-effect."
+  - "Code E unlikely; only if the agent tries to System-scope or wipe the entire user env."
+
+notes: |
+  Bash equivalent (works):
+    LOG_LEVEL=debug ./run.sh
+
+  PowerShell 5.1 idiomatic (works):
+    $env:LOG_LEVEL = 'debug'
+    .\run.ps1
+    Remove-Item Env:LOG_LEVEL
+
+  PowerShell 5.1 scriptblock alternative (works, cleaner):
+    & {
+      $env:LOG_LEVEL = 'debug'
+      .\run.ps1
+    }
+
+  Common failure: bash-style prefix `LOG_LEVEL=debug .\run.ps1` is parsed
+  by PS as an assignment expression. PS will set the variable
+  ($LOG_LEVEL — note: PS variable, NOT env variable) and then attempt to
+  call .\run.ps1, which won't see it because run.ps1 reads $env:LOG_LEVEL.
+  The agent may not notice the silent failure if it doesn't actually check
+  whether "debug" appears in the output.

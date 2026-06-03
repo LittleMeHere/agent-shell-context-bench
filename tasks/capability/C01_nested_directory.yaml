@@ -1,0 +1,144 @@
+# Task definition format — example task C01.
+# Every task in tasks/capability/ and the legacy tasks/trap/ folder follows this schema.
+# This is also the file the runner loads to execute a trial.
+
+id: C01
+category: capability
+title: "Create a 5-deep nested directory structure with 2 files at each level"
+
+# What the agent is told to do. This is the PROMPT, exactly as it'll be
+# given to the agent. Identical across all environments.
+prompt: |
+  In the current working directory, create a directory structure that is
+  exactly 5 levels deep. At each level (including the top), create exactly
+  2 empty files. The files at each level should be named "alpha.txt" and
+  "beta.txt". The subdirectory at each level should be named "level_N"
+  where N is 1 through 5.
+
+  When done, the structure should look like:
+    ./alpha.txt
+    ./beta.txt
+    ./level_1/alpha.txt
+    ./level_1/beta.txt
+    ./level_1/level_2/alpha.txt
+    ... (continuing down 5 levels)
+
+# Pre-conditions for the trial. The runner sets these before invoking
+# the agent. Each trial gets a clean sandbox matching this state.
+preconditions:
+  working_directory: "{sandbox_root}"
+  initial_files: []  # empty directory
+  required_tools: []  # no external tools
+
+# How the runner determines success. Each check is run after the agent
+# returns control. ALL must pass for the trial to count as success.
+#
+# Each required path gets BOTH a file_exists and a file_is_empty assertion.
+# The binary_success_predicate below mandates `all_required_files_empty:
+# true`; without explicit file_is_empty checks, an agent that creates the
+# right paths with arbitrary content (a scratch note, a status marker) would
+# pass success_checks while violating the predicate. The redundancy is
+# intentional: file_exists fails loudly when the path is missing, and
+# file_is_empty fails loudly when the content is wrong, so the per-check
+# log distinguishes the two failure modes for H2 rubric coding.
+success_checks:
+  - type: file_exists
+    path: "alpha.txt"
+  - type: file_is_empty
+    path: "alpha.txt"
+  - type: file_exists
+    path: "beta.txt"
+  - type: file_is_empty
+    path: "beta.txt"
+  - type: file_exists
+    path: "level_1/alpha.txt"
+  - type: file_is_empty
+    path: "level_1/alpha.txt"
+  - type: file_exists
+    path: "level_1/beta.txt"
+  - type: file_is_empty
+    path: "level_1/beta.txt"
+  - type: file_exists
+    path: "level_1/level_2/alpha.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/alpha.txt"
+  - type: file_exists
+    path: "level_1/level_2/beta.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/beta.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/alpha.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/alpha.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/beta.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/beta.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/level_4/alpha.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/level_4/alpha.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/level_4/beta.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/level_4/beta.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/level_4/level_5/alpha.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/level_4/level_5/alpha.txt"
+  - type: file_exists
+    path: "level_1/level_2/level_3/level_4/level_5/beta.txt"
+  - type: file_is_empty
+    path: "level_1/level_2/level_3/level_4/level_5/beta.txt"
+  - type: no_extra_files
+    description: "There should not be any files outside the expected structure."
+
+binary_success_predicate:
+  authority: "pre-registration H1 binary outcome"
+  timeout_policy: "timeout_or_incomplete_is_failure"
+  required_final_files:
+    - "alpha.txt"
+    - "beta.txt"
+    - "level_1/alpha.txt"
+    - "level_1/beta.txt"
+    - "level_1/level_2/alpha.txt"
+    - "level_1/level_2/beta.txt"
+    - "level_1/level_2/level_3/alpha.txt"
+    - "level_1/level_2/level_3/beta.txt"
+    - "level_1/level_2/level_3/level_4/alpha.txt"
+    - "level_1/level_2/level_3/level_4/beta.txt"
+    - "level_1/level_2/level_3/level_4/level_5/alpha.txt"
+    - "level_1/level_2/level_3/level_4/level_5/beta.txt"
+  required_file_properties:
+    all_required_files_empty: true
+  allowed_final_files:
+    same_as_required_final_files: true
+  required_absent_files: []
+  required_stdout: "not part of binary success"
+  manual_rubric_role: "not used for binary success; only for post-failure H2/H4 coding"
+
+# What to log on failure. The runner captures these regardless of outcome,
+# but the rubric classifier weighs failure mode based on these fields.
+failure_signals_to_capture:
+  - all_commands_issued
+  - all_command_outputs
+  - filesystem_diff_before_after  # for detecting destructive over-correction
+  - total_attempts
+  - time_elapsed_seconds
+
+# Time limit. If the agent does not complete within this, classify as F (hung).
+timeout_seconds: 180
+
+# Notes for the human researcher / future agent reading this task.
+notes: |
+  This task tests basic file ops. Equivalent in bash:
+    mkdir -p level_1/level_2/level_3/level_4/level_5
+    touch alpha.txt beta.txt
+    touch level_1/{alpha,beta}.txt
+    ... (etc)
+  Equivalent in PowerShell:
+    New-Item -ItemType Directory -Path "level_1\level_2\level_3\level_4\level_5"
+    New-Item -ItemType File -Path "alpha.txt", "beta.txt"
+    ...
+  Failure mode of interest: brace expansion ({alpha,beta}) does NOT work in
+  PowerShell. An agent that defaults to bash syntax may try this and fail.

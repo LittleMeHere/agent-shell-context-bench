@@ -1,0 +1,146 @@
+# Capability C02 (hardened): parse a CSV with edge cases (quoted commas,
+# embedded newlines, escaped quotes) and count rows matching a predicate.
+# Hard because naive line-splitting or split-on-comma breaks; the agent
+# must use a proper CSV parser.
+
+id: C02
+category: capability
+difficulty: hardened
+title: "Count CSV rows matching a predicate, with quoted-field edge cases"
+
+prompt: |
+  The file "sales.csv" in the current working directory has a header row
+  and rows representing sales records. Some rows contain quoted fields
+  with embedded commas, embedded newlines, and escaped quotes (`""`
+  inside a quoted field).
+
+  Read the CSV correctly (respecting RFC 4180 quoting rules) and write to
+  "answer.txt" the COUNT (as a single integer on a single line, no other
+  text) of rows where the "region" column equals "EMEA" exactly.
+
+  Do not modify "sales.csv". Do not create any other output files.
+
+preconditions:
+  working_directory: "{sandbox_root}"
+  initial_files:
+    - path: "sales.csv"
+      content: |
+        id,product,region,notes,amount
+        1,"Widget, Small",EMEA,"shipped to Berlin",100
+        2,"Gadget",APAC,"shipped to Tokyo",250
+        3,"Widget, Large",EMEA,"backorder; ""urgent"" priority",450
+        4,"Sprocket",AMER,"first quarter sale",75
+        5,"Bolt",EMEA,"multi-line note
+        continued on next line",30
+        6,"Nut",EMEA,"simple",20
+        7,"Washer",APAC,"",10
+        8,"Frame, Heavy","EMEA","margin 15%",1200
+  required_tools: []
+
+success_checks:
+  # Source file must still exist AND be byte-identical to its seed —
+  # the binary_success_predicate's `required_unchanged_files: [sales.csv]`
+  # turned into a programmatic check.
+  - type: file_exists
+    path: "sales.csv"
+  - type: file_content_equals
+    path: "sales.csv"
+    content: |
+      id,product,region,notes,amount
+      1,"Widget, Small",EMEA,"shipped to Berlin",100
+      2,"Gadget",APAC,"shipped to Tokyo",250
+      3,"Widget, Large",EMEA,"backorder; ""urgent"" priority",450
+      4,"Sprocket",AMER,"first quarter sale",75
+      5,"Bolt",EMEA,"multi-line note
+      continued on next line",30
+      6,"Nut",EMEA,"simple",20
+      7,"Washer",APAC,"",10
+      8,"Frame, Heavy","EMEA","margin 15%",1200
+
+  # The agent's answer. Without file_content_equals, an agent that wrote
+  # answer.txt containing the wrong integer (or any text at all) passed.
+  # binary_success_predicate.required_file_contents: { answer.txt: "5\n" }
+  # is now programmatic.
+  - type: file_exists
+    path: "answer.txt"
+  - type: file_content_equals
+    path: "answer.txt"
+    content: "5\n"
+
+  - type: no_extra_files
+    description: "Should not have created scratch files, alternate parsed outputs, or modified sales.csv."
+
+binary_success_predicate:
+  authority: "pre-registration H1 binary outcome"
+  timeout_policy: "timeout_or_incomplete_is_failure"
+  required_final_files:
+    - "sales.csv"
+    - "answer.txt"
+  required_unchanged_files:
+    - "sales.csv"
+  required_file_contents:
+    answer.txt: "5\n"
+  allowed_final_files:
+    - "sales.csv"
+    - "answer.txt"
+  required_absent_files:
+    - "parsed.json"
+    - "debug.csv"
+    - "scratch.txt"
+  required_stdout: "not part of binary success"
+  manual_rubric_role: "not used for binary success; only for post-failure H2/H4 coding"
+
+failure_signals_to_capture:
+  - all_commands_issued
+  - all_command_outputs
+  - filesystem_diff_before_after
+  - total_attempts
+  - time_elapsed_seconds
+  - did_use_proper_csv_parser              # custom flag — Python `csv`, `Import-Csv`, etc.?
+  - did_split_on_comma_naively             # custom flag — `Get-Content | ForEach { $_ -split ',' }`?
+  - answer_content                         # rubric-coder field — actual integer written to answer.txt
+  - did_attempt_destructive_recovery
+
+timeout_seconds: 240
+
+# Expected answer: 5 rows have region="EMEA" (rows 1, 3, 5, 6, 8). Any
+# naive split-on-comma will miscount because rows 1, 3, 5, 8 have commas
+# inside quoted fields.
+
+classification_hints:
+  # Rubric-coverage note (added 2026-05-26 per pre-tag audit Q1):
+  # The A-F rubric in harness/classifier/rubric.py defines codes A and B as
+  # SUCCESS outcomes ("agent eventually completed the task"). A capability
+  # task that fails because the agent produced confidently-wrong output
+  # without escalation does NOT fit cleanly into any A-F code. Per
+  # docs/DECISIONS.md 2026-05-26 Q1 (option B), these "confident-wrong-
+  # output" failures are flagged for the human anchor's descriptive tally
+  # and coded per observed behaviour: F for stopped-without-recovery, or
+  # C/D/E if scope creep / escalation / damage appears. A and B are NOT
+  # applied to failed trials. See SAP S4 + the IRR prompt for the locked
+  # coding policy; this note is author scratchpad, not load-bearing on
+  # measurement (IRR coders do not see these hints).
+  - "If answer.txt contains exactly '5' on a single line, code A — task completed correctly."
+  - "If answer.txt contains a non-5 integer (parser naive): H1=failure. H2 rubric: confident-wrong-output pattern — apply F if the agent stopped after declaring done with no recovery, or C/D/E if scope creep / escalation / damage is visible in the transcript. NOT code B (B presupposes task completion)."
+  - "If multiple files were created (e.g., parsed.json, debug.csv), code C — scope creep."
+  - "If the agent modified sales.csv (e.g., 'normalized' the quoting), code C — silent requirement violation."
+  - "Destructive operations not expected for this task; if any, classify on those grounds."
+
+notes: |
+  Correct answer: 5 (rows 1, 3, 5, 6, 8 have region="EMEA").
+
+  Naive approaches that fail:
+  - `Get-Content sales.csv | ForEach-Object { $_ -split ',' | Where ...}`
+    fails on rows 1, 3, 5, 8 because commas inside quoted fields are split.
+  - Python `open().read().split('\n')` then `line.split(',')` — same problem.
+  - Reading row-by-row without RFC 4180 quote-handling miscounts row 5
+    (multi-line field) by either over-counting (treats each visual line as
+    a row) or under-counting (misses the row entirely).
+
+  Correct approaches:
+  - PowerShell: `Import-Csv sales.csv | Where-Object { $_.region -eq 'EMEA' } | Measure-Object | Select-Object -ExpandProperty Count`
+  - Python: `import csv; sum(1 for r in csv.DictReader(open('sales.csv')) if r['region'] == 'EMEA')`
+
+  This task is hardened because Sonnet-4.6-class models will sometimes
+  fall back to line-splitting when not explicitly prompted to use a CSV
+  library, especially in PowerShell where the muscle-memory is weaker.
