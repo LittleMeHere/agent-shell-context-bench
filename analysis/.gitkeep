@@ -1,0 +1,5 @@
+# Holds IRR coder outputs (analysis/irr/) and statistical-analysis notebooks
+# / figures (analysis/notebooks/, analysis/figures/) produced during and
+# after data collection. Populated post-tag. The directory is kept
+# tracked-but-empty at the pre-registration-v1 tag so the structure is
+# visible without committing analysis artifacts that don't exist yet.

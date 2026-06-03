@@ -1,0 +1,2 @@
+# Keeps the data/ directory in git while raw trial data stays ignored.
+# Published data is curated + redaction-reviewed and force-added deliberately.
