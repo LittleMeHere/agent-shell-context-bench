@@ -9,8 +9,8 @@ The five pre-registered environments (RESEARCH_PLAN.md):
   windows_pwsh7       Windows 11 native, pwsh 7.6.2              -> subclass of powershell.py
                       (E2 added 2026-05-25 (later); within-Windows
                        mechanism check vs E1)
-  windows_wsl2        Windows 11 host, WSL2 Ubuntu 22.04         -> (V2 work)
-  linux_native        Ubuntu 22.04 on GCP e2-small               -> (V2 work)
+  windows_wsl2        Windows 11 host, WSL2 Ubuntu 24.04         -> (V2 work)
+  linux_native        Ubuntu 24.04 on GCP e2-small               -> (V2 work)
   macos_actions       macOS via GitHub Actions runner            -> (V2 work)
 
 Only `powershell.py` is implemented so far — it is the reference example for

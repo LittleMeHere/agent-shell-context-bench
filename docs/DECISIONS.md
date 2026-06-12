@@ -971,6 +971,72 @@ invocation-surface note added, disclosure-log status line recording the
 
 ---
 
+## 2026-06-12 — Tag-eve currency pass: latest stable everywhere, pins corrected and locked
+
+Context: immediately before cutting `pre-registration-v1`, the researcher
+instructed a full currency audit ("no advantage to sticking with older
+configurations — make sure we are up to date on everything (stable
+release) and lock in the versions"). The audit found drift in all three
+CLIs, one factually wrong environment pin, one environment pin that
+would be deprecated mid-study, and a new Anthropic GA frontier model
+released three days earlier.
+
+Considered: (α) tag with the as-found versions (smallest diff, but locks
+known-stale tooling and a frontier pin superseded before the tag
+exists); (β) update to current stable, re-run every affected
+verification, and tag the refreshed state.
+
+Picked **(β)** because:
+
+- The repo's own 2026-05-30 convention says the "Anthropic frontier"
+  role is filled by whichever model is current at tag time — Anthropic
+  released **Claude Fable 5** (`claude-fable-5`) as the GA frontier on
+  2026-06-09, superseding Opus 4.8. Tagging Opus 4.8 would have forced
+  an immediate post-tag deviation, exactly what the 2026-05-30 entry
+  declined to do.
+- The E3 pin was not merely stale but wrong: the data-collection machine
+  has **Ubuntu-24.04** under WSL2 and no 22.04 distro, so the
+  pre-registered `wsl -d Ubuntu-22.04` invocation could never have run.
+  E3 corrected to 24.04; E4 advanced to 24.04 LTS to keep both Linux
+  cells on one current LTS.
+- The E5 `macos-14` runner image enters deprecation 2026-07-06 and is
+  fully unsupported 2026-11-02 — inside the collection/replication
+  window. Advanced to `macos-26` (GA; the current `macos-latest`
+  default).
+- All verifications were re-run after updating, not assumed: Claude Code
+  2.1.176 six-flag check + live stream-json schema check (passed; parser
+  verified end-to-end on the capture, which also exercised the
+  PowerShell tool branch); `claude-fable-5` availability and
+  served-model routing confirmed by live invocation on the study plan;
+  agy 1.0.7 `--print` flags re-confirmed; Codex 0.139.0 noted with
+  `exec --json` re-confirmation deferred to adapter build (which gates
+  configs #3/#4 regardless).
+
+Rejected: (α) — and, separately, upgrading the harness host Python
+dependencies was rejected: they re-verified as exactly matching the
+manifest and stay frozen because they guard the deterministic power
+analysis.
+
+Tradeoff: the Codex `exec --json` schema evidence (2026-05-25) and the
+agy transcript-schema evidence (2026-05-25, on 1.0.2) now predate the
+pinned CLI builds; both re-confirmations are pre-conditions of the
+respective adapter builds and are recorded in `docs/VERSIONS.md`.
+OpenAI and Google model pins were audited and left unchanged (GPT-5.5
+remains the top generally-available tier per the 2026-06-11 pricing
+capture; `Gemini 3.1 Pro (High)` remains the subscription frontier
+label).
+
+Propagated to: `docs/VERSIONS.md` (config rows 1-5, IRR Coder 1,
+substitution-rule example, lineage-coverage line, environment table
+E3/E4/E5, change log), `RESEARCH_PLAN.md` (matrix tables, agents table,
+environments table, open-questions item 3), `docs/SAP.md` (config table
+row 1, environments line), `docs/TOS_COMPLIANCE.md` (Anthropic configs
+line), `harness/adapters/claude_code.py` (VERSION PIN block),
+`harness/environments/__init__.py` (docstring). Non-public working notes
+updated separately the same day.
+
+---
+
 ## (template for future entries)
 
 ## YYYY-MM-DD — <decision title>

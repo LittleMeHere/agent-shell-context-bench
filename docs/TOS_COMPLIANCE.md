@@ -62,7 +62,7 @@ after the researcher's browser capture session):
 
 ## Anthropic - configs #1 and #2
 
-**Configs:** Claude Code x `claude-opus-4-8`; Claude Code x
+**Configs:** Claude Code x `claude-fable-5`; Claude Code x
 `claude-sonnet-4-6`.
 
 **Access path:** Consumer subscription tier (Claude Max) via the first-party
@@ -352,7 +352,9 @@ Antigravity CLI (`agy --print`) and/or Antigravity SDK. This supersedes the
 
 **Verbatim operative clauses (retrieved 2026-06-09):**
 
-- Local `agy --help` (agy 1.0.4, re-verified 2026-06-09; whitespace
+- Local `agy --help` (captured on agy 1.0.4, 2026-06-09; the same flag
+  lines re-confirmed verbatim on agy 1.0.7 after the 2026-06-12 update;
+  whitespace
   collapsed) - non-interactive mode is a documented first-party CLI surface:
   > "-p  Short alias for --print"
   > "--print  Run a single prompt non-interactively and print the response"
@@ -408,7 +410,7 @@ Antigravity CLI (`agy --print`) and/or Antigravity SDK. This supersedes the
 | Source | Retrieved | Vendor date | archive.org snapshot |
 |---|---|---|---|
 | Generative AI Prohibited Use Policy | 2026-06-09 (live; raw-HTML cross-checked) | Last Modified December 17, 2024 | http://web.archive.org/web/20260608063432/https://policies.google.com/terms/generative-ai/use-policy |
-| Local `agy --help` output | 2026-06-09 (agy 1.0.4 on the data-collection machine) | n/a | n/a (local primary source; transcript in researcher's off-repo evidence archive) |
+| Local `agy --help` output | 2026-06-09 (agy 1.0.4); flag lines re-confirmed on agy 1.0.7, 2026-06-12 | n/a | n/a (local primary source; transcript in researcher's off-repo evidence archive) |
 | Antigravity CLI overview docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | https://web.archive.org/web/20260610022757/https://antigravity.google/docs/cli-overview (replays fully in a browser - sub-resources captured; raw HTML is an application shell, so text is not machine-extractable) |
 | Antigravity CLI usage docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | https://web.archive.org/web/20260610022857/https://antigravity.google/docs/cli-using (same: full browser replay verified by the researcher; not machine-extractable) |
 | Antigravity SDK overview docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | http://web.archive.org/web/20260607145444/https://antigravity.google/docs/sdk-overview |

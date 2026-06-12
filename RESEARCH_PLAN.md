@@ -55,8 +55,8 @@ already-pre-registered V1 configurations.
 |---|---|---|
 | E1 | Windows 11 native, **PowerShell 5.1** (default Windows shell) | researcher's Windows workstation |
 | E2 | Windows 11 native, **pwsh 7.6.2** (modern PowerShell, becoming default for developer-Windows; pin ticked from 7.5.5 at the 2026-06-12 tag-time re-verification) | same machine |
-| E3 | Windows 11 + WSL2 Ubuntu 22.04 | same machine |
-| E4 | Linux native (Ubuntu 22.04 on a small GCP instance) | ~$10/mo |
+| E3 | Windows 11 + WSL2 Ubuntu 24.04 (the distro actually installed on the data-collection machine; pin corrected from 22.04 at the 2026-06-12 tag-eve verification) | same machine |
+| E4 | Linux native (Ubuntu 24.04 LTS on a small GCP instance, matching E3) | ~$10/mo |
 | E5 | macOS (GitHub Actions runner) | free via this public repo |
 
 Per the 2026-05-25 (later) scope correction in `docs/DECISIONS.md`, V1
@@ -76,9 +76,9 @@ finding.
 
 | ID | Agent | CLI | Notes |
 |---|---|---|---|
-| A1 | Claude Code | `claude` 2.1.159 (re-verified 2026-06-09; flags re-confirmed) | **V1 primary**; adapter built + parser fixture frozen + 12 regression tests passing |
-| A2 | Codex CLI | `codex` 0.133.0 (verified 2026-05-25 smoke trial via `codex exec --json`) | **V1 primary**; `--json` schema characterised (cleaner than Claude Code's), adapter ~6h post-tag work |
-| A3 | Antigravity CLI | `agy` 1.0.4 (re-verified 2026-06-09; `--print` re-confirmed via `agy --help`; transcript-schema smoke 2026-05-25 ran on 1.0.2 — re-smoke recommended before adapter build) | **V1 primary**; **auth path is official subscription `agy` / Antigravity SDK on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
+| A1 | Claude Code | `claude` 2.1.176 (updated + re-verified 2026-06-12; six flags re-confirmed; live stream-json schema check passed same day) | **V1 primary**; adapter built + parser fixture frozen + 12 regression tests passing |
+| A2 | Codex CLI | `codex` 0.139.0 (updated 2026-06-12; `exec --json` schema characterised on 0.133.0 via the 2026-05-25 smoke — re-confirm at adapter build) | **V1 primary**; `--json` schema characterised (cleaner than Claude Code's), adapter ~6h post-tag work |
+| A3 | Antigravity CLI | `agy` 1.0.7 (updated 2026-06-12; `--print`/`-p` re-confirmed via `agy --help`; transcript-schema smoke 2026-05-25 ran on 1.0.2 — re-smoke before adapter build) | **V1 primary**; **auth path is official subscription `agy` / Antigravity SDK on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
 
 Per the 2026-05-25 (later) scope correction in `docs/DECISIONS.md`, V1
 primary inference is **across all three vendors at two model tiers each
@@ -86,7 +86,7 @@ plus a same-model harness control (7 configs total)**. The matrix is:
 
 | # | Vendor | Config | Role |
 |---|---|---|---|
-| 1 | Anthropic | Claude Code × `claude-opus-4-8` | Anthropic frontier |
+| 1 | Anthropic | Claude Code × `claude-fable-5` | Anthropic frontier |
 | 2 | Anthropic | Claude Code × `claude-sonnet-4-6` | Anthropic workhorse |
 | 3 | OpenAI | Codex × `gpt-5.5` | OpenAI frontier |
 | 4 | OpenAI | Codex × `gpt-5.4-mini` | OpenAI workhorse |
@@ -133,7 +133,7 @@ seeded-error trials.
 
 | CLI | Frontier tier | Workhorse tier |
 |---|---|---|
-| Claude Code | `claude-opus-4-8` | `claude-sonnet-4-6` |
+| Claude Code | `claude-fable-5` | `claude-sonnet-4-6` |
 | Codex | `gpt-5.5` (xhigh) | `gpt-5.4-mini` |
 | agy (Antigravity) | `Gemini 3.1 Pro (High)` | `Gemini 3.5 Flash (Medium)` |
 | **Cross-vendor control** | — | **agy × `Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED) |
@@ -264,7 +264,7 @@ Reference for what these terms mean and why they matter. Any reader can use this
 
 1. **Primary agents to test — LOCKED.** Per the 2026-05-25 (later) scope correction, V1 primary is the full 7-configuration matrix across all three frontier-vendor CLIs (Claude Code, Codex, agy) at two model tiers each plus one same-model harness-control config (agy × Claude Sonnet 4.6 (Thinking)). Adapter implementation status per row is recorded in `docs/VERSIONS.md`; only Claude Code is CONFIRMED at tag time, with Codex and agy as PIN-AT-START — a legitimate pre-reg state because pre-registration locks methodology, not implementation completeness. SAP S5 is the qualification gate for any FUTURE CLI added beyond this V1 matrix. Cursor and GUI agentic IDEs are out (not reproducibly automatable).
 2. **Benchmark task selection.** Task list refined after lit review; capability tasks include a mix of common-workflow coverage and hardened frontier-difficulty tasks (D4 2026-05-23) so H1 has a non-zero denominator.
-3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `opus-4-8` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
+3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `fable-5` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
 4. **Publication venue for the writeup.** preprint server and/or relevant research forums; decided before release.
 
 ## Pre-registration

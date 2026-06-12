@@ -122,11 +122,11 @@ either way.
 
 | # | Agent | CLI version | Model | Role | State |
 |---|---|---|---|---|---|
-| 1 | Claude Code | **2.1.159** (re-verified 2026-06-09 via `claude --version`; was 2.1.150/2026-05-24 and 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-09 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; 12 regression tests pass 2026-06-09; live 2.1.159 schema check PASSED 2026-06-12 — parser verified end-to-end on live output, see change log) / flags CONFIRMED 2026-06-09 / model CONFIRMED |
-| 2 | Claude Code | **2.1.159** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
-| 3 | Codex CLI | `codex-cli` **0.133.0** (verified via `codex --version` 2026-05-23; was 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
+| 1 | Claude Code | **2.1.176** (updated from 2.1.159 + re-verified 2026-06-12 at the tag-eve currency pass; was 2.1.159/2026-06-09, 2.1.150/2026-05-24, 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-12 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-fable-5`** (upgraded from `claude-opus-4-8` per 2026-06-12 DECISIONS — Anthropic released Fable 5 as the current GA frontier on 2026-06-09; availability + served-model routing confirmed by live test invocation on this plan 2026-06-12; note: the vendor documents classifier-based handoff to Opus 4.8 on certain topics in under ~5% of sessions — benign dev-task prompts are unlikely to trigger it, and any served-model mismatch is captured by the per-trial ops log per TOS_COMPLIANCE cross-cutting measure 6) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; live schema checks PASSED on 2.1.159 and 2.1.176, both 2026-06-12, parser verified end-to-end on both captures — the 2.1.176 capture also exercised the PowerShell tool branch of `_SHELL_TOOLS`; see change log) / flags CONFIRMED 2026-06-12 / model CONFIRMED via live invocation 2026-06-12 |
+| 2 | Claude Code | **2.1.176** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
+| 3 | Codex CLI | `codex-cli` **0.139.0** (updated from 0.133.0 + re-verified 2026-06-12 at the tag-eve currency pass; was 0.133.0/2026-05-23, 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`; the `exec --json` schema was characterised on 0.133.0 — re-confirm at adapter build, which gates configs #3/#4 anyway) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
 | 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
-| 5 | Antigravity CLI (`agy`) | **1.0.4** (re-verified 2026-06-09 via `agy --version`; `-p`/`--print` non-interactive flags re-confirmed via `agy --help` the same day; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.4 recommended before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
+| 5 | Antigravity CLI (`agy`) | **1.0.7** (updated from 1.0.4 + re-verified 2026-06-12 at the tag-eve currency pass — `-p`/`--print` non-interactive flags re-confirmed via `agy --help`; was 1.0.4/2026-06-09; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.7 before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
 | 6 | Antigravity CLI (`agy`) | same as #5 | **`Gemini 3.5 Flash (Medium)`** (settings-UI label confirmed 2026-05-25; the workhorse counterpart to Pro (High) — Medium reasoning effort matches realistic cost-sensitive use rather than over- or under-spending; symmetric with Codex's `gpt-5.4-mini` at default reasoning) | Google workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 | 7 | Antigravity CLI (`agy`) | same as #5 | **`Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED via 2026-05-23 verification — exact-case label that propagates Sonnet; lowercase `(thinking)` falls back to Gemini) | **same-model harness-control vs #2** (Claude Sonnet 4.6 in two harnesses across all 5 envs — pre-registered S6 analysis) | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 
@@ -136,9 +136,9 @@ either way.
 |---|---|---|
 | E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8655) | env adapter CONFIRMED (`PowerShellEnvironment`) |
 | E2 | Windows 11 + **pwsh 7.6.2** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
-| E3 | Windows 11 + **WSL2 Ubuntu 22.04** | env adapter PIN-AT-START — `wsl -d Ubuntu-22.04 --` wrapper, ~3h post-tag implementation |
-| E4 | **Linux native** (GCP Ubuntu 22.04 on `e2-small`) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
-| E5 | **macOS** (GitHub Actions `macos-14` runner) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
+| E3 | Windows 11 + **WSL2 Ubuntu 24.04** (pin corrected 2026-06-12: Ubuntu-24.04 is the distro actually installed on the data-collection machine, verified via `wsl -l -v`; no 22.04 install exists) | env adapter PIN-AT-START — `wsl -d Ubuntu-24.04 --` wrapper, ~3h post-tag implementation |
+| E4 | **Linux native** (GCP Ubuntu 24.04 LTS on `e2-small`, advanced from 22.04 on 2026-06-12 to match E3 — same current LTS across both Linux cells) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
+| E5 | **macOS** (GitHub Actions `macos-26` runner, advanced from `macos-14` on 2026-06-12 — macos-14 enters deprecation 2026-07-06 and is fully unsupported 2026-11-02, i.e. during/just after the collection window; macos-26 is GA and the current `macos-latest` default) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
 
 ### Notes on the roster
 
@@ -154,7 +154,7 @@ either way.
 
 | Role | Identity | State |
 |---|---|---|
-| AI Coder 1 (primary) | **`claude-opus-4-8`** (Anthropic, frontier) — pinned 2026-05-23, upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS to track the current Anthropic frontier release | PIN CONFIRMED — re-verify model availability at IRR-run-time |
+| AI Coder 1 (primary) | **`claude-fable-5`** (Anthropic, frontier) — pinned 2026-05-23 as the then-frontier, upgraded 2026-05-30 (Opus 4.8) and 2026-06-12 (Fable 5) per the track-the-current-frontier convention, keeping the S4 same-vendor-bias check aligned with config #1's lineage | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | AI Coder 2 (independent) | **`gpt-5.5`** (OpenAI, frontier; different lineage from Coder 1) — pinned 2026-05-23 | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | Human anchor | the researcher (stratified random ≥50 subset, per SAP S4) | n/a (human) |
 | Optional premium audit | Deep Think (web-only, manual, ≤~20 hardest cases) | optional, not load-bearing |
@@ -164,7 +164,7 @@ unavailable at IRR runtime — vendor deprecation, API access change, or
 any other reason the exact pinned model ID can no longer be invoked —
 the substitute is the **next-frontier-tier model from the same vendor
 at the same approximate reasoning level** (e.g. `gpt-5.5` → its
-successor at the same reasoning tier; `claude-opus-4-8` → its successor
+successor at the same reasoning tier; `claude-fable-5` → its successor
 at the same tier). Same-vendor substitution is required (not preferred,
 required), because the SAP S4 same-vendor-bias check is a
 lineage-coverage design: swapping a coder to a different vendor would
@@ -191,7 +191,7 @@ design pre-registers a same-vendor-bias check (does an AI coder rate
 transcripts from its own-lineage agent-under-test more leniently?). With
 the 2026-05-25 (later) full-matrix restoration:
 
-- Coder 1 (`claude-opus-4-8`) is same-vendor for Claude Code configs (#1 and #2) and same-vendor for the harness-control agy × Claude Sonnet (#7).
+- Coder 1 (`claude-fable-5`) is same-vendor for Claude Code configs (#1 and #2) and same-vendor for the harness-control agy × Claude Sonnet (#7).
 - Coder 2 (`gpt-5.5`) is same-vendor for Codex configs (#3 and #4).
 - Neither coder is Google-lineage. The agy × Gemini configs (#5 and #6) have **no same-lineage coder available** — both coders are out-of-lineage. The same-vendor-bias check is therefore reported only for the four configs (#1, #2, #3, #4, #7) where a same-vendor coder exists. The two Gemini-bearing configs (#5, #6) get a no-same-lineage-coder disclosure rather than a bias check. This is a residual limitation, not a methodological failure — Google's frontier coder model is not API-accessible in a form that meets S4's reproducibility requirements (Gemini 3.1 Pro is API-accessible but the Antigravity-CLI-via-agy is the agent-under-test, not the coder; using it as coder would conflate roles).
 
@@ -410,3 +410,44 @@ record (machine-specific identifiers are intentionally not hard-coded here).
     command, stdout, exit_code, and tool_name. The frozen 2.1.143-era
     fixture remains valid per the 2.1.143→2.1.150 precedent; the live
     capture is archived in the researcher's off-repo evidence pack.
+- **2026-06-12 (later) — tag-eve currency pass (researcher instruction:
+  lock latest stable everywhere; see DECISIONS.md 2026-06-12):**
+  - **CLIs updated and re-verified:** Claude Code 2.1.159 → **2.1.176**
+    (all six pinned flags re-confirmed; live stream-json schema check
+    REPEATED and PASSED on 2.1.176 — same event signatures as the frozen
+    fixture plus the known additive `post_turn_summary`; parser verified
+    end-to-end on the new capture, which exercised the `PowerShell` tool
+    branch of `_SHELL_TOOLS` this time, complementing the `Bash`-branch
+    coverage of the 2.1.159 capture); Codex 0.133.0 → **0.139.0**
+    (`exec --json` schema re-confirmation deferred to adapter build,
+    which gates configs #3/#4 anyway); agy 1.0.4 → **1.0.7**
+    (`-p`/`--print` re-confirmed via `--help`).
+  - **Config #1 + IRR Coder 1 model pin advanced: `claude-opus-4-8` →
+    `claude-fable-5`** per the 2026-05-30 track-the-current-frontier
+    convention — Anthropic released Fable 5 as the GA frontier on
+    2026-06-09. Availability and served-model routing on the study plan
+    confirmed by live test invocation (the schema-check run requested
+    `--model claude-fable-5`; the `system/init` model field and the
+    result `modelUsage` both reported `claude-fable-5`). The
+    vendor-documented classifier handoff to Opus 4.8 (under ~5% of
+    sessions) is disclosed in the config row; served-model mismatches
+    are captured by the per-trial ops log.
+  - **Environment pins corrected/advanced:** E3's WSL2 pin was factually
+    wrong — `wsl -l -v` shows **Ubuntu-24.04** installed and no 22.04
+    distro, so the pre-registered `wsl -d Ubuntu-22.04` invocation could
+    never have run; E3 corrected to Ubuntu 24.04 and E4 advanced to
+    Ubuntu 24.04 LTS on GCP (both Linux cells on the same current LTS).
+    E5 advanced `macos-14` → **`macos-26`** (macos-14 enters deprecation
+    2026-07-06 and is fully unsupported 2026-11-02 — inside the
+    collection/replication window; macos-26 is GA and the current
+    `macos-latest` default).
+  - **OpenAI and Google model pins audited, unchanged:** GPT-5.5 remains
+    the top generally-available tier per the 2026-06-11 Codex pricing
+    capture (Codex-Spark is a Pro-only research preview); `Gemini 3.1
+    Pro (High)` remains the subscription frontier label on the installed
+    agy surface.
+  - **Harness host deps deliberately NOT upgraded:** installed versions
+    re-verified as exactly matching this manifest (Python 3.11.9, PyYAML
+    6.0.3, numpy 2.4.2, scipy 1.17.1, statsmodels 0.14.6) — these pins
+    guard the deterministic power analysis (RNG seed 20260515) and stay
+    frozen by design.

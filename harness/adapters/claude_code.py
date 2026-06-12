@@ -7,17 +7,20 @@ the other adapters' parsers are tested against.
 ================================ VERSION PIN ===============================
 Flags below were VERIFIED against `claude --help` on:
 
-  Claude Code version : 2.1.159
-  Verified on (date)  : 2026-06-09
-  Verified by         : pre-tag evidence pass (was 2.1.150 / 2026-05-24,
-                        2.1.143 / 2026-05-18; still within 2.1.x, NO major
-                        version change; all six flags below re-checked
-                        unchanged against `claude --help` on 2026-06-09;
-                        step 3 satisfied 2026-06-12 by a live 2.1.159
-                        stream-json schema check — all load-bearing event
-                        structures identical to the frozen fixture, parser
-                        verified end-to-end on the live capture, fixture
-                        stands; see docs/VERSIONS.md change log 2026-06-12)
+  Claude Code version : 2.1.176
+  Verified on (date)  : 2026-06-12
+  Verified by         : tag-eve currency pass (updated 2.1.159 -> 2.1.176
+                        the same day; was 2.1.150 / 2026-05-24, 2.1.143 /
+                        2026-05-18; still within 2.1.x, NO major version
+                        change; all six flags below re-checked unchanged
+                        against `claude --help` on 2026-06-12; step 3
+                        satisfied by live stream-json schema checks on
+                        BOTH 2.1.159 and 2.1.176 (2026-06-12) — all
+                        load-bearing event structures identical to the
+                        frozen fixture, parser verified end-to-end on both
+                        captures (the 2.1.176 run exercised the PowerShell
+                        tool branch), fixture stands; see docs/VERSIONS.md
+                        change log 2026-06-12)
 
 Verified flag semantics (re-confirmed unchanged on 2.1.143; first verified 2.1.119):
   -p / --print              run once, print response, exit (non-interactive)
