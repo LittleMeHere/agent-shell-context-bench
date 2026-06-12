@@ -66,7 +66,7 @@ within-Windows PS-5.1-vs-pwsh-7 comparison is a built-in mechanism check
 publishable in its own right. The original D2 (2026-05-23) pinned PS 5.1
 alone as "the modal Windows experience"; that framing under-claimed for
 the writeup's reading window (pwsh-7 adoption is expected to grow
-materially over the 12-24 months the writeup will be read). Trap tasks
+materially over the 12-24 months the writeup will be read). Seeded-error tasks
 are annotated per-shell: some trigger on both (T04 `chmod`, T08
 `2>/dev/null`, T09 `$(date +%F)`), some only on PS 5.1 (T01 `&&`, fixed
 in pwsh 7.0). The no-trigger result on pwsh 7 is itself an informative
@@ -76,9 +76,9 @@ finding.
 
 | ID | Agent | CLI | Notes |
 |---|---|---|---|
-| A1 | Claude Code | `claude` 2.1.150 (re-verified 2026-05-24) | **V1 primary**; adapter built + parser fixture frozen + 12 regression tests passing |
+| A1 | Claude Code | `claude` 2.1.159 (re-verified 2026-06-09; flags re-confirmed) | **V1 primary**; adapter built + parser fixture frozen + 12 regression tests passing |
 | A2 | Codex CLI | `codex` 0.133.0 (verified 2026-05-25 smoke trial via `codex exec --json`) | **V1 primary**; `--json` schema characterised (cleaner than Claude Code's), adapter ~6h post-tag work |
-| A3 | Antigravity CLI | `agy` 1.0.2 (verified 2026-05-25 smoke trial via brain/transcript_full.jsonl inspection; `agy --help` verified 2026-05-27 exposes `--print` non-interactive mode) | **V1 primary**; **auth path is official subscription `agy` / Antigravity SDK on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
+| A3 | Antigravity CLI | `agy` 1.0.4 (re-verified 2026-06-09; `--print` re-confirmed via `agy --help`; transcript-schema smoke 2026-05-25 ran on 1.0.2 — re-smoke recommended before adapter build) | **V1 primary**; **auth path is official subscription `agy` / Antigravity SDK on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
 
 Per the 2026-05-25 (later) scope correction in `docs/DECISIONS.md`, V1
 primary inference is **across all three vendors at two model tiers each
@@ -264,7 +264,7 @@ Reference for what these terms mean and why they matter. Any reader can use this
 
 1. **Primary agents to test — LOCKED.** Per the 2026-05-25 (later) scope correction, V1 primary is the full 7-configuration matrix across all three frontier-vendor CLIs (Claude Code, Codex, agy) at two model tiers each plus one same-model harness-control config (agy × Claude Sonnet 4.6 (Thinking)). Adapter implementation status per row is recorded in `docs/VERSIONS.md`; only Claude Code is CONFIRMED at tag time, with Codex and agy as PIN-AT-START — a legitimate pre-reg state because pre-registration locks methodology, not implementation completeness. SAP S5 is the qualification gate for any FUTURE CLI added beyond this V1 matrix. Cursor and GUI agentic IDEs are out (not reproducibly automatable).
 2. **Benchmark task selection.** Task list refined after lit review; capability tasks include a mix of common-workflow coverage and hardened frontier-difficulty tasks (D4 2026-05-23) so H1 has a non-zero denominator.
-3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `opus-4-7` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
+3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `opus-4-8` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
 4. **Publication venue for the writeup.** preprint server and/or relevant research forums; decided before release.
 
 ## Pre-registration

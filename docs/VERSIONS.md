@@ -120,11 +120,11 @@ either way.
 
 | # | Agent | CLI version | Model | Role | State |
 |---|---|---|---|---|---|
-| 1 | Claude Code | **2.1.150** (re-verified 2026-05-23; was 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-05-24 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 (fixture remains valid on 2.1.150 — schema unchanged across 7 patch bumps in 2.1.x) / flags CONFIRMED 2026-05-24 / model CONFIRMED |
-| 2 | Claude Code | **2.1.150** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
+| 1 | Claude Code | **2.1.159** (re-verified 2026-06-09 via `claude --version`; was 2.1.150/2026-05-24 and 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-09 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; 12 regression tests pass 2026-06-09; live stream-json re-smoke on 2.1.159 recommended before tag) / flags CONFIRMED 2026-06-09 / model CONFIRMED |
+| 2 | Claude Code | **2.1.159** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
 | 3 | Codex CLI | `codex-cli` **0.133.0** (verified via `codex --version` 2026-05-23; was 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
 | 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
-| 5 | Antigravity CLI (`agy`) | **1.0.2** (installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
+| 5 | Antigravity CLI (`agy`) | **1.0.4** (re-verified 2026-06-09 via `agy --version`; `-p`/`--print` non-interactive flags re-confirmed via `agy --help` the same day; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.4 recommended before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
 | 6 | Antigravity CLI (`agy`) | same as #5 | **`Gemini 3.5 Flash (Medium)`** (settings-UI label confirmed 2026-05-25; the workhorse counterpart to Pro (High) — Medium reasoning effort matches realistic cost-sensitive use rather than over- or under-spending; symmetric with Codex's `gpt-5.4-mini` at default reasoning) | Google workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 | 7 | Antigravity CLI (`agy`) | same as #5 | **`Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED via 2026-05-23 verification — exact-case label that propagates Sonnet; lowercase `(thinking)` falls back to Gemini) | **same-model harness-control vs #2** (Claude Sonnet 4.6 in two harnesses across all 5 envs — pre-registered S6 analysis) | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 
@@ -324,3 +324,61 @@ record (machine-specific identifiers are intentionally not hard-coded here).
     artifact (the historical "10 configs" reference is left as-is per
     the audit-immutability convention; the qualitative power conclusion
     is unaffected by config-count revisions).
+- **2026-06-09 — pre-tag evidence pass + CLI pin re-verification (see
+  DECISIONS.md 2026-06-09):**
+  - CLI pins re-verified on the data-collection machine per this file's
+    hard gate: Claude Code 2.1.150→**2.1.159** (`claude --version`; all
+    six pinned flags re-confirmed against `claude --help`; the 12 parser
+    regression tests pass against the frozen 2.1.143-era fixture; a live
+    stream-json re-smoke on 2.1.159 is queued pre-tag); Codex
+    **0.133.0** unchanged; agy 1.0.2→**1.0.4** (`agy --version`;
+    `-p`/`--print` re-confirmed via `agy --help`; the 2026-05-25
+    transcript-schema smoke ran on 1.0.2, re-smoke queued before adapter
+    build). Pre-tag pin advances are not deviations, per the 2026-05-30
+    Opus 4.8 convention.
+  - Shell pins (PS 5.1.26100.8457, pwsh 7.5.5) NOT re-verified in this
+    pass — researcher re-verifies at tag time.
+  - TOS evidence pass executed: verbatim operative clauses + retrieval
+    dates + archive.org snapshot URLs recorded in
+    `docs/TOS_COMPLIANCE.md` for all three arms; remaining capture work
+    is listed in that file's Evidence Status section.
+- **2026-06-10 — agy measurement-qualification re-inspection (read-only,
+  on-disk 2026-05-25/27 smoke transcripts; agy 1.0.2-era data read under
+  agy 1.0.4):**
+  - CONFIRMED for the adapter design: `PLANNER_RESPONSE.tool_calls[]`
+    entries carry `name` + `args.CommandLine` + `args.Cwd`; every
+    transcript event carries `status` (observed `DONE` / `ERROR`);
+    `RUN_COMMAND.content` carries Created/Completed timestamps, an
+    outcome sentence ("The command completed successfully."), and an
+    `Output:` block; one UUID directory per conversation under `brain/`
+    (per-trial isolation via directory diff works); model pin via
+    `settings.json` confirmed present with the exact config #5 label.
+  - CAVEATS pre-registered for the adapter (to verify in the 1.0.4
+    re-smoke, which must include a deliberately failing command):
+    (i) long command output is truncated in the transcript (literal
+    "<truncated N lines>" marker) — binary task success must come from
+    filesystem `binary_success_predicate` checks (already the design),
+    and output-dependent diagnostics are bounded by the truncation;
+    (ii) no numeric exit code was observed in successful RUN_COMMAND
+    content — the failure-case content format is unverified, so the
+    A1b command-error signal rests on event `status` + the outcome
+    sentence until a failing-command sample is captured;
+    (iii) no per-response served-model field exists in the transcript —
+    model verification is the `settings.json` pin plus the transcript's
+    model-selection-change notices (logged as user-visible text when
+    the setting changes);
+    (iv) transcripts embed real local filesystem paths and
+    git-identity output — agy transcripts require their own redaction
+    pass before any publication (the existing redaction-review policy
+    applies; this notes the agy-specific surface).
+  - **Antigravity SDK ruled out for V1** per researcher decision
+    2026-06-10 (API-key-only documented auth; no API budget) — see
+    DECISIONS.md 2026-06-10 and the TOS_COMPLIANCE invocation-surface
+    note. Subscription `agy --print` is the sole planned Google-arm
+    surface for V1.
+  - agy 1.0.4 `--help` additionally documents `--sandbox` ("Run in a
+    sandbox with terminal restrictions enabled"), `--add-dir`,
+    `--conversation <id>` resume, and `--print-timeout` — candidate
+    defense-in-depth options for the adapter, to be evaluated at
+    adapter-build time (not added to pre-registered compliance
+    measures).

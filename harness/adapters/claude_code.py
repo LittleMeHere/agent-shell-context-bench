@@ -7,12 +7,14 @@ the other adapters' parsers are tested against.
 ================================ VERSION PIN ===============================
 Flags below were VERIFIED against `claude --help` on:
 
-  Claude Code version : 2.1.150
-  Verified on (date)  : 2026-05-24
-  Verified by         : re-verification pass at pre-registration
-                        finalization (was 2.1.143 / 2026-05-18; bumped 7
-                        builds within 2.1.x, NO major version change; all
-                        six flags below re-checked unchanged)
+  Claude Code version : 2.1.159
+  Verified on (date)  : 2026-06-09
+  Verified by         : pre-tag evidence pass (was 2.1.150 / 2026-05-24,
+                        2.1.143 / 2026-05-18; still within 2.1.x, NO major
+                        version change; all six flags below re-checked
+                        unchanged against `claude --help` on 2026-06-09;
+                        step 3 below — fixture re-capture on 2.1.159 —
+                        remains OPEN, queued pre-tag)
 
 Verified flag semantics (re-confirmed unchanged on 2.1.143; first verified 2.1.119):
   -p / --print              run once, print response, exit (non-interactive)
@@ -92,8 +94,8 @@ class ClaudeCodeAdapter(AgentAdapter):
     def build_invocation(
         self, prompt: str, sandbox: SandboxHandle
     ) -> list[str]:
-        # Flags verified against Claude Code 2.1.119 — see VERSION PIN in the
-        # module docstring. Re-verify before pre-registration.
+        # Flags re-verified against Claude Code 2.1.159 (2026-06-09); first
+        # verified on 2.1.119 — see VERSION PIN in the module docstring.
         #
         # DECISION FOR THE RESEARCHER (not silently hardcoded): the CLI
         # supports `--max-budget-usd <amount>`, a hard per-run dollar cap.

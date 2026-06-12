@@ -840,6 +840,137 @@ are retained as internal identifiers regardless of date.
 
 ---
 
+## 2026-06-09 — Pre-tag evidence pass: verbatim TOS capture, Google disclosure email added, CLI pins re-verified
+
+Context: the remaining substantive pre-tag work was the
+`docs/TOS_COMPLIANCE.md` evidence pass (verbatim vendor clauses +
+retrieval dates + archive.org snapshots, flagged in that file's Evidence
+Status section) plus the VERSIONS.md hard-gate requirement to re-verify
+pinned CLI versions before tag. Both were executed today. One scope
+decision was made on researcher instruction; the rest of this entry is
+the dated record of what the evidence pass found.
+
+**Decision — Google disclosure email.** Considered: (α) keep the
+2026-05-27 posture (no pre-tag disclosure email to Google, because the
+Google arm uses documented first-party subscription surfaces); (β) send
+a pre-tag disclosure email to all three vendors, mirroring the Anthropic
+and OpenAI arms.
+
+Picked **(β)** per researcher instruction (2026-06-09) because:
+
+- Symmetric treatment across arms removes a reviewer-visible asymmetry
+  ("you disclosed to two vendors but not the third").
+- The marginal cost is one email; the disclosure-log slot in
+  `docs/TOS_COMPLIANCE.md` already existed for the other two arms.
+
+Tradeoff: none material. The Google section's disclosure log now
+mirrors the other two arms and records that this supersedes the
+2026-05-27 no-email posture.
+
+**Evidence-pass findings (recorded for the audit trail):**
+
+- **OpenAI KEEP gate re-anchored to verbatim text.** The Services
+  Agreement (live page, retrieved 2026-06-09; "Updated: December 1,
+  2025", "Effective: January 1, 2026") states in its own scope sentence
+  that it governs ChatGPT Business, and section 3.3(f) reads "extract
+  data from the Services other than as permitted through the Services" —
+  the framing the 2026-05-27 KEEP decision turned on, now quoted
+  verbatim in `docs/TOS_COMPLIANCE.md` with a same-day archive.org
+  snapshot.
+- **OpenAI consumer-terms cross-reference updated.** The consumer Terms
+  of Use were republished "Effective: January 1, 2026"; the previously
+  cited c(iv) "except as permitted through the API" lettering no longer
+  appears. The current consumer text flatly prohibits "Automatically or
+  programmatically extract data or Output (defined below)." with no
+  carve-out — which sharpens, rather than weakens, the rationale for
+  running the OpenAI arm on ChatGPT Business under the Services
+  Agreement.
+- **Anthropic headless billing basis changes 2026-06-15.** The Claude
+  Code docs and the Agent SDK credit policy article state that from June
+  15, 2026, Agent SDK and `claude -p` usage on subscription plans draws
+  from a monthly Agent SDK credit separate from interactive limits. The
+  Anthropic throttle measure in `docs/TOS_COMPLIANCE.md` now names the
+  run-time documented basis (rate caps before that date, the Agent SDK
+  credit after) and requires re-confirmation at data-collection start.
+  Flagged because confirmatory data collection will occur after the
+  change date.
+- **Google docs pages are not automation-capturable.** The four
+  antigravity.google doc pages return HTTP 200 but are client-side
+  rendered (byte-identical application shells); no verbatim quote can be
+  taken from them by automated retrieval. The documented-surface claim
+  for non-interactive agy use is anchored instead to local `agy --help`
+  output (a first-party interface description), and manual browser
+  capture is queued pre-tag. The enforcement-evidence forum thread was
+  re-verified live, including the in-thread Google staff response
+  attributing the restriction to a third-party bridge tool.
+- **archive.org coverage.** Snapshots recorded for 11 of 18 cited
+  sources (several same-day). Save-Page-Now was attempted for the
+  remaining 7 from this network without confirmation; manual saves are
+  queued pre-tag and tracked in the TOS file's Evidence Status list.
+- **CLI pin drift found and resolved (VERSIONS hard gate).** Claude Code
+  2.1.150→2.1.159 (six flags re-confirmed unchanged; parser regression
+  suite passes against the frozen fixture; live stream-json re-smoke
+  queued pre-tag) and agy 1.0.2→1.0.4 (`--print` re-confirmed;
+  transcript-schema re-smoke queued before adapter build). Codex 0.133.0
+  unchanged. Pre-tag pin advances are not deviations, per the 2026-05-30
+  Opus 4.8 convention.
+
+Propagated to: `docs/TOS_COMPLIANCE.md` (verbatim clauses, per-vendor
+source capture registers, Google disclosure log, cross-cutting measure
+8, throttle wording), `docs/VERSIONS.md` (config rows 1/2/5 + change
+log), `RESEARCH_PLAN.md` (agents table A1/A3 pins; Open questions item 3
+stale `opus-4-7` corrected to `opus-4-8` per the 2026-05-30 upgrade),
+`harness/adapters/claude_code.py` (VERSION PIN block per its own
+re-verify instruction), `harness/adapters/__init__.py` (stale "V2 work"
+roster docstring brought in line with the 2026-05-25 (later) V1-primary
+status), `README.md` (implementation status row). The pass also found and fixed three missed
+instances of the 2026-05-30 seeded-error rename in current-state pre-reg
+prose (`HYPOTHESIS.md` H2 trial-scope bullet, `RESEARCH_PLAN.md`
+per-shell annotation sentence, `docs/SAP.md` pilot-sizing sentence) —
+terminology-only, same scope as the 2026-05-30 decision. Non-public
+working notes were updated separately the same day (stale-reference
+cleanup and disclosure-email drafting).
+
+---
+
+## 2026-06-10 — Google-arm invocation surface: subscription `agy --print` primary; SDK contingent on auth verification
+
+Context: researcher review found no public docs-page documentation of the
+Antigravity CLI's non-interactive mode (the antigravity.google docs pages
+are client-side-rendered, and their rendered content was not confirmed to
+cover `--print`), while the Antigravity SDK's public README (GitHub,
+retrieved 2026-06-10) authenticates via `GEMINI_API_KEY` in its
+quickstart with no statement about AI Ultra subscription authentication.
+
+Considered: (α) switch the Google arm to the SDK as the
+better-publicly-documented surface; (β) keep subscription `agy --print`
+primary — documented in-tool via `agy --help` and running on the
+pre-registered AI Ultra subscription auth — with the SDK as a contingent
+alternative only if subscription authentication for it is verified.
+
+Picked **(β)** because:
+
+- The 2026-05-27 access-path decision is subscription-based. An
+  SDK-with-API-key path would silently change the billing model and the
+  governing terms (Gemini API terms rather than the subscription
+  surface) — an access-path change, not an implementation detail.
+- The pre-registered access path already reads "`agy --print` and/or
+  Antigravity SDK", so no methodology edit is needed; this entry fixes
+  which surface is primary and what evidence would trigger
+  reconsideration.
+
+Tradeoff: the CLI surface's public documentation is thinner (in-tool
+`--help` plus client-side-rendered docs pages). Mitigated by the verbatim
+`agy --help` quote in `docs/TOS_COMPLIANCE.md`, archive.org snapshots of
+the docs pages (full browser replay verified), and the replicator note.
+
+Propagated to: `docs/TOS_COMPLIANCE.md` Google section (SDK repository
+added to operative sources, README tagline + auth caveat quoted,
+invocation-surface note added, disclosure-log status line recording the
+2026-06-10 Google One support case filing).
+
+---
+
 ## (template for future entries)
 
 ## YYYY-MM-DD — <decision title>

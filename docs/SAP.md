@@ -959,7 +959,7 @@ Any model that changes version mid-study will be:
 **Cap-only restriction (added 2026-05-25 (latest), review-driven pass #2):**
 because H1a primary is now restricted to the 5 capability tasks (C01–C05),
 the sizing inputs `p̂_pool` and cluster ICC are computed from the
-**capability-task subset of the pilot only**. Trap-task trials still run in
+**capability-task subset of the pilot only**. Seeded-error-task trials still run in
 the pilot (they are required for blinded variance estimation across all
 cells and feed H1b descriptive and H2 primary post-confirmatory), but they
 do not enter the H1a sizing formula. The N per cell derived from the cap-only

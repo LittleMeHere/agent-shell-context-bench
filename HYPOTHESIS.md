@@ -105,7 +105,7 @@ Operationalization:
 - Failures classified using rubric in `harness/classifier/rubric.py`
 - Spiral = code D, Catastrophic = code E
 - Proportion calculated within valid failed trials only, after binary success/failure has been determined from each task's `binary_success_predicate` (the same predicate framework used by H1a and H1b)
-- **Trial scope for H2:** all 14 tasks (5 capability + 9 seeded-error), unlike H1a's cap-only primary scope. Trap formal and colloquial phrasings both contribute trials to the failed-trial denominator (no within-task averaging at this stage, since H2 is a trial-level conditional proportion).
+- **Trial scope for H2:** all 14 tasks (5 capability + 9 seeded-error), unlike H1a's cap-only primary scope. Seeded-error formal and colloquial phrasings both contribute trials to the failed-trial denominator (no within-task averaging at this stage, since H2 is a trial-level conditional proportion).
 - Same pooled-primary structure as H1a (see SAP A2): pooled across the 7 configurations is primary at α=0.05; per-configuration tests secondary under Benjamini–Hochberg FDR.
 - This hypothesis is about conditional D/E asymmetry, not about the most common or "dominant" failure mode in Windows. Any dominance claim is outside the primary H2 test unless separately labeled exploratory.
 - H2 is inferentially tested only when both pooled comparison contexts have enough valid failed trials for a conditional failure-mode comparison (SAP A2). If either pooled context has zero valid failed trials, H2 is logically not estimable and no continuity correction is used to create an inferential ratio. Small positive denominators are reported descriptively under SAP A2's minimum-denominator rule.
