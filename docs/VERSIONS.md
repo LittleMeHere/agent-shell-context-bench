@@ -27,8 +27,10 @@ file is the single aggregated record. Two states per entry:
 > adapter implementing that row is post-tag work.
 >
 > - Harness host environment — **CONFIRMED**.
-> - Windows shell pin (PS 5.1) — **CONFIRMED** (5.1.26100.8457, D2).
-> - Windows shell pin (pwsh 7) — **CONFIRMED** (7.5.5 already installed).
+> - Windows shell pin (PS 5.1) — **CONFIRMED** (5.1.26100.8655, ticked
+>   from 5.1.26100.8457 at the 2026-06-12 tag-time re-verification; D2).
+> - Windows shell pin (pwsh 7) — **CONFIRMED** (7.6.2, ticked from 7.5.5
+>   at the 2026-06-12 tag-time re-verification).
 > - Primary V1 matrix (7 configs × 5 envs) — **PINS CONFIRMED at the
 >   methodology layer; adapter implementation per-row status below.**
 > - IRR coders — **CONFIRMED**.
@@ -62,8 +64,8 @@ materially during the writeup's reading window.
 
 | Component | Version | State |
 |---|---|---|
-| Windows PowerShell (`powershell.exe`) — V1 cell E1 | **5.1.26100.8457** on Windows 11 Home (verified 2026-05-23 via `powershell.exe -NoProfile -Command "$PSVersionTable.PSVersion.ToString()"`) | CONFIRMED — V1 Windows-5.1 shell; `PowerShellEnvironment` invokes `powershell.exe -NoProfile -NonInteractive` |
-| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.5.5** on Windows 11 Home (already installed) | CONFIRMED — V1 Windows-7 shell; env adapter is a subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
+| Windows PowerShell (`powershell.exe`) — V1 cell E1 | **5.1.26100.8655** on Windows 11 Home (re-verified 2026-06-12 by the researcher via `$PSVersionTable.PSVersion.ToString()`; was 5.1.26100.8457/2026-05-23) | CONFIRMED — V1 Windows-5.1 shell; `PowerShellEnvironment` invokes `powershell.exe -NoProfile -NonInteractive` |
+| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.6.2** on Windows 11 Home (re-verified 2026-06-12 by the researcher; was 7.5.5) | CONFIRMED — V1 Windows-7 shell; env adapter is a subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
 
 Seeded-error tasks T01-T09 (renamed from "trap tasks" per
 `docs/DECISIONS.md` 2026-05-30 — TRAP acronym taken by
@@ -76,7 +78,7 @@ all trigger identically on both PS 5.1 and pwsh 7 because their
 underlying bash-vs-PowerShell semantic gap is unchanged across the
 PowerShell major versions.
 
-| Task | Underlying bash idiom | PS 5.1 triggers? | pwsh 7.5.5 triggers? | Pre-registered shell-upgrade signal |
+| Task | Underlying bash idiom | PS 5.1 triggers? | pwsh 7.6.2 triggers? | Pre-registered shell-upgrade signal |
 |---|---|---|---|---|
 | T01 | `cmd1 && cmd2` chain | yes (no `&&` parser) | **no** (pwsh 7.0 added `&&` / `\|\|` pipeline-chain operators) | **positive** — shell upgrade closes the gap |
 | T02 | `touch {a,b,c}.txt` brace expansion | yes (literal filename) | yes (no brace expansion in any PS version) | null — upgrade does not help |
@@ -120,7 +122,7 @@ either way.
 
 | # | Agent | CLI version | Model | Role | State |
 |---|---|---|---|---|---|
-| 1 | Claude Code | **2.1.159** (re-verified 2026-06-09 via `claude --version`; was 2.1.150/2026-05-24 and 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-09 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; 12 regression tests pass 2026-06-09; live stream-json re-smoke on 2.1.159 recommended before tag) / flags CONFIRMED 2026-06-09 / model CONFIRMED |
+| 1 | Claude Code | **2.1.159** (re-verified 2026-06-09 via `claude --version`; was 2.1.150/2026-05-24 and 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-09 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; 12 regression tests pass 2026-06-09; live 2.1.159 schema check PASSED 2026-06-12 — parser verified end-to-end on live output, see change log) / flags CONFIRMED 2026-06-09 / model CONFIRMED |
 | 2 | Claude Code | **2.1.159** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
 | 3 | Codex CLI | `codex-cli` **0.133.0** (verified via `codex --version` 2026-05-23; was 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
 | 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
@@ -132,8 +134,8 @@ either way.
 
 | ID | Environment | State |
 |---|---|---|
-| E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8457) | env adapter CONFIRMED (`PowerShellEnvironment`) |
-| E2 | Windows 11 + **pwsh 7.5.5** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
+| E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8655) | env adapter CONFIRMED (`PowerShellEnvironment`) |
+| E2 | Windows 11 + **pwsh 7.6.2** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
 | E3 | Windows 11 + **WSL2 Ubuntu 22.04** | env adapter PIN-AT-START — `wsl -d Ubuntu-22.04 --` wrapper, ~3h post-tag implementation |
 | E4 | **Linux native** (GCP Ubuntu 22.04 on `e2-small`) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
 | E5 | **macOS** (GitHub Actions `macos-14` runner) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
@@ -382,3 +384,29 @@ record (machine-specific identifiers are intentionally not hard-coded here).
     defense-in-depth options for the adapter, to be evaluated at
     adapter-build time (not added to pre-registered compliance
     measures).
+- **2026-06-12 — tag-time shell-pin re-verification + live 2.1.159 schema
+  check (final pre-tag gate items):**
+  - **Shell pins ticked** at the researcher's tag-time re-verification
+    via `$PSVersionTable.PSVersion.ToString()`: Windows PowerShell
+    5.1.26100.8457 → **5.1.26100.8655**; pwsh 7.5.5 → **7.6.2**. The
+    per-task seeded-error shell-applicability claims are version-generic
+    (T02-T09 mechanisms are unchanged within PS 5.1.x / pwsh 7.x; T01's
+    pre-registered positive signal stems from `&&` arriving in pwsh
+    7.0), so the expectation table is unchanged in substance; the task
+    YAML `triggers_on` labels and current-state references were
+    relabeled to the new pins.
+  - **Live Claude Code 2.1.159 stream-json schema check PASSED**
+    (resolves the re-smoke obligation in the adapter's VERSION PIN
+    block). Method: one `claude -p` invocation via the documented CLI
+    surface in a disposable temp directory with permissions allowlisted
+    to a single `echo` command — not the harness, no permission-bypass
+    flags, not the repo checkout. Result: every load-bearing event
+    structure matches the frozen fixture (identical `system/init` key
+    set; assistant `tool_use` / user `tool_result` `is_error` pairing
+    intact; same result envelope); one additive event observed
+    (`system` subtype `post_turn_summary`), skipped by the parser as
+    designed. The repo parser, invoked as a library over the live
+    capture, extracted the expected single CommandRecord with correct
+    command, stdout, exit_code, and tool_name. The frozen 2.1.143-era
+    fixture remains valid per the 2.1.143→2.1.150 precedent; the live
+    capture is archived in the researcher's off-repo evidence pack.

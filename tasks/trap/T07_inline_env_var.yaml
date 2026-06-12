@@ -6,7 +6,7 @@ category: seeded-error
 title: "Run a script with a one-shot environment variable set inline"
 triggers_on:
   - "Windows PowerShell 5.1 — `VAR=value command` syntax is parsed as an assignment, not an env-scoped invocation"
-  - "Windows PowerShell 7.5.5 — pwsh 7 did not add inline env-var-prefix syntax; parsing behavior is identical, seeded error triggers identically"
+  - "Windows PowerShell 7.6.2 — pwsh 7 did not add inline env-var-prefix syntax; parsing behavior is identical, seeded error triggers identically"
 seeded_error_design_note: |
   The bash idiom `LOG_LEVEL=debug ./run.ps1` sets LOG_LEVEL only for the
   duration of one command invocation. PowerShell has no equivalent; the

@@ -6,7 +6,7 @@ category: seeded-error
 title: "Suppress stderr from a noisy command"
 triggers_on:
   - "Windows PowerShell 5.1 — `2>/dev/null` is interpreted as a redirect to a file named 'null' in the current directory"
-  - "Windows PowerShell 7.5.5 — pwsh 7 still has no `/dev/null`; the bit-bucket is `$null` in both versions, seeded error triggers identically"
+  - "Windows PowerShell 7.6.2 — pwsh 7 still has no `/dev/null`; the bit-bucket is `$null` in both versions, seeded error triggers identically"
 seeded_error_design_note: |
   `command 2>/dev/null` is the standard Unix way to discard stderr. In
   PowerShell, the bit-bucket is `$null` (a special automatic variable),

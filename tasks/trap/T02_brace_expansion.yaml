@@ -6,7 +6,7 @@ category: seeded-error
 title: "Bash brace expansion for creating multiple similar files"
 triggers_on:
   - "Windows PowerShell 5.1 — {a,b,c} is treated as a literal string, not expanded"
-  - "Windows PowerShell 7.5.5 — bash brace expansion was not added in pwsh 7+; seeded error triggers identically to PS 5.1"
+  - "Windows PowerShell 7.6.2 — bash brace expansion was not added in pwsh 7+; seeded error triggers identically to PS 5.1"
 seeded_error_design_note: |
   Bash brace expansion (`touch {alpha,beta,gamma}.txt`) creates three files;
   PowerShell 5.1 treats `{alpha,beta,gamma}.txt` as a single literal filename.

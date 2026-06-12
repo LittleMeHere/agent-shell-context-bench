@@ -54,7 +54,7 @@ already-pre-registered V1 configurations.
 | ID | Environment | Source |
 |---|---|---|
 | E1 | Windows 11 native, **PowerShell 5.1** (default Windows shell) | researcher's Windows workstation |
-| E2 | Windows 11 native, **pwsh 7.5.5** (modern PowerShell, becoming default for developer-Windows) | same machine |
+| E2 | Windows 11 native, **pwsh 7.6.2** (modern PowerShell, becoming default for developer-Windows; pin ticked from 7.5.5 at the 2026-06-12 tag-time re-verification) | same machine |
 | E3 | Windows 11 + WSL2 Ubuntu 22.04 | same machine |
 | E4 | Linux native (Ubuntu 22.04 on a small GCP instance) | ~$10/mo |
 | E5 | macOS (GitHub Actions runner) | free via this public repo |

@@ -7,7 +7,7 @@ category: seeded-error
 title: "Find the first 5 ERROR lines in a log file via shell pipeline"
 triggers_on:
   - "Windows PowerShell 5.1 — `grep` is not available; `cat` and `head` exist as aliases but pipe objects, not bytes"
-  - "Windows PowerShell 7.5.5 — pwsh 7 did not add a `grep` alias and the object-pipeline semantics are unchanged; seeded error triggers identically"
+  - "Windows PowerShell 7.6.2 — pwsh 7 did not add a `grep` alias and the object-pipeline semantics are unchanged; seeded error triggers identically"
 seeded_error_design_note: |
   `cat app.log | grep ERROR | head -5` is the muscle-memory Unix idiom for
   log triage. In PS 5.1, `cat` is an alias for Get-Content (works), `head`

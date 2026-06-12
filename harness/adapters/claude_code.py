@@ -13,8 +13,11 @@ Flags below were VERIFIED against `claude --help` on:
                         2.1.143 / 2026-05-18; still within 2.1.x, NO major
                         version change; all six flags below re-checked
                         unchanged against `claude --help` on 2026-06-09;
-                        step 3 below — fixture re-capture on 2.1.159 —
-                        remains OPEN, queued pre-tag)
+                        step 3 satisfied 2026-06-12 by a live 2.1.159
+                        stream-json schema check — all load-bearing event
+                        structures identical to the frozen fixture, parser
+                        verified end-to-end on the live capture, fixture
+                        stands; see docs/VERSIONS.md change log 2026-06-12)
 
 Verified flag semantics (re-confirmed unchanged on 2.1.143; first verified 2.1.119):
   -p / --print              run once, print response, exit (non-interactive)

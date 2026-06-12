@@ -6,7 +6,7 @@ The five pre-registered environments (RESEARCH_PLAN.md):
                        Windows shell; the within-Windows pwsh-7 comparison
                        was restored as E2 per docs/DECISIONS.md
                        2026-05-25 (later))
-  windows_pwsh7       Windows 11 native, pwsh 7.5.5              -> subclass of powershell.py
+  windows_pwsh7       Windows 11 native, pwsh 7.6.2              -> subclass of powershell.py
                       (E2 added 2026-05-25 (later); within-Windows
                        mechanism check vs E1)
   windows_wsl2        Windows 11 host, WSL2 Ubuntu 22.04         -> (V2 work)

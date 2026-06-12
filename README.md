@@ -29,7 +29,7 @@ formal pre-registration is in [`HYPOTHESIS.md`](HYPOTHESIS.md) and
 - **H3 (secondary inferential):** WSL2 failure rate sits between Windows and Linux, closer to Linux. Tested via two one-sided ordering inequalities (α=0.025 each) plus a bootstrap distance criterion, with a pre-registered inconclusive guardrail when the Windows-Linux gap is under 5 percentage points.
 - **H4 (exploratory):** Colloquial / permission-granting seeded-error-task phrasings may trigger more D/E spiral patterns than formal phrasings. Reported with effect size + CI, no binary accept/reject.
 
-The 5 execution contexts: Windows + PowerShell 5.1, Windows + pwsh 7.5.5, Windows + WSL2 Ubuntu, Linux native (GCP), macOS (GitHub Actions runner). Per the cross-context confounds disclosure in HYPOTHESIS.md, each context bundles hardware/virtualization/filesystem/network/tool-install-state/runner-policy — claims are about context bundles, not OS-in-isolation.
+The 5 execution contexts: Windows + PowerShell 5.1, Windows + pwsh 7.6.2, Windows + WSL2 Ubuntu, Linux native (GCP), macOS (GitHub Actions runner). Per the cross-context confounds disclosure in HYPOTHESIS.md, each context bundles hardware/virtualization/filesystem/network/tool-install-state/runner-policy — claims are about context bundles, not OS-in-isolation.
 
 ## Why this matters
 

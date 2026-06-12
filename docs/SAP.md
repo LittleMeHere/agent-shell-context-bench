@@ -34,7 +34,7 @@ Configurations (3 vendors × 2 tiers + 1 same-model harness control):
 | 6 | Google | agy × `Gemini 3.5 Flash (Medium)` | Google workhorse |
 | 7 | cross | agy × `Claude Sonnet 4.6 (Thinking)` | same-model harness control vs config #2 |
 
-Environments (5): Windows 11 + PowerShell 5.1, Windows 11 + pwsh 7.5.5,
+Environments (5): Windows 11 + PowerShell 5.1, Windows 11 + pwsh 7.6.2,
 Windows 11 + WSL2 Ubuntu 22.04, Linux native (GCP Ubuntu 22.04), macOS
 (GitHub Actions). See `docs/VERSIONS.md` for the per-env adapter status.
 
