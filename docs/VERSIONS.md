@@ -122,7 +122,7 @@ either way.
 
 | # | Agent | CLI version | Model | Role | State |
 |---|---|---|---|---|---|
-| 1 | Claude Code | **2.1.176** (updated from 2.1.159 + re-verified 2026-06-12 at the tag-eve currency pass; was 2.1.159/2026-06-09, 2.1.150/2026-05-24, 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-12 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-fable-5`** (upgraded from `claude-opus-4-8` per 2026-06-12 DECISIONS — Anthropic released Fable 5 as the current GA frontier on 2026-06-09; availability + served-model routing confirmed by live test invocation on this plan 2026-06-12; note: the vendor documents classifier-based handoff to Opus 4.8 on certain topics in under ~5% of sessions — benign dev-task prompts are unlikely to trigger it, and any served-model mismatch is captured by the per-trial ops log per TOS_COMPLIANCE cross-cutting measure 6) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; live schema checks PASSED on 2.1.159 and 2.1.176, both 2026-06-12, parser verified end-to-end on both captures — the 2.1.176 capture also exercised the PowerShell tool branch of `_SHELL_TOOLS`; see change log) / flags CONFIRMED 2026-06-12 / model CONFIRMED via live invocation 2026-06-12 |
+| 1 | Claude Code | **2.1.176** (updated from 2.1.159 + re-verified 2026-06-12 at the tag-eve currency pass; was 2.1.159/2026-06-09, 2.1.150/2026-05-24, 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-12 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (the current Anthropic frontier available on the study's subscription access path for the full collection window. Fable 5 — released 2026-06-09, availability live-verified on this plan 2026-06-12 — was pinned briefly the same day and REVERTED per DECISIONS 2026-06-12 (later): vendor subscription inclusion for Fable 5 ends 2026-06-22, before confirmatory collection can plausibly complete, and a pin that lapses mid-collection breaks the primary Anthropic cell. If Anthropic restores subscription inclusion before the first confirmatory trial, any pin change is a logged decision — pre-tag amendment or post-tag DEVIATIONS entry, never silent) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; live schema checks PASSED on 2.1.159 and 2.1.176, both 2026-06-12, parser verified end-to-end on both captures — the 2.1.176 capture also exercised the PowerShell tool branch of `_SHELL_TOOLS`; see change log) / flags CONFIRMED 2026-06-12 / model CONFIRMED via live invocation 2026-06-12 |
 | 2 | Claude Code | **2.1.176** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
 | 3 | Codex CLI | `codex-cli` **0.139.0** (updated from 0.133.0 + re-verified 2026-06-12 at the tag-eve currency pass; was 0.133.0/2026-05-23, 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`; the `exec --json` schema was characterised on 0.133.0 — re-confirm at adapter build, which gates configs #3/#4 anyway) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
 | 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
@@ -154,7 +154,7 @@ either way.
 
 | Role | Identity | State |
 |---|---|---|
-| AI Coder 1 (primary) | **`claude-fable-5`** (Anthropic, frontier) — pinned 2026-05-23 as the then-frontier, upgraded 2026-05-30 (Opus 4.8) and 2026-06-12 (Fable 5) per the track-the-current-frontier convention, keeping the S4 same-vendor-bias check aligned with config #1's lineage | PIN CONFIRMED — re-verify model availability at IRR-run-time |
+| AI Coder 1 (primary) | **`claude-opus-4-8`** (Anthropic, frontier) — pinned 2026-05-23 as the then-frontier, upgraded 2026-05-30 (Opus 4.8); the brief 2026-06-12 Fable 5 advance was reverted with config #1 (subscription-availability grounds; also keeps the S4 same-vendor-bias check aligned with config #1's lineage) | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | AI Coder 2 (independent) | **`gpt-5.5`** (OpenAI, frontier; different lineage from Coder 1) — pinned 2026-05-23 | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | Human anchor | the researcher (stratified random ≥50 subset, per SAP S4) | n/a (human) |
 | Optional premium audit | Deep Think (web-only, manual, ≤~20 hardest cases) | optional, not load-bearing |
@@ -164,7 +164,7 @@ unavailable at IRR runtime — vendor deprecation, API access change, or
 any other reason the exact pinned model ID can no longer be invoked —
 the substitute is the **next-frontier-tier model from the same vendor
 at the same approximate reasoning level** (e.g. `gpt-5.5` → its
-successor at the same reasoning tier; `claude-fable-5` → its successor
+successor at the same reasoning tier; `claude-opus-4-8` → its successor
 at the same tier). Same-vendor substitution is required (not preferred,
 required), because the SAP S4 same-vendor-bias check is a
 lineage-coverage design: swapping a coder to a different vendor would
@@ -191,7 +191,7 @@ design pre-registers a same-vendor-bias check (does an AI coder rate
 transcripts from its own-lineage agent-under-test more leniently?). With
 the 2026-05-25 (later) full-matrix restoration:
 
-- Coder 1 (`claude-fable-5`) is same-vendor for Claude Code configs (#1 and #2) and same-vendor for the harness-control agy × Claude Sonnet (#7).
+- Coder 1 (`claude-opus-4-8`) is same-vendor for Claude Code configs (#1 and #2) and same-vendor for the harness-control agy × Claude Sonnet (#7).
 - Coder 2 (`gpt-5.5`) is same-vendor for Codex configs (#3 and #4).
 - Neither coder is Google-lineage. The agy × Gemini configs (#5 and #6) have **no same-lineage coder available** — both coders are out-of-lineage. The same-vendor-bias check is therefore reported only for the four configs (#1, #2, #3, #4, #7) where a same-vendor coder exists. The two Gemini-bearing configs (#5, #6) get a no-same-lineage-coder disclosure rather than a bias check. This is a residual limitation, not a methodological failure — Google's frontier coder model is not API-accessible in a form that meets S4's reproducibility requirements (Gemini 3.1 Pro is API-accessible but the Antigravity-CLI-via-agy is the agent-under-test, not the coder; using it as coder would conflate roles).
 
@@ -451,3 +451,16 @@ record (machine-specific identifiers are intentionally not hard-coded here).
     6.0.3, numpy 2.4.2, scipy 1.17.1, statsmodels 0.14.6) — these pins
     guard the deterministic power analysis (RNG seed 20260515) and stay
     frozen by design.
+- **2026-06-12 (latest) — Fable 5 pin REVERTED to Opus 4.8 on
+  subscription-availability grounds (see DECISIONS.md 2026-06-12
+  (later)):** the vendor's subscription inclusion for Fable 5 ends
+  2026-06-22 — before adapter implementation, the blinded pilot, and
+  confirmatory collection can plausibly complete under the throttle
+  posture — and a frontier pin that lapses mid-collection breaks the
+  primary Anthropic cell. Config #1 and IRR Coder 1 return to
+  `claude-opus-4-8`, the current frontier available on the
+  pre-registered subscription access path for the full window. The
+  Fable 5 availability verification (live invocation, 2026-06-12)
+  remains archived; the convention is hereby refined to "current
+  frontier available on the study's access path for the planned
+  collection window."

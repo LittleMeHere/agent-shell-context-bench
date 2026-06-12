@@ -1037,6 +1037,67 @@ updated separately the same day.
 
 ---
 
+## 2026-06-12 (later) — Config #1 frontier pin: Fable 5 reverted to Opus 4.8 on availability grounds
+
+Context: hours after the tag-eve currency pass advanced config #1 (and
+IRR Coder 1) to `claude-fable-5`, the researcher flagged that Anthropic's
+subscription inclusion for Fable 5 ends **2026-06-22**, with no committed
+date for its return ("they plan to include it eventually"). The study's
+Anthropic arm is pre-registered on the Claude Max subscription access
+path.
+
+Considered: (α) keep `claude-fable-5` and race Claude-arm collection
+before 2026-06-22; (β) revert config #1 and IRR Coder 1 to
+`claude-opus-4-8`, the current frontier available on the subscription
+access path for the entire collection window.
+
+Picked **(β)** because:
+
+- (α) is not a schedule. Between the tag and the first confirmatory
+  trial sit ~31-39 hours of adapter implementation, sandbox-VM setup,
+  the blinded pilot across the env×config cells, the pre-committed
+  sizing computation, and the confirmatory run itself — under a
+  throttle posture of roughly 50% of documented caps, with the
+  Anthropic headless billing basis changing on 2026-06-15 in the middle
+  of the ten remaining days. The plan's own end-to-end estimate is 8-12
+  weeks.
+- A frontier pin that lapses mid-collection forces partial-arm
+  truncation on the **primary** Anthropic cell — the single worst
+  configuration to lose — and converts a pre-reg pin into a guaranteed
+  deviation.
+- The track-the-current-frontier convention (2026-05-30) is refined,
+  not violated: the role is filled by the current frontier **available
+  on the study's access path for the planned collection window**. This
+  is the same availability logic that ruled out the Antigravity SDK for
+  the Google arm (2026-06-10).
+- Framing benefit, not cost: config #1 measures what a subscription
+  user actually gets during the study window. The writeup discloses
+  that Fable 5 existed (released 2026-06-09, subscription inclusion
+  ended 2026-06-22) and was not collectible on the pre-registered
+  access path.
+
+Rejected: (α) — also rejected: switching the Anthropic arm to API
+access to keep Fable 5 (no API budget; changes the governing terms and
+the compliance posture for the arm).
+
+Tradeoff: by writeup time Fable 5 will be the publicly known frontier
+and config #1 will read as one tier behind it. Mitigation: the
+disclosure above, plus the fact that every vendor arm pins the top
+model available on its subscription path — symmetric treatment. If
+Anthropic restores subscription inclusion before the first confirmatory
+trial, re-pinning is a logged decision (pre-tag amendment if the tag is
+not yet cut; otherwise a DEVIATIONS.md entry) — never silent.
+
+Propagated to: `docs/VERSIONS.md` (config row 1, IRR Coder 1,
+substitution-rule example, lineage-coverage line, change log),
+`RESEARCH_PLAN.md` (matrix tables + open-questions item 3, with the
+Fable 5 non-pin rationale noted), `docs/SAP.md` (config table row 1),
+`docs/TOS_COMPLIANCE.md` (Anthropic configs line). The Fable 5
+availability verification capture remains archived in the researcher's
+off-repo evidence pack. Non-public working notes updated separately.
+
+---
+
 ## (template for future entries)
 
 ## YYYY-MM-DD — <decision title>

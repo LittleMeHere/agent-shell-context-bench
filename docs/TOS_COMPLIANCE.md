@@ -62,7 +62,7 @@ after the researcher's browser capture session):
 
 ## Anthropic - configs #1 and #2
 
-**Configs:** Claude Code x `claude-fable-5`; Claude Code x
+**Configs:** Claude Code x `claude-opus-4-8`; Claude Code x
 `claude-sonnet-4-6`.
 
 **Access path:** Consumer subscription tier (Claude Max) via the first-party

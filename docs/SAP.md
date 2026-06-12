@@ -26,7 +26,7 @@ Configurations (3 vendors × 2 tiers + 1 same-model harness control):
 
 | # | Vendor | CLI × model | Role |
 |---|---|---|---|
-| 1 | Anthropic | Claude Code × `claude-fable-5` | Anthropic frontier |
+| 1 | Anthropic | Claude Code × `claude-opus-4-8` | Anthropic frontier |
 | 2 | Anthropic | Claude Code × `claude-sonnet-4-6` | Anthropic workhorse |
 | 3 | OpenAI | Codex × `gpt-5.5` | OpenAI frontier |
 | 4 | OpenAI | Codex × `gpt-5.4-mini` | OpenAI workhorse |

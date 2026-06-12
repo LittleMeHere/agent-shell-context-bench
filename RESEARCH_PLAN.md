@@ -86,7 +86,7 @@ plus a same-model harness control (7 configs total)**. The matrix is:
 
 | # | Vendor | Config | Role |
 |---|---|---|---|
-| 1 | Anthropic | Claude Code × `claude-fable-5` | Anthropic frontier |
+| 1 | Anthropic | Claude Code × `claude-opus-4-8` | Anthropic frontier (subscription-available for the full collection window; see `docs/DECISIONS.md` 2026-06-12 (later) on Fable 5) |
 | 2 | Anthropic | Claude Code × `claude-sonnet-4-6` | Anthropic workhorse |
 | 3 | OpenAI | Codex × `gpt-5.5` | OpenAI frontier |
 | 4 | OpenAI | Codex × `gpt-5.4-mini` | OpenAI workhorse |
@@ -133,7 +133,7 @@ seeded-error trials.
 
 | CLI | Frontier tier | Workhorse tier |
 |---|---|---|
-| Claude Code | `claude-fable-5` | `claude-sonnet-4-6` |
+| Claude Code | `claude-opus-4-8` | `claude-sonnet-4-6` |
 | Codex | `gpt-5.5` (xhigh) | `gpt-5.4-mini` |
 | agy (Antigravity) | `Gemini 3.1 Pro (High)` | `Gemini 3.5 Flash (Medium)` |
 | **Cross-vendor control** | — | **agy × `Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED) |
@@ -264,7 +264,7 @@ Reference for what these terms mean and why they matter. Any reader can use this
 
 1. **Primary agents to test — LOCKED.** Per the 2026-05-25 (later) scope correction, V1 primary is the full 7-configuration matrix across all three frontier-vendor CLIs (Claude Code, Codex, agy) at two model tiers each plus one same-model harness-control config (agy × Claude Sonnet 4.6 (Thinking)). Adapter implementation status per row is recorded in `docs/VERSIONS.md`; only Claude Code is CONFIRMED at tag time, with Codex and agy as PIN-AT-START — a legitimate pre-reg state because pre-registration locks methodology, not implementation completeness. SAP S5 is the qualification gate for any FUTURE CLI added beyond this V1 matrix. Cursor and GUI agentic IDEs are out (not reproducibly automatable).
 2. **Benchmark task selection.** Task list refined after lit review; capability tasks include a mix of common-workflow coverage and hardened frontier-difficulty tasks (D4 2026-05-23) so H1 has a non-zero denominator.
-3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `fable-5` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
+3. **Model versions.** All seven V1 configurations have CONFIRMED model pins (see `docs/VERSIONS.md`): Claude `opus-4-8` + `sonnet-4-6`, Codex `gpt-5.5` + `gpt-5.4-mini`, agy `Gemini 3.1 Pro (High)` + `Gemini 3.5 Flash (Medium)` + `Claude Sonnet 4.6 (Thinking)`. Fable 5 (released 2026-06-09) was evaluated and not pinned: its subscription inclusion ends 2026-06-22, before the confirmatory collection window (`docs/DECISIONS.md` 2026-06-12 (later)). Adapter implementation for Codex and agy is PIN-AT-START per `docs/VERSIONS.md`.
 4. **Publication venue for the writeup.** preprint server and/or relevant research forums; decided before release.
 
 ## Pre-registration
