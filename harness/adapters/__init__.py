@@ -8,9 +8,9 @@ harness-side knowledge of how to drive ONE CLI non-interactively and how
 to recover a transcript + command list from its output. agy serves
 configs #5, #6, and #7 (three model pins through the same adapter).
 
-  claude_code.py   Claude Code CLI            -> reference implementation (V1)
-  codex.py         OpenAI Codex CLI           -> (V2 work; model pins locked, parser unverified)
-  agy.py           Google Antigravity CLI     -> (V2 work; replaces planned Gemini CLI per D3 — Google announced Gemini CLI sunset within ~30 days of 2026-05-23; agy is the official replacement. Headless mode confirmed; structured output / model pinning / session persistence UNVERIFIED, adapter blocks on those checks)
+  claude_code.py   Claude Code CLI            -> reference implementation (configs #1, #2)
+  codex.py         OpenAI Codex CLI           -> V1 primary, PIN-AT-START (configs #3, #4) — `codex exec --json` schema characterised via 2026-05-25 smoke (structured `item.completed` fields); adapter is ~6h post-tag work
+  agy.py           Google Antigravity CLI     -> V1 primary, PIN-AT-START (configs #5, #6, #7) — 2026-05-25 smoke confirmed structured tool_calls in brain transcript_full.jsonl + model pin via settings.json; replaces sunset Gemini CLI; adapter ~12-20h post-tag work with agy-specific Cwd handling (see SAP "Outcome construction")
 
 Only `claude_code.py` is implemented so far — it is the reference example
 for the base contract. Cursor was dropped per docs/DECISIONS.md 2026-05-18

@@ -6,7 +6,7 @@ category: seeded-error
 title: "Write multi-line file content via heredoc syntax"
 triggers_on:
   - "Windows PowerShell 5.1 — `<<EOF` is not a PowerShell construct; here-strings use `@'...'@` instead"
-  - "Windows PowerShell 7.5.5 — pwsh 7+ did not add bash-style heredoc; the same here-string mechanism applies, seeded error triggers identically"
+  - "Windows PowerShell 7.x — pwsh 7+ did not add bash-style heredoc; the same here-string mechanism applies, seeded error triggers identically"
 seeded_error_design_note: |
   Bash heredoc (`cat > config.txt <<EOF\n...\nEOF`) is a standard idiom for
   writing multi-line content. PowerShell 5.1 has no `<<` heredoc operator;

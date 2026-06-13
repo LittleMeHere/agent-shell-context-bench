@@ -7,7 +7,7 @@ category: seeded-error
 title: "Create a dated backup filename using shell date substitution"
 triggers_on:
   - "Windows PowerShell 5.1 — `date` is an alias for Get-Date in PS, which does NOT accept `+%Y-%m-%d` format strings; PS uses -Format with .NET datetime tokens"
-  - "Windows PowerShell 7.5.5 — pwsh 7 retains the `date` → Get-Date alias and the .NET formatter semantics; seeded error triggers identically"
+  - "Windows PowerShell 7.x — pwsh 7 retains the `date` → Get-Date alias and the .NET formatter semantics; seeded error triggers identically"
 seeded_error_design_note: |
   Bash: `cp file.log file.log.$(date +%Y-%m-%d)` works. PowerShell: `$()`
   works as command substitution, but inside it `date +%Y-%m-%d` does NOT

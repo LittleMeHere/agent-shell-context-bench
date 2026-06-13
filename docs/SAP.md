@@ -34,8 +34,8 @@ Configurations (3 vendors × 2 tiers + 1 same-model harness control):
 | 6 | Google | agy × `Gemini 3.5 Flash (Medium)` | Google workhorse |
 | 7 | cross | agy × `Claude Sonnet 4.6 (Thinking)` | same-model harness control vs config #2 |
 
-Environments (5): Windows 11 + PowerShell 5.1, Windows 11 + pwsh 7.5.5,
-Windows 11 + WSL2 Ubuntu 22.04, Linux native (GCP Ubuntu 22.04), macOS
+Environments (5): Windows 11 + PowerShell 5.1, Windows 11 + pwsh 7.6.2,
+Windows 11 + WSL2 Ubuntu 24.04, Linux native (GCP Ubuntu 24.04), macOS
 (GitHub Actions). See `docs/VERSIONS.md` for the per-env adapter status.
 
 Implementation status (adapter built and parser-verified) and
@@ -959,7 +959,7 @@ Any model that changes version mid-study will be:
 **Cap-only restriction (added 2026-05-25 (latest), review-driven pass #2):**
 because H1a primary is now restricted to the 5 capability tasks (C01–C05),
 the sizing inputs `p̂_pool` and cluster ICC are computed from the
-**capability-task subset of the pilot only**. Trap-task trials still run in
+**capability-task subset of the pilot only**. Seeded-error-task trials still run in
 the pilot (they are required for blinded variance estimation across all
 cells and feed H1b descriptive and H2 primary post-confirmatory), but they
 do not enter the H1a sizing formula. The N per cell derived from the cap-only

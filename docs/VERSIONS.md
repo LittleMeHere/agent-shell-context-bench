@@ -27,8 +27,10 @@ file is the single aggregated record. Two states per entry:
 > adapter implementing that row is post-tag work.
 >
 > - Harness host environment — **CONFIRMED**.
-> - Windows shell pin (PS 5.1) — **CONFIRMED** (5.1.26100.8457, D2).
-> - Windows shell pin (pwsh 7) — **CONFIRMED** (7.5.5 already installed).
+> - Windows shell pin (PS 5.1) — **CONFIRMED** (5.1.26100.8655, ticked
+>   from 5.1.26100.8457 at the 2026-06-12 tag-time re-verification; D2).
+> - Windows shell pin (pwsh 7) — **CONFIRMED** (7.6.2, ticked from 7.5.5
+>   at the 2026-06-12 tag-time re-verification).
 > - Primary V1 matrix (7 configs × 5 envs) — **PINS CONFIRMED at the
 >   methodology layer; adapter implementation per-row status below.**
 > - IRR coders — **CONFIRMED**.
@@ -62,8 +64,8 @@ materially during the writeup's reading window.
 
 | Component | Version | State |
 |---|---|---|
-| Windows PowerShell (`powershell.exe`) — V1 cell E1 | **5.1.26100.8457** on Windows 11 Home (verified 2026-05-23 via `powershell.exe -NoProfile -Command "$PSVersionTable.PSVersion.ToString()"`) | CONFIRMED — V1 Windows-5.1 shell; `PowerShellEnvironment` invokes `powershell.exe -NoProfile -NonInteractive` |
-| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.5.5** on Windows 11 Home (already installed) | CONFIRMED — V1 Windows-7 shell; env adapter is a subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
+| Windows PowerShell (`powershell.exe`) — V1 cell E1 | **5.1.26100.8655** on Windows 11 Home (re-verified 2026-06-12 by the researcher via `$PSVersionTable.PSVersion.ToString()`; was 5.1.26100.8457/2026-05-23) | CONFIRMED — V1 Windows-5.1 shell; `PowerShellEnvironment` invokes `powershell.exe -NoProfile -NonInteractive` |
+| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.6.2** on Windows 11 Home (re-verified 2026-06-12 by the researcher; was 7.5.5) | CONFIRMED — V1 Windows-7 shell; env adapter is a subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
 
 Seeded-error tasks T01-T09 (renamed from "trap tasks" per
 `docs/DECISIONS.md` 2026-05-30 — TRAP acronym taken by
@@ -76,7 +78,7 @@ all trigger identically on both PS 5.1 and pwsh 7 because their
 underlying bash-vs-PowerShell semantic gap is unchanged across the
 PowerShell major versions.
 
-| Task | Underlying bash idiom | PS 5.1 triggers? | pwsh 7.5.5 triggers? | Pre-registered shell-upgrade signal |
+| Task | Underlying bash idiom | PS 5.1 triggers? | pwsh 7.6.2 triggers? | Pre-registered shell-upgrade signal |
 |---|---|---|---|---|
 | T01 | `cmd1 && cmd2` chain | yes (no `&&` parser) | **no** (pwsh 7.0 added `&&` / `\|\|` pipeline-chain operators) | **positive** — shell upgrade closes the gap |
 | T02 | `touch {a,b,c}.txt` brace expansion | yes (literal filename) | yes (no brace expansion in any PS version) | null — upgrade does not help |
@@ -120,11 +122,11 @@ either way.
 
 | # | Agent | CLI version | Model | Role | State |
 |---|---|---|---|---|---|
-| 1 | Claude Code | **2.1.150** (re-verified 2026-05-23; was 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-05-24 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS — Anthropic released Opus 4.8 as the current frontier) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 (fixture remains valid on 2.1.150 — schema unchanged across 7 patch bumps in 2.1.x) / flags CONFIRMED 2026-05-24 / model CONFIRMED |
-| 2 | Claude Code | **2.1.150** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
-| 3 | Codex CLI | `codex-cli` **0.133.0** (verified via `codex --version` 2026-05-23; was 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
+| 1 | Claude Code | **2.1.176** (updated from 2.1.159 + re-verified 2026-06-12 at the tag-eve currency pass; was 2.1.159/2026-06-09, 2.1.150/2026-05-24, 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-12 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (the current frontier available on the study's subscription access path for the full collection window; Fable 5 was evaluated 2026-06-12 and not pinned — its subscription inclusion ends 2026-06-22; rationale + re-pin rule: DECISIONS 2026-06-12 (later)) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; live schema checks PASSED on 2.1.159 and 2.1.176, both 2026-06-12, parser verified end-to-end on both captures — the 2.1.176 capture also exercised the PowerShell tool branch of `_SHELL_TOOLS`; see change log) / flags CONFIRMED 2026-06-12 / model CONFIRMED via live invocation 2026-06-12 |
+| 2 | Claude Code | **2.1.176** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
+| 3 | Codex CLI | `codex-cli` **0.139.0** (updated from 0.133.0 + re-verified 2026-06-12 at the tag-eve currency pass; was 0.133.0/2026-05-23, 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`; the `exec --json` schema was characterised on 0.133.0 — re-confirm at adapter build, which gates configs #3/#4 anyway) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
 | 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
-| 5 | Antigravity CLI (`agy`) | **1.0.2** (installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
+| 5 | Antigravity CLI (`agy`) | **1.0.7** (updated from 1.0.4 + re-verified 2026-06-12 at the tag-eve currency pass — `-p`/`--print` non-interactive flags re-confirmed via `agy --help`; was 1.0.4/2026-06-09; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.7 before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy` / Antigravity SDK on Google AI Ultra** per docs/DECISIONS.md 2026-05-27. | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` / SDK invocation wiring |
 | 6 | Antigravity CLI (`agy`) | same as #5 | **`Gemini 3.5 Flash (Medium)`** (settings-UI label confirmed 2026-05-25; the workhorse counterpart to Pro (High) — Medium reasoning effort matches realistic cost-sensitive use rather than over- or under-spending; symmetric with Codex's `gpt-5.4-mini` at default reasoning) | Google workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 | 7 | Antigravity CLI (`agy`) | same as #5 | **`Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED via 2026-05-23 verification — exact-case label that propagates Sonnet; lowercase `(thinking)` falls back to Gemini) | **same-model harness-control vs #2** (Claude Sonnet 4.6 in two harnesses across all 5 envs — pre-registered S6 analysis) | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
 
@@ -132,11 +134,11 @@ either way.
 
 | ID | Environment | State |
 |---|---|---|
-| E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8457) | env adapter CONFIRMED (`PowerShellEnvironment`) |
-| E2 | Windows 11 + **pwsh 7.5.5** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
-| E3 | Windows 11 + **WSL2 Ubuntu 22.04** | env adapter PIN-AT-START — `wsl -d Ubuntu-22.04 --` wrapper, ~3h post-tag implementation |
-| E4 | **Linux native** (GCP Ubuntu 22.04 on `e2-small`) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
-| E5 | **macOS** (GitHub Actions `macos-14` runner) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
+| E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8655) | env adapter CONFIRMED (`PowerShellEnvironment`) |
+| E2 | Windows 11 + **pwsh 7.6.2** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
+| E3 | Windows 11 + **WSL2 Ubuntu 24.04** (pin corrected 2026-06-12: Ubuntu-24.04 is the distro actually installed on the data-collection machine, verified via `wsl -l -v`; no 22.04 install exists) | env adapter PIN-AT-START — `wsl -d Ubuntu-24.04 --` wrapper, ~3h post-tag implementation |
+| E4 | **Linux native** (GCP Ubuntu 24.04 LTS on `e2-small`, advanced from 22.04 on 2026-06-12 to match E3 — same current LTS across both Linux cells) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
+| E5 | **macOS** (GitHub Actions `macos-26` runner, advanced from `macos-14` on 2026-06-12 — macos-14 enters deprecation 2026-07-06, inside the collection window, and is fully unsupported 2026-11-02; macos-26 is GA and the current `macos-latest` default) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
 
 ### Notes on the roster
 
@@ -152,7 +154,7 @@ either way.
 
 | Role | Identity | State |
 |---|---|---|
-| AI Coder 1 (primary) | **`claude-opus-4-8`** (Anthropic, frontier) — pinned 2026-05-23, upgraded from `claude-opus-4-7` per 2026-05-30 DECISIONS to track the current Anthropic frontier release | PIN CONFIRMED — re-verify model availability at IRR-run-time |
+| AI Coder 1 (primary) | **`claude-opus-4-8`** (Anthropic, frontier) — pinned 2026-05-23, upgraded 2026-05-30; moves with config #1's frontier pin to keep the S4 same-vendor-bias check lineage-aligned (see DECISIONS 2026-06-12 (later) re: Fable 5) | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | AI Coder 2 (independent) | **`gpt-5.5`** (OpenAI, frontier; different lineage from Coder 1) — pinned 2026-05-23 | PIN CONFIRMED — re-verify model availability at IRR-run-time |
 | Human anchor | the researcher (stratified random ≥50 subset, per SAP S4) | n/a (human) |
 | Optional premium audit | Deep Think (web-only, manual, ≤~20 hardest cases) | optional, not load-bearing |
@@ -324,3 +326,141 @@ record (machine-specific identifiers are intentionally not hard-coded here).
     artifact (the historical "10 configs" reference is left as-is per
     the audit-immutability convention; the qualitative power conclusion
     is unaffected by config-count revisions).
+- **2026-06-09 — pre-tag evidence pass + CLI pin re-verification (see
+  DECISIONS.md 2026-06-09):**
+  - CLI pins re-verified on the data-collection machine per this file's
+    hard gate: Claude Code 2.1.150→**2.1.159** (`claude --version`; all
+    six pinned flags re-confirmed against `claude --help`; the 12 parser
+    regression tests pass against the frozen 2.1.143-era fixture; a live
+    stream-json re-smoke on 2.1.159 is queued pre-tag); Codex
+    **0.133.0** unchanged; agy 1.0.2→**1.0.4** (`agy --version`;
+    `-p`/`--print` re-confirmed via `agy --help`; the 2026-05-25
+    transcript-schema smoke ran on 1.0.2, re-smoke queued before adapter
+    build). Pre-tag pin advances are not deviations, per the 2026-05-30
+    Opus 4.8 convention.
+  - Shell pins (PS 5.1.26100.8457, pwsh 7.5.5) NOT re-verified in this
+    pass — researcher re-verifies at tag time.
+  - TOS evidence pass executed: verbatim operative clauses + retrieval
+    dates + archive.org snapshot URLs recorded in
+    `docs/TOS_COMPLIANCE.md` for all three arms; remaining capture work
+    is listed in that file's Evidence Status section.
+- **2026-06-10 — agy measurement-qualification re-inspection (read-only,
+  on-disk 2026-05-25/27 smoke transcripts; agy 1.0.2-era data read under
+  agy 1.0.4):**
+  - CONFIRMED for the adapter design: `PLANNER_RESPONSE.tool_calls[]`
+    entries carry `name` + `args.CommandLine` + `args.Cwd`; every
+    transcript event carries `status` (observed `DONE` / `ERROR`);
+    `RUN_COMMAND.content` carries Created/Completed timestamps, an
+    outcome sentence ("The command completed successfully."), and an
+    `Output:` block; one UUID directory per conversation under `brain/`
+    (per-trial isolation via directory diff works); model pin via
+    `settings.json` confirmed present with the exact config #5 label.
+  - CAVEATS pre-registered for the adapter (to verify in the 1.0.4
+    re-smoke, which must include a deliberately failing command):
+    (i) long command output is truncated in the transcript (literal
+    "<truncated N lines>" marker) — binary task success must come from
+    filesystem `binary_success_predicate` checks (already the design),
+    and output-dependent diagnostics are bounded by the truncation;
+    (ii) no numeric exit code was observed in successful RUN_COMMAND
+    content — the failure-case content format is unverified, so the
+    A1b command-error signal rests on event `status` + the outcome
+    sentence until a failing-command sample is captured;
+    (iii) no per-response served-model field exists in the transcript —
+    model verification is the `settings.json` pin plus the transcript's
+    model-selection-change notices (logged as user-visible text when
+    the setting changes);
+    (iv) transcripts embed real local filesystem paths and
+    git-identity output — agy transcripts require their own redaction
+    pass before any publication (the existing redaction-review policy
+    applies; this notes the agy-specific surface).
+  - **Antigravity SDK ruled out for V1** per researcher decision
+    2026-06-10 (API-key-only documented auth; no API budget) — see
+    DECISIONS.md 2026-06-10 and the TOS_COMPLIANCE invocation-surface
+    note. Subscription `agy --print` is the sole planned Google-arm
+    surface for V1.
+  - agy 1.0.4 `--help` additionally documents `--sandbox` ("Run in a
+    sandbox with terminal restrictions enabled"), `--add-dir`,
+    `--conversation <id>` resume, and `--print-timeout` — candidate
+    defense-in-depth options for the adapter, to be evaluated at
+    adapter-build time (not added to pre-registered compliance
+    measures).
+- **2026-06-12 — tag-time shell-pin re-verification + live 2.1.159 schema
+  check (final pre-tag gate items):**
+  - **Shell pins ticked** at the researcher's tag-time re-verification
+    via `$PSVersionTable.PSVersion.ToString()`: Windows PowerShell
+    5.1.26100.8457 → **5.1.26100.8655**; pwsh 7.5.5 → **7.6.2**. The
+    per-task seeded-error shell-applicability claims are version-generic
+    (T02-T09 mechanisms are unchanged within PS 5.1.x / pwsh 7.x; T01's
+    pre-registered positive signal stems from `&&` arriving in pwsh
+    7.0), so the expectation table is unchanged in substance; the task
+    YAML `triggers_on` labels and current-state references were
+    relabeled to the new pins.
+  - **Live Claude Code 2.1.159 stream-json schema check PASSED**
+    (resolves the re-smoke obligation in the adapter's VERSION PIN
+    block). Method: one `claude -p` invocation via the documented CLI
+    surface in a disposable temp directory with permissions allowlisted
+    to a single `echo` command — not the harness, no permission-bypass
+    flags, not the repo checkout. Result: every load-bearing event
+    structure matches the frozen fixture (identical `system/init` key
+    set; assistant `tool_use` / user `tool_result` `is_error` pairing
+    intact; same result envelope); one additive event observed
+    (`system` subtype `post_turn_summary`), skipped by the parser as
+    designed. The repo parser, invoked as a library over the live
+    capture, extracted the expected single CommandRecord with correct
+    command, stdout, exit_code, and tool_name. The frozen 2.1.143-era
+    fixture remains valid per the 2.1.143→2.1.150 precedent; the live
+    capture is archived in the researcher's off-repo evidence pack.
+- **2026-06-12 (later) — tag-eve currency pass (researcher instruction:
+  lock latest stable everywhere; see DECISIONS.md 2026-06-12):**
+  - **CLIs updated and re-verified:** Claude Code 2.1.159 → **2.1.176**
+    (all six pinned flags re-confirmed; live stream-json schema check
+    REPEATED and PASSED on 2.1.176 — same event signatures as the frozen
+    fixture plus the known additive `post_turn_summary`; parser verified
+    end-to-end on the new capture, which exercised the `PowerShell` tool
+    branch of `_SHELL_TOOLS` this time, complementing the `Bash`-branch
+    coverage of the 2.1.159 capture); Codex 0.133.0 → **0.139.0**
+    (`exec --json` schema re-confirmation deferred to adapter build,
+    which gates configs #3/#4 anyway); agy 1.0.4 → **1.0.7**
+    (`-p`/`--print` re-confirmed via `--help`).
+  - **Config #1 + IRR Coder 1 model pin advanced: `claude-opus-4-8` →
+    `claude-fable-5`** per the 2026-05-30 track-the-current-frontier
+    convention — Anthropic released Fable 5 as the GA frontier on
+    2026-06-09. Availability and served-model routing on the study plan
+    confirmed by live test invocation (the schema-check run requested
+    `--model claude-fable-5`; the `system/init` model field and the
+    result `modelUsage` both reported `claude-fable-5`). The
+    vendor-documented classifier handoff to Opus 4.8 (under ~5% of
+    sessions) is disclosed in the config row; served-model mismatches
+    are captured by the per-trial ops log.
+  - **Environment pins corrected/advanced:** E3's WSL2 pin was factually
+    wrong — `wsl -l -v` shows **Ubuntu-24.04** installed and no 22.04
+    distro, so the pre-registered `wsl -d Ubuntu-22.04` invocation could
+    never have run; E3 corrected to Ubuntu 24.04 and E4 advanced to
+    Ubuntu 24.04 LTS on GCP (both Linux cells on the same current LTS).
+    E5 advanced `macos-14` → **`macos-26`** (macos-14 enters deprecation
+    2026-07-06 and is fully unsupported 2026-11-02 — inside the
+    collection/replication window; macos-26 is GA and the current
+    `macos-latest` default).
+  - **OpenAI and Google model pins audited, unchanged:** GPT-5.5 remains
+    the top generally-available tier per the 2026-06-11 Codex pricing
+    capture (Codex-Spark is a Pro-only research preview); `Gemini 3.1
+    Pro (High)` remains the subscription frontier label on the installed
+    agy surface.
+  - **Harness host deps deliberately NOT upgraded:** installed versions
+    re-verified as exactly matching this manifest (Python 3.11.9, PyYAML
+    6.0.3, numpy 2.4.2, scipy 1.17.1, statsmodels 0.14.6) — these pins
+    guard the deterministic power analysis (RNG seed 20260515) and stay
+    frozen by design.
+- **2026-06-12 (latest) — Fable 5 pin REVERTED to Opus 4.8 on
+  subscription-availability grounds (see DECISIONS.md 2026-06-12
+  (later)):** the vendor's subscription inclusion for Fable 5 ends
+  2026-06-22 — before adapter implementation, the blinded pilot, and
+  confirmatory collection can plausibly complete under the throttle
+  posture — and a frontier pin that lapses mid-collection breaks the
+  primary Anthropic cell. Config #1 and IRR Coder 1 return to
+  `claude-opus-4-8`, the current frontier available on the
+  pre-registered subscription access path for the full window. The
+  Fable 5 availability verification (live invocation, 2026-06-12)
+  remains archived; the convention is hereby refined to "current
+  frontier available on the study's access path for the planned
+  collection window."

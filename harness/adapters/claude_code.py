@@ -7,14 +7,17 @@ the other adapters' parsers are tested against.
 ================================ VERSION PIN ===============================
 Flags below were VERIFIED against `claude --help` on:
 
-  Claude Code version : 2.1.150
-  Verified on (date)  : 2026-05-24
-  Verified by         : re-verification pass at pre-registration
-                        finalization (was 2.1.143 / 2026-05-18; bumped 7
-                        builds within 2.1.x, NO major version change; all
-                        six flags below re-checked unchanged)
+  Claude Code version : 2.1.176
+  Verified on (date)  : 2026-06-12
+  Verified by         : tag-eve currency pass — six flags re-checked
+                        unchanged against `claude --help`; live
+                        stream-json schema checks passed the same day on
+                        2.1.159 and 2.1.176 (parser verified end-to-end
+                        on both captures; frozen fixture stands). Full
+                        pin history + verification record:
+                        docs/VERSIONS.md change log.
 
-Verified flag semantics (re-confirmed unchanged on 2.1.143; first verified 2.1.119):
+Verified flag semantics (re-confirmed at every pin tick — history in docs/VERSIONS.md):
   -p / --print              run once, print response, exit (non-interactive)
   --output-format stream-json   one JSON event per step (only works with -p);
                             lets us reconstruct the ordered command list H2
@@ -92,8 +95,8 @@ class ClaudeCodeAdapter(AgentAdapter):
     def build_invocation(
         self, prompt: str, sandbox: SandboxHandle
     ) -> list[str]:
-        # Flags verified against Claude Code 2.1.119 — see VERSION PIN in the
-        # module docstring. Re-verify before pre-registration.
+        # Flags verified against the pinned CLI version — see the VERSION
+        # PIN block in the module docstring (history: docs/VERSIONS.md).
         #
         # DECISION FOR THE RESEARCHER (not silently hardcoded): the CLI
         # supports `--max-budget-usd <amount>`, a hard per-run dollar cap.

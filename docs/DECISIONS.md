@@ -840,6 +840,264 @@ are retained as internal identifiers regardless of date.
 
 ---
 
+## 2026-06-09 — Pre-tag evidence pass: verbatim TOS capture, Google disclosure email added, CLI pins re-verified
+
+Context: the remaining substantive pre-tag work was the
+`docs/TOS_COMPLIANCE.md` evidence pass (verbatim vendor clauses +
+retrieval dates + archive.org snapshots, flagged in that file's Evidence
+Status section) plus the VERSIONS.md hard-gate requirement to re-verify
+pinned CLI versions before tag. Both were executed today. One scope
+decision was made on researcher instruction; the rest of this entry is
+the dated record of what the evidence pass found.
+
+**Decision — Google disclosure email.** Considered: (α) keep the
+2026-05-27 posture (no pre-tag disclosure email to Google, because the
+Google arm uses documented first-party subscription surfaces); (β) send
+a pre-tag disclosure email to all three vendors, mirroring the Anthropic
+and OpenAI arms.
+
+Picked **(β)** per researcher instruction (2026-06-09) because:
+
+- Symmetric treatment across arms removes a reviewer-visible asymmetry
+  ("you disclosed to two vendors but not the third").
+- The marginal cost is one email; the disclosure-log slot in
+  `docs/TOS_COMPLIANCE.md` already existed for the other two arms.
+
+Tradeoff: none material. The Google section's disclosure log now
+mirrors the other two arms and records that this supersedes the
+2026-05-27 no-email posture.
+
+**Evidence-pass findings (recorded for the audit trail):**
+
+- **OpenAI KEEP gate re-anchored to verbatim text.** The Services
+  Agreement (live page, retrieved 2026-06-09; "Updated: December 1,
+  2025", "Effective: January 1, 2026") states in its own scope sentence
+  that it governs ChatGPT Business, and section 3.3(f) reads "extract
+  data from the Services other than as permitted through the Services" —
+  the framing the 2026-05-27 KEEP decision turned on, now quoted
+  verbatim in `docs/TOS_COMPLIANCE.md` with a same-day archive.org
+  snapshot.
+- **OpenAI consumer-terms cross-reference updated.** The consumer Terms
+  of Use were republished "Effective: January 1, 2026"; the previously
+  cited c(iv) "except as permitted through the API" lettering no longer
+  appears. The current consumer text flatly prohibits "Automatically or
+  programmatically extract data or Output (defined below)." with no
+  carve-out — which sharpens, rather than weakens, the rationale for
+  running the OpenAI arm on ChatGPT Business under the Services
+  Agreement.
+- **Anthropic headless billing basis changes 2026-06-15.** The Claude
+  Code docs and the Agent SDK credit policy article state that from June
+  15, 2026, Agent SDK and `claude -p` usage on subscription plans draws
+  from a monthly Agent SDK credit separate from interactive limits. The
+  Anthropic throttle measure in `docs/TOS_COMPLIANCE.md` now names the
+  run-time documented basis (rate caps before that date, the Agent SDK
+  credit after) and requires re-confirmation at data-collection start.
+  Flagged because confirmatory data collection will occur after the
+  change date.
+- **Google docs pages are not automation-capturable.** The four
+  antigravity.google doc pages return HTTP 200 but are client-side
+  rendered (byte-identical application shells); no verbatim quote can be
+  taken from them by automated retrieval. The documented-surface claim
+  for non-interactive agy use is anchored instead to local `agy --help`
+  output (a first-party interface description), and manual browser
+  capture is queued pre-tag. The enforcement-evidence forum thread was
+  re-verified live, including the in-thread Google staff response
+  attributing the restriction to a third-party bridge tool.
+- **archive.org coverage.** Snapshots recorded for 11 of 18 cited
+  sources (several same-day). Save-Page-Now was attempted for the
+  remaining 7 from this network without confirmation; manual saves are
+  queued pre-tag and tracked in the TOS file's Evidence Status list.
+- **CLI pin drift found and resolved (VERSIONS hard gate).** Claude Code
+  2.1.150→2.1.159 (six flags re-confirmed unchanged; parser regression
+  suite passes against the frozen fixture; live stream-json re-smoke
+  queued pre-tag) and agy 1.0.2→1.0.4 (`--print` re-confirmed;
+  transcript-schema re-smoke queued before adapter build). Codex 0.133.0
+  unchanged. Pre-tag pin advances are not deviations, per the 2026-05-30
+  Opus 4.8 convention.
+
+Propagated to: `docs/TOS_COMPLIANCE.md` (verbatim clauses, per-vendor
+source capture registers, Google disclosure log, cross-cutting measure
+8, throttle wording), `docs/VERSIONS.md` (config rows 1/2/5 + change
+log), `RESEARCH_PLAN.md` (agents table A1/A3 pins; Open questions item 3
+stale `opus-4-7` corrected to `opus-4-8` per the 2026-05-30 upgrade),
+`harness/adapters/claude_code.py` (VERSION PIN block per its own
+re-verify instruction), `harness/adapters/__init__.py` (stale "V2 work"
+roster docstring brought in line with the 2026-05-25 (later) V1-primary
+status), `README.md` (implementation status row). The pass also found and fixed three missed
+instances of the 2026-05-30 seeded-error rename in current-state pre-reg
+prose (`HYPOTHESIS.md` H2 trial-scope bullet, `RESEARCH_PLAN.md`
+per-shell annotation sentence, `docs/SAP.md` pilot-sizing sentence) —
+terminology-only, same scope as the 2026-05-30 decision. Non-public
+working notes were updated separately the same day (stale-reference
+cleanup and disclosure-email drafting).
+
+---
+
+## 2026-06-10 — Google-arm invocation surface: subscription `agy --print` primary; SDK contingent on auth verification
+
+Context: researcher review found no public docs-page documentation of the
+Antigravity CLI's non-interactive mode (the antigravity.google docs pages
+are client-side-rendered, and their rendered content was not confirmed to
+cover `--print`), while the Antigravity SDK's public README (GitHub,
+retrieved 2026-06-10) authenticates via `GEMINI_API_KEY` in its
+quickstart with no statement about AI Ultra subscription authentication.
+
+Considered: (α) switch the Google arm to the SDK as the
+better-publicly-documented surface; (β) keep subscription `agy --print`
+primary — documented in-tool via `agy --help` and running on the
+pre-registered AI Ultra subscription auth — with the SDK as a contingent
+alternative only if subscription authentication for it is verified.
+
+Picked **(β)** because:
+
+- The 2026-05-27 access-path decision is subscription-based. An
+  SDK-with-API-key path would silently change the billing model and the
+  governing terms (Gemini API terms rather than the subscription
+  surface) — an access-path change, not an implementation detail.
+- The pre-registered access path already reads "`agy --print` and/or
+  Antigravity SDK", so no methodology edit is needed; this entry fixes
+  which surface is primary and what evidence would trigger
+  reconsideration.
+
+Tradeoff: the CLI surface's public documentation is thinner (in-tool
+`--help` plus client-side-rendered docs pages). Mitigated by the verbatim
+`agy --help` quote in `docs/TOS_COMPLIANCE.md`, archive.org snapshots of
+the docs pages (full browser replay verified), and the replicator note.
+
+Propagated to: `docs/TOS_COMPLIANCE.md` Google section (SDK repository
+added to operative sources, README tagline + auth caveat quoted,
+invocation-surface note added, disclosure-log status line recording the
+2026-06-10 Google One support case filing).
+
+---
+
+## 2026-06-12 — Tag-eve currency pass: latest stable everywhere, pins corrected and locked
+
+Context: immediately before cutting `pre-registration-v1`, the researcher
+instructed a full currency audit ("no advantage to sticking with older
+configurations — make sure we are up to date on everything (stable
+release) and lock in the versions"). The audit found drift in all three
+CLIs, one factually wrong environment pin, one environment pin that
+would be deprecated mid-study, and a new Anthropic GA frontier model
+released three days earlier.
+
+Considered: (α) tag with the as-found versions (smallest diff, but locks
+known-stale tooling and a frontier pin superseded before the tag
+exists); (β) update to current stable, re-run every affected
+verification, and tag the refreshed state.
+
+Picked **(β)** because:
+
+- The repo's own 2026-05-30 convention says the "Anthropic frontier"
+  role is filled by whichever model is current at tag time — Anthropic
+  released **Claude Fable 5** (`claude-fable-5`) as the GA frontier on
+  2026-06-09, superseding Opus 4.8. Tagging Opus 4.8 would have forced
+  an immediate post-tag deviation, exactly what the 2026-05-30 entry
+  declined to do.
+- The E3 pin was not merely stale but wrong: the data-collection machine
+  has **Ubuntu-24.04** under WSL2 and no 22.04 distro, so the
+  pre-registered `wsl -d Ubuntu-22.04` invocation could never have run.
+  E3 corrected to 24.04; E4 advanced to 24.04 LTS to keep both Linux
+  cells on one current LTS.
+- The E5 `macos-14` runner image enters deprecation 2026-07-06 and is
+  fully unsupported 2026-11-02 — inside the collection/replication
+  window. Advanced to `macos-26` (GA; the current `macos-latest`
+  default).
+- All verifications were re-run after updating, not assumed: Claude Code
+  2.1.176 six-flag check + live stream-json schema check (passed; parser
+  verified end-to-end on the capture, which also exercised the
+  PowerShell tool branch); `claude-fable-5` availability and
+  served-model routing confirmed by live invocation on the study plan;
+  agy 1.0.7 `--print` flags re-confirmed; Codex 0.139.0 noted with
+  `exec --json` re-confirmation deferred to adapter build (which gates
+  configs #3/#4 regardless).
+
+Rejected: (α) — and, separately, upgrading the harness host Python
+dependencies was rejected: they re-verified as exactly matching the
+manifest and stay frozen because they guard the deterministic power
+analysis.
+
+Tradeoff: the Codex `exec --json` schema evidence (2026-05-25) and the
+agy transcript-schema evidence (2026-05-25, on 1.0.2) now predate the
+pinned CLI builds; both re-confirmations are pre-conditions of the
+respective adapter builds and are recorded in `docs/VERSIONS.md`.
+OpenAI and Google model pins were audited and left unchanged (GPT-5.5
+remains the top generally-available tier per the 2026-06-11 pricing
+capture; `Gemini 3.1 Pro (High)` remains the subscription frontier
+label).
+
+Propagated to: `docs/VERSIONS.md` (config rows 1-5, IRR Coder 1,
+substitution-rule example, lineage-coverage line, environment table
+E3/E4/E5, change log), `RESEARCH_PLAN.md` (matrix tables, agents table,
+environments table, open-questions item 3), `docs/SAP.md` (config table
+row 1, environments line), `docs/TOS_COMPLIANCE.md` (Anthropic configs
+line), `harness/adapters/claude_code.py` (VERSION PIN block),
+`harness/environments/__init__.py` (docstring). Non-public working notes
+updated separately the same day.
+
+---
+
+## 2026-06-12 (later) — Config #1 frontier pin: Fable 5 reverted to Opus 4.8 on availability grounds
+
+Context: hours after the tag-eve currency pass advanced config #1 (and
+IRR Coder 1) to `claude-fable-5`, the researcher flagged that Anthropic's
+subscription inclusion for Fable 5 ends **2026-06-22**, with no committed
+date for its return ("they plan to include it eventually"). The study's
+Anthropic arm is pre-registered on the Claude Max subscription access
+path.
+
+Considered: (α) keep `claude-fable-5` and race Claude-arm collection
+before 2026-06-22; (β) revert config #1 and IRR Coder 1 to
+`claude-opus-4-8`, the current frontier available on the subscription
+access path for the entire collection window.
+
+Picked **(β)** because:
+
+- (α) is not a schedule. Between the tag and the first confirmatory
+  trial sit ~31-39 hours of adapter implementation, sandbox-VM setup,
+  the blinded pilot across the env×config cells, the pre-committed
+  sizing computation, and the confirmatory run itself — under a
+  throttle posture of roughly 50% of documented caps, with the
+  Anthropic headless billing basis changing on 2026-06-15 in the middle
+  of the ten remaining days. The plan's own end-to-end estimate is 8-12
+  weeks.
+- A frontier pin that lapses mid-collection forces partial-arm
+  truncation on the **primary** Anthropic cell — the single worst
+  configuration to lose — and converts a pre-reg pin into a guaranteed
+  deviation.
+- The track-the-current-frontier convention (2026-05-30) is refined,
+  not violated: the role is filled by the current frontier **available
+  on the study's access path for the planned collection window**. This
+  is the same availability logic that ruled out the Antigravity SDK for
+  the Google arm (2026-06-10).
+- Framing benefit, not cost: config #1 measures what a subscription
+  user actually gets during the study window. The writeup discloses
+  that Fable 5 existed (released 2026-06-09, subscription inclusion
+  ended 2026-06-22) and was not collectible on the pre-registered
+  access path.
+
+Rejected: (α) — also rejected: switching the Anthropic arm to API
+access to keep Fable 5 (no API budget; changes the governing terms and
+the compliance posture for the arm).
+
+Tradeoff: by writeup time Fable 5 will be the publicly known frontier
+and config #1 will read as one tier behind it. Mitigation: the
+disclosure above, plus the fact that every vendor arm pins the top
+model available on its subscription path — symmetric treatment. If
+Anthropic restores subscription inclusion before the first confirmatory
+trial, re-pinning is a logged decision (pre-tag amendment if the tag is
+not yet cut; otherwise a DEVIATIONS.md entry) — never silent.
+
+Propagated to: `docs/VERSIONS.md` (config row 1, IRR Coder 1,
+substitution-rule example, lineage-coverage line, change log),
+`RESEARCH_PLAN.md` (matrix tables + open-questions item 3, with the
+Fable 5 non-pin rationale noted), `docs/SAP.md` (config table row 1),
+`docs/TOS_COMPLIANCE.md` (Anthropic configs line). The Fable 5
+availability verification capture remains archived in the researcher's
+off-repo evidence pack. Non-public working notes updated separately.
+
+---
+
 ## (template for future entries)
 
 ## YYYY-MM-DD — <decision title>
