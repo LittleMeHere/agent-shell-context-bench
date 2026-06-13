@@ -2,9 +2,15 @@
 
 A controlled benchmark measuring AI coding agent reliability across five OS-shell execution contexts. Headline question: *do AI coding agents have measurably higher failure rates and qualitatively different failure modes when operating on Windows/PowerShell vs. Linux/bash, and if so, why?*
 
-> **Status:** methodology locked for `pre-registration-v1`. When the
-> pre-registration commit + git tag exists, this README will say so
-> explicitly with the tag's commit SHA and UTC timestamp.
+> **Status: PRE-REGISTERED.** Tag `pre-registration-v1` was cut on
+> **2026-06-13T00:40:39Z** at commit
+> **`34104be7c8378c64d81692a89ea9646acdfcc02d`** (merge of PR #1, which
+> carries the five finalization commits). The methodology — hypotheses,
+> SAP, the 14 task definitions, the 7-config × 5-environment matrix,
+> all tool/model/environment pins, and the TOS compliance posture — is
+> frozen as of that commit. Any later methodology change is logged in
+> [`DEVIATIONS.md`](DEVIATIONS.md) per the SAP's
+> deviation-vs-clarification policy.
 
 ## What this is
 
