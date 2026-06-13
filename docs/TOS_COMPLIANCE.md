@@ -20,8 +20,9 @@ recorded from the Wayback Machine availability API the same day. Quotes
 below preserve source wording exactly; typography (quote marks, dashes)
 and whitespace are normalized, and bracketed ellipses mark elisions.
 
-Still open before the `pre-registration-v1` tag (list updated 2026-06-10
-after the researcher's browser capture session):
+Still open before the `pre-registration-v1` tag (list updated
+2026-06-12; researcher browser-capture sessions 2026-06-10 and
+2026-06-11):
 
 1. **[DONE 2026-06-11] Disclosure to all three vendors.** Anthropic and
    OpenAI disclosure emails sent 2026-06-11; the Google disclosure was
@@ -41,15 +42,17 @@ after the researcher's browser capture session):
    and are preserved as first-party page-copy markdown in the off-repo
    archive instead. (Screenshots/PDFs are deliberately not committed to
    this public repo.)
-3. **One source has no archive.org snapshot.** The OpenAI Sharing and
-   Publication Policy would not archive on 2026-06-09 or 2026-06-10
-   (Save Page Now produced no capture); its retrieval is evidenced by a
-   live capture and a PDF in the off-repo evidence archive. All other
-   cited web sources now have snapshots (several researcher-created
-   2026-06-10). Optional hardening: also archive the first-party
-   markdown variants of the two code.claude.com pages (append `.md` to
-   each URL) because the archived HTML replays of those pages can error
-   after initial render due to client-side hydration.
+3. **Snapshot coverage.** The OpenAI Sharing and Publication Policy has
+   no archive.org snapshot (Save Page Now produced no capture on
+   2026-06-09 or 2026-06-10); its retrieval is evidenced by a live
+   capture and a PDF in the off-repo evidence archive. The Antigravity
+   SDK repository's snapshot (2026-05-28) predates the README retrieval
+   (2026-06-10); the retrieved README copy is preserved in the off-repo
+   archive, and a fresh save is optional hardening. Every other cited
+   web source has a snapshot. Optional hardening: also archive the
+   first-party markdown variants of the two code.claude.com pages
+   (append `.md` to each URL) because the archived HTML replays of those
+   pages can error after initial render due to client-side hydration.
 4. **[RESOLVED 2026-06-11] Verbatim text capture of the
    antigravity.google doc pages.** Rendered content for the CLI overview,
    CLI usage, and SDK overview pages was captured by researcher browser
@@ -287,7 +290,7 @@ subscription rather than a consumer plan.
 |---|---|---|---|
 | Services Agreement | 2026-06-09 (live; raw-HTML cross-checked; page blocks some automated fetchers) | Updated December 1, 2025; Effective January 1, 2026 | http://web.archive.org/web/20260609222032/https://openai.com/policies/services-agreement/ |
 | Usage Policies | 2026-06-09 (live; raw-HTML cross-checked) | Effective October 29, 2025 | http://web.archive.org/web/20260607080512/https://openai.com/policies/usage-policies/ |
-| Consumer Terms of Use (cross-ref) | 2026-06-09 (live; raw-HTML cross-checked) | Published January 1, 2026; Effective January 1, 2026 | http://web.archive.org/web/20260607080512/https://openai.com/policies/row-terms-of-use/ |
+| Consumer Terms of Use (cross-ref) | 2026-06-09 (live; raw-HTML cross-checked) | Published January 1, 2026; Effective January 1, 2026 | http://web.archive.org/web/20260607080512/https://openai.com/policies/row-terms-of-use/ (shares a crawl-batch timestamp with the Usage Policies snapshot; both URLs verified 2026-06-12 to resolve to their own distinct documents) |
 | Sharing and Publication Policy | 2026-06-09 (live; raw-HTML cross-checked) | Updated November 14, 2022 | none - Save Page Now produced no capture on 2026-06-09 or 2026-06-10; retrieval evidenced by live capture + PDF in the off-repo evidence archive |
 | Codex CLI docs | 2026-06-09 (live) | n/a (docs page) | http://web.archive.org/web/20260602180528/https://developers.openai.com/codex/cli |
 | Codex auth docs | 2026-06-09 (live) | n/a (docs page) | https://web.archive.org/web/20260610022703/https://developers.openai.com/codex/auth (content-bearing capture verified 2026-06-10) |
@@ -328,8 +331,10 @@ response pending at the time of this entry.
 `agy x Gemini 3.5 Flash (Medium)`;
 `agy x Claude Sonnet 4.6 (Thinking)`.
 
-**Access path:** Google AI Ultra subscription via official first-party
-Antigravity CLI (`agy --print`) and/or Antigravity SDK. This supersedes the
+**Access path:** Google AI Ultra subscription via the official
+first-party Antigravity CLI (`agy --print`) - the sole V1 invocation
+surface (the first-party Antigravity SDK was ruled out for V1 on
+2026-06-10; see the invocation-surface note below). This supersedes the
 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection.
 
 **Operative sources:**
@@ -411,6 +416,7 @@ Antigravity CLI (`agy --print`) and/or Antigravity SDK. This supersedes the
 |---|---|---|---|
 | Generative AI Prohibited Use Policy | 2026-06-09 (live; raw-HTML cross-checked) | Last Modified December 17, 2024 | http://web.archive.org/web/20260608063432/https://policies.google.com/terms/generative-ai/use-policy |
 | Local `agy --help` output | 2026-06-09 (agy 1.0.4); flag lines re-confirmed on agy 1.0.7, 2026-06-12 | n/a | n/a (local primary source; transcript in researcher's off-repo evidence archive) |
+| Antigravity SDK repository (GitHub) | 2026-06-10 (raw README from branch `main`; copy preserved in the off-repo archive) | n/a (repository) | http://web.archive.org/web/20260528073045/https://github.com/google-antigravity/antigravity-sdk-python (predates the README retrieval by ~2 weeks; fresh save is optional hardening) |
 | Antigravity CLI overview docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | https://web.archive.org/web/20260610022757/https://antigravity.google/docs/cli-overview (replays fully in a browser - sub-resources captured; raw HTML is an application shell, so text is not machine-extractable) |
 | Antigravity CLI usage docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | https://web.archive.org/web/20260610022857/https://antigravity.google/docs/cli-using (same: full browser replay verified by the researcher; not machine-extractable) |
 | Antigravity SDK overview docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | http://web.archive.org/web/20260607145444/https://antigravity.google/docs/sdk-overview |
@@ -423,8 +429,10 @@ retrieval returns an application shell. Rendered content for three of the
 four (CLI overview, CLI usage, SDK overview) was captured by researcher
 browser PDF on 2026-06-11 and is quoted above; archive.org snapshots
 exist for all four and replay fully in a browser, but are not
-machine-extractable. The SDK launch blog post remains without a content
-capture (PDF queued). Notably, none of the captured pages documents the
+machine-extractable. All four pages now have researcher PDF captures
+(the launch post's PDF, added 2026-06-11, is a capture-only artifact -
+no quote from it is load-bearing). Notably, none of the captured pages
+documents the
 `--print` flag itself - the pages document a "headless" workflow focus,
 the settings file, and launch-flag overrides - so the in-tool `agy
 --help` output quoted above remains the documentation of record for the
@@ -449,9 +457,11 @@ documented authentication path is API-key-based and the study has no API
 budget), making subscription `agy --print` the sole planned Google-arm
 invocation surface for V1.
 
-**Methodology interpretation.** Official `agy --print` and the Antigravity
-SDK are documented first-party scripted/programmatic surfaces for Antigravity.
-This benchmark stays inside those surfaces: no extracted OAuth tokens, no
+**Methodology interpretation.** Official `agy --print` is the documented
+first-party scripted surface this benchmark uses; the Antigravity SDK,
+while also a documented first-party programmatic surface, is out of V1
+scope per the invocation-surface note above. The benchmark stays inside
+the first-party CLI surface: no extracted OAuth tokens, no
 third-party bridge tools, no resale, no shared credentials, and no private API
 clients. Public enforcement evidence reviewed (including the verbatim staff
 response quoted above) clusters around third-party OAuth/private-API bridge

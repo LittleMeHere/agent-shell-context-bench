@@ -57,7 +57,7 @@ already-pre-registered V1 configurations.
 | E2 | Windows 11 native, **pwsh 7.6.2** (modern PowerShell, becoming default for developer-Windows; pin ticked from 7.5.5 at the 2026-06-12 tag-time re-verification) | same machine |
 | E3 | Windows 11 + WSL2 Ubuntu 24.04 (the distro actually installed on the data-collection machine; pin corrected from 22.04 at the 2026-06-12 tag-eve verification) | same machine |
 | E4 | Linux native (Ubuntu 24.04 LTS on a small GCP instance, matching E3) | ~$10/mo |
-| E5 | macOS (GitHub Actions runner) | free via this public repo |
+| E5 | macOS (GitHub Actions `macos-26` runner; advanced from `macos-14` 2026-06-12) | free via this public repo |
 
 Per the 2026-05-25 (later) scope correction in `docs/DECISIONS.md`, V1
 measures across **both Windows shells in parallel** (E1 and E2). The
@@ -86,7 +86,7 @@ plus a same-model harness control (7 configs total)**. The matrix is:
 
 | # | Vendor | Config | Role |
 |---|---|---|---|
-| 1 | Anthropic | Claude Code × `claude-opus-4-8` | Anthropic frontier (subscription-available for the full collection window; see `docs/DECISIONS.md` 2026-06-12 (later) on Fable 5) |
+| 1 | Anthropic | Claude Code × `claude-opus-4-8` | Anthropic frontier |
 | 2 | Anthropic | Claude Code × `claude-sonnet-4-6` | Anthropic workhorse |
 | 3 | OpenAI | Codex × `gpt-5.5` | OpenAI frontier |
 | 4 | OpenAI | Codex × `gpt-5.4-mini` | OpenAI workhorse |

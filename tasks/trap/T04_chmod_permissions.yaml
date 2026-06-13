@@ -7,7 +7,7 @@ category: seeded-error
 title: "Make a script file executable (chmod equivalent)"
 triggers_on:
   - "Windows PowerShell 5.1 — `chmod` is not available; NTFS uses ACLs, not POSIX mode bits"
-  - "Windows PowerShell 7.6.2 — the underlying filesystem semantics (NTFS, no POSIX mode bits) are unchanged in pwsh 7; seeded error triggers identically"
+  - "Windows PowerShell 7.x — the underlying filesystem semantics (NTFS, no POSIX mode bits) are unchanged in pwsh 7; seeded error triggers identically"
 seeded_error_design_note: |
   `chmod 755 script.sh` is a one-token bash idiom with no clean PowerShell
   5.1 equivalent. Windows NTFS uses ACL-based permissions managed via

@@ -72,7 +72,7 @@ Per the methodology-vs-implementation discipline in DECISIONS, pre-registration 
 
 | Component | Status |
 |---|---|
-| Claude Code adapter (configs #1, #2) | Implemented + parser-verified against real CLI 2.1.150 output (CLI pin advanced to 2.1.159 on 2026-06-09, flags re-confirmed; fixture re-smoke queued pre-tag) |
+| Claude Code adapter (configs #1, #2) | Implemented + parser-verified against real CLI output (current CLI/model pins and the full verification history live in `docs/VERSIONS.md` — the single aggregated record) |
 | Windows PS 5.1 environment | Implemented + canary-confirmed escape detection |
 | Codex adapter (configs #3, #4) | PIN-AT-START — schema characterized via 2026-05-25 smoke; adapter ~6h post-tag |
 | agy adapter (configs #5, #6, #7) | PIN-AT-START — transcript schema characterized; adapter ~12-20h post-tag with agy-specific Cwd handling |
