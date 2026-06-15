@@ -16,13 +16,13 @@
 
 ## Working hypothesis (PRE-REGISTERED — do not change after data collection begins)
 
-H1a (Primary): In the V1 confirmatory matrix, the measurement-qualified Claude Code reference configurations will have ≥1.5x higher task failure rates in the Windows context (PowerShell 5.1 default, agent has free tool choice across whatever the CLI exposes — Bash via Git Bash, PowerShell, Write, Edit, etc.) vs. the Linux context (bash default), **on the capability task subset only (5 tasks, C01–C05)**. Primary test pooled across the primary Claude Code model configurations; per-tool command execution/syntax diagnostics report which shell tool the agent actually used and how often commands returned execution errors (SAP A1 + A1b). The capability-only restriction was added 2026-05-25 (latest) per review-driven finalization pass #2 (see `docs/DECISIONS.md`): including the 9 seeded-error tasks in the primary aggregate confounds general reliability with hand-authored adversarial benchmark composition, so the seeded-error-inclusive estimate is demoted to H1b descriptive.
+H1a (Primary): In the V1 confirmatory matrix, AI coding agents will have ≥1.5x higher task failure rates in the Windows context (PowerShell 5.1 default, agent has free tool choice across whatever the CLI exposes — Bash via Git Bash, PowerShell, Write, Edit, etc.) vs. the Linux context (bash default), **on the capability task subset only (5 tasks, C01–C05)**. Primary test pooled across the 7 model-harness configurations (SAP A1); per-tool command execution/syntax diagnostics report which shell tool the agent actually used and how often commands returned execution errors (SAP A1 + A1b). The capability-only restriction was added 2026-05-25 (latest) per review-driven finalization pass #2 (see `docs/DECISIONS.md`): including the 9 seeded-error tasks in the primary aggregate confounds general reliability with hand-authored adversarial benchmark composition, so the seeded-error-inclusive estimate is demoted to H1b descriptive.
 
 H1b (Secondary, descriptive): The same pooled Windows-vs-Linux comparison computed on the full 14-task suite (5 cap + 9 seeded-error, seeded-error phrasings averaged within task), reported with point estimate and 95% CI only (SAP A1c). No threshold; H1b shows whether direction is consistent when seeded-error tasks are included but is not interpreted as supporting or rejecting a confirmatory claim.
 
-H2: Among valid trials that fail by the task's pre-registered binary success predicate, the Windows context will have at least 2x higher conditional D/E rate (spiral or catastrophic action) than the Linux context. This is a conditional failure-mode asymmetry claim, not a claim that D/E is the dominant Windows failure mode.
+H2: Among valid trials that fail by the task's pre-registered binary success predicate, the Windows context will have at least 2x higher conditional D/E rate (spiral or catastrophic action) than the Linux context. This is a conditional failure-mode asymmetry claim, not a claim that D/E is the dominant Windows failure mode. (Operationalized in SAP A2 — see `HYPOTHESIS.md` / `docs/SAP.md` for the pooled test, FDR handling, and the inter-rater-reliability condition under which H2 is reported descriptively rather than confirmatorily.)
 
-H3: WSL2 Ubuntu running on a Windows host will show a failure rate between the Windows context and the Linux context — closer to Linux but not identical to it.
+H3: WSL2 Ubuntu running on a Windows host will show a failure rate between the Windows context and the Linux context — closer to Linux but not identical to it. (Operationalized in SAP A3 — see `HYPOTHESIS.md` / `docs/SAP.md` for the pre-registered ordering tests, bootstrap distance criterion, and the inconclusive guardrail.)
 
 H4: For seeded-error tasks (T01-T09), colloquial / permission-granting prompt phrasing will trigger D/E spiral patterns more often than formal imperative phrasing, within the same primary model-harness configuration and environment context. This is exploratory and reported with effect size plus confidence interval, not a binary accept/reject threshold.
 
@@ -78,7 +78,7 @@ finding.
 |---|---|---|---|
 | A1 | Claude Code | `claude` 2.1.176 (updated + re-verified 2026-06-12; six flags re-confirmed; live stream-json schema check passed same day) | **V1 primary**; adapter built + parser fixture frozen + 12 regression tests passing |
 | A2 | Codex CLI | `codex` 0.139.0 (updated 2026-06-12; `exec --json` schema characterised on 0.133.0 via the 2026-05-25 smoke — re-confirm at adapter build) | **V1 primary**; `--json` schema characterised (cleaner than Claude Code's), adapter ~6h post-tag work |
-| A3 | Antigravity CLI | `agy` 1.0.7 (updated 2026-06-12; `--print`/`-p` re-confirmed via `agy --help`; transcript-schema smoke 2026-05-25 ran on 1.0.2 — re-smoke before adapter build) | **V1 primary**; **auth path is official subscription `agy` / Antigravity SDK on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
+| A3 | Antigravity CLI | `agy` 1.0.7 (updated 2026-06-12; `--print`/`-p` re-confirmed via `agy --help`; transcript-schema smoke 2026-05-25 ran on 1.0.2 — re-smoke before adapter build) | **V1 primary**; **auth path is official subscription `agy --print` on Google AI Ultra** per `docs/DECISIONS.md` 2026-05-27 (the Antigravity SDK was ruled out for V1 on 2026-06-10 — API-key-only auth, no subscription path) (superseding the 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection); structured `tool_calls` in transcript_full + model pin via `settings.json` write; agy-specific Cwd handling pre-registered in SAP "Outcome construction"; adapter ~12-20h post-tag work |
 
 Per the 2026-05-25 (later) scope correction in `docs/DECISIONS.md`, V1
 primary inference is **across all three vendors at two model tiers each
@@ -119,10 +119,10 @@ based on inspection of the working-dir `.antigravitycli/` only. See
 canary + transcript-based rubric coding).
 
 **Auth path note (Google arm):** V1 data collection uses official
-subscription Antigravity CLI / SDK on Google AI Ultra. The first-party
-`agy` binary documents `--print` as non-interactive prompt mode, and
-Google documents Antigravity SDK as a programmatic surface using the same
-agent harness. Config #7 (`agy × Claude Sonnet 4.6 (Thinking)`) is
+subscription `agy --print` on Google AI Ultra; the first-party
+`agy` binary documents `--print` as non-interactive prompt mode. (The
+Antigravity SDK is a separate, API-key-only programmatic surface ruled
+out for V1 on 2026-06-10 — no subscription path; see `docs/DECISIONS.md`.) Config #7 (`agy × Claude Sonnet 4.6 (Thinking)`) is
 available directly through the subscription `agy` model label; no separate
 cloud quota, billing, or credit path is needed for V1. Controls:
 official Google tooling only, no third-party OAuth/private-API bridges,

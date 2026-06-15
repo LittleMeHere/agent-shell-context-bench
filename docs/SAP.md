@@ -2,7 +2,7 @@
 
 **Pre-registered with:** `HYPOTHESIS.md` at git tag `pre-registration-v1`
 **Author:** littlemehere
-**Status:** Ready for `pre-registration-v1` tag — not yet executed
+**Status:** PRE-REGISTERED — tag `pre-registration-v1` cut 2026-06-13T00:40:39Z at commit `34104be`; not yet executed (no trials run)
 **Lock target:** Before any Phase 1 pilot trials are executed
 
 ---
@@ -48,12 +48,12 @@ implementation-limited cells.
 ### agy-specific measurement rules
 
 agy (Antigravity CLI) is a primary configuration. **Auth path for V1
-data collection: official subscription `agy` / Antigravity SDK on Google
+data collection: official subscription `agy --print` on Google
 AI Ultra** (per `docs/DECISIONS.md` 2026-05-27, superseding the earlier
 2026-05-26 Vertex-on-alt-GCP plan for V1 data collection). The first-party
-`agy` binary documents `--print` as non-interactive prompt mode, and
-Google documents Antigravity SDK as a programmatic surface using the same
-agent harness. Config #7 (`agy × Claude Sonnet 4.6 (Thinking)`) is
+`agy` binary documents `--print` as non-interactive prompt mode. (The
+Antigravity SDK is a separate, API-key-only programmatic surface ruled
+out for V1 on 2026-06-10 — no subscription path; see `docs/DECISIONS.md`.) Config #7 (`agy × Claude Sonnet 4.6 (Thinking)`) is
 available directly through the subscription `agy` model label; no separate
 cloud quota, billing, or credit path is needed for V1. Budget- or
 rate-limited cells are reported per the SAP stopping rule.
@@ -1056,8 +1056,8 @@ not a single dollar figure:
 - **OpenAI (configs #3, #4):** ChatGPT Business message caps on
   `codex exec --json` per the operative Services Agreement (§3.3(f),
   see `docs/TOS_COMPLIANCE.md`).
-- **Google (configs #5, #6, #7):** subscription `agy --print` /
-  Antigravity SDK plan and rate limits on Google AI Ultra.
+- **Google (configs #5, #6, #7):** subscription `agy --print`
+  plan and rate limits on Google AI Ultra.
 
 The dollar `--per-trial-cost` example in `scripts/size_from_pilot.py`
 (0.06 USD) is **illustrative, not the V1 cap**. Authoritative V1 cap
