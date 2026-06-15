@@ -1,6 +1,6 @@
 # agent-shell-context-bench
 
-A controlled benchmark measuring AI coding agent reliability across five OS-shell execution contexts. Headline question: *do AI coding agents have measurably higher failure rates and qualitatively different failure modes when operating on Windows/PowerShell vs. Linux/bash, and if so, why?*
+A controlled benchmark measuring AI coding agent reliability across five OS-shell execution contexts. Headline question: *do AI coding agents fail measurably more often — and spiral into more dangerous failure modes — on Windows/PowerShell than on Linux/bash?* V1 measures the gap and characterizes **how** agents fail; isolating **why** — the OS in isolation vs. the bundled context, and any training-level mechanism — is explicitly deferred to follow-up work.
 
 > **Status: PRE-REGISTERED.** Tag `pre-registration-v1` was cut on
 > **2026-06-13T00:40:39Z** at commit
@@ -39,7 +39,7 @@ The 5 execution contexts: Windows + PowerShell 5.1, Windows + pwsh 7.6.2, Window
 
 ## Why this matters
 
-No published controlled **agentic** cross-OS coding-agent benchmark currently compares reliability across shell environments while holding the agent and task constant. Major suites (SWE-bench, Terminal-Bench, AgentBench, METR HCAST/RE-Bench, TheAgentCompany) all run in Linux Docker containers on bash by design. Windows Agent Arena is Windows-only desktop-GUI work, not a comparison. The closest prior work, Vo, Paulovicks & Sheinin 2024 (arXiv:2405.06807, IBM), compares one-shot NL-to-bash and NL-to-PowerShell code generation across 7 LLMs but is not agentic, runs both shells on Linux containers, and uses non-equivalent task sets across shells. This benchmark occupies a clean methodological gap — agentic, multi-turn, host-OS-as-the-independent-variable — and produces evidence relevant to developers and small teams making real hardware/tooling decisions on imperfect anecdotal data.
+No published controlled **agentic** cross-OS coding-agent benchmark currently compares reliability across shell environments while holding the agent and task constant. Major suites (SWE-bench, Terminal-Bench, AgentBench, METR HCAST/RE-Bench, TheAgentCompany) all run in Linux Docker containers on bash by design. Windows Agent Arena is Windows-only desktop-GUI work, not a comparison. The closest prior work, Vo, Paulovicks & Sheinin 2024 (arXiv:2405.06807, IBM), compares one-shot NL-to-bash and NL-to-PowerShell code generation across 7 LLMs but is not agentic, runs both shells on Linux containers, and uses non-equivalent task sets across shells. This benchmark occupies a clean methodological gap — agentic, multi-turn, host-context-as-the-independent-variable — and produces the first controlled measurement instrument for a reliability gap that, to date, is known only through scattered anecdote. (It is also directly useful to developers and small teams weighing real environment/tooling choices.)
 
 ## Repository structure
 
