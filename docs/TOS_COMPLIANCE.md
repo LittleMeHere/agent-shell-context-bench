@@ -20,9 +20,12 @@ recorded from the Wayback Machine availability API the same day. Quotes
 below preserve source wording exactly; typography (quote marks, dashes)
 and whitespace are normalized, and bracketed ellipses mark elisions.
 
-Still open before the `pre-registration-v1` tag (list updated
-2026-06-12; researcher browser-capture sessions 2026-06-10 and
-2026-06-11):
+Pre-tag evidence checklist (last updated 2026-06-12; researcher
+browser-capture sessions 2026-06-10 and 2026-06-11). Tag
+`pre-registration-v1` was cut 2026-06-13T00:40:39Z; items 1, 2, and 4
+closed before the tag, and items 3 and 5 remain standing (item 3 is a
+snapshot-coverage / optional-hardening note, item 5 is a
+data-collection-start obligation):
 
 1. **[DONE 2026-06-11] Disclosure to all three vendors.** Anthropic and
    OpenAI disclosure emails sent 2026-06-11; the Google disclosure was
@@ -421,7 +424,7 @@ surface (the first-party Antigravity SDK was ruled out for V1 on
 | Antigravity CLI usage docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | https://web.archive.org/web/20260610022857/https://antigravity.google/docs/cli-using (same: full browser replay verified by the researcher; not machine-extractable) |
 | Antigravity SDK overview docs | 2026-06-09 (automated: app shell); 2026-06-11 researcher browser PDF (rendered content captured; quoted above) | unknown | http://web.archive.org/web/20260607145444/https://antigravity.google/docs/sdk-overview |
 | Antigravity SDK launch post | 2026-06-09 (HTTP 200; client-side-rendered shell - no extractable text) | unknown | http://web.archive.org/web/20260520213301/https://antigravity.google/blog/introducing-google-antigravity-sdk |
-| Forum enforcement thread | 2026-06-09 (live); full-thread + staff-post PDFs captured 2026-06-11 | thread ongoing | full thread: https://web.archive.org/web/20260612024424/https://discuss.ai.google.dev/t/account-restricted-without-warning-google-ai-ultra-oauth-via-openclaw/122778 ; staff reply (post 9): https://web.archive.org/web/20260612022826/https://discuss.ai.google.dev/t/account-restricted-without-warning-google-ai-ultra-oauth-via-openclaw/122778/9 (both verified content-bearing, incl. the quoted staff response; earlier snapshot http://web.archive.org/web/20260313021502/ retained as the pre-study state) |
+| Forum enforcement thread | 2026-06-09 (live); full-thread + staff-post PDFs captured 2026-06-11 | thread ongoing | full thread: https://web.archive.org/web/20260612024424/https://discuss.ai.google.dev/t/account-restricted-without-warning-google-ai-ultra-oauth-via-openclaw/122778 ; staff reply (post 9): https://web.archive.org/web/20260612022826/https://discuss.ai.google.dev/t/account-restricted-without-warning-google-ai-ultra-oauth-via-openclaw/122778/9 (both verified content-bearing, incl. the quoted staff response; an earlier pre-study-state snapshot was attempted but did not resolve on archive.org — the operative captures are the two 2026-06-12 snapshots above) |
 
 **Capture caveat (flagged 2026-06-09; content resolved 2026-06-11):** the
 four antigravity.google doc pages are client-side-rendered, so automated
@@ -509,7 +512,8 @@ These apply across all three arms:
    mismatch.
 7. Access-limited cells are reported as such; the study proceeds with partial
    arm truncation if a vendor-side limit prevents the SAP-derived N.
-8. Pre-tag disclosure emails are sent to all three vendors (per researcher
+8. Pre-tag disclosures are sent to all three vendors — email for Anthropic
+   and OpenAI, a Google One support-case reply for Google (per researcher
    decision 2026-06-09); send dates and response summaries are logged in the
    per-vendor disclosure logs above.
 

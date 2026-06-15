@@ -34,7 +34,7 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
-## 2026-05-25 — Initial deviations log created at pre-registration-v1 tag
+## 2026-06-13 — Initial deviations log, established at the `pre-registration-v1` tag (commit `34104be`; log first scaffolded during 2026-05-25 drafting)
 
 **No deviations from the pre-registered methodology as of this commit.**
 
