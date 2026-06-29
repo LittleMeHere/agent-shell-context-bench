@@ -24,9 +24,12 @@ Run: python -m pytest tests/test_doc_consistency.py -q
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 
 
 def read(rel: str) -> str:
@@ -151,3 +154,57 @@ def test_pretag_placeholder_status_absent():
         "docs/SAP.md still carries the pre-tag placeholder status line; it "
         "should read PRE-REGISTERED with the tag coordinates."
     )
+
+
+# --- 5. Implementation-status TABLES agree with the registry ---
+#
+# The drift the 2026-06-26 reconciliation fixed: five adapters were built and
+# registered (empty _PLANNED sets) while README/VERSIONS status tables still
+# labelled them "PIN-AT-START". This gate ties the two together so the same
+# drift cannot silently return. Scoped to State/Status TABLES only and gated on
+# the registry having nothing planned, so the legitimate uses of "PIN-AT-START"
+# (the VERSIONS legend, dated change-log entries, and any genuinely-planned
+# future cell) are never punished -- consistent with this file's "no naive
+# token blacklist" design note.
+
+
+def _status_table_data_rows(text: str) -> list[str]:
+    """Data rows of every markdown table whose header names a State/Status column.
+
+    A markdown table is a run of consecutive lines starting with '|' whose
+    second line is a '---' separator. Only tables whose header row mentions
+    'State' or 'Status' are returned (the implementation-status tables), so
+    prose, the legend, and change-log bullets -- where 'PIN-AT-START' is valid
+    provenance -- are never matched.
+    """
+    rows: list[str] = []
+    lines = text.splitlines()
+    i, n = 0, len(lines)
+    while i < n:
+        if not lines[i].lstrip().startswith("|"):
+            i += 1
+            continue
+        block = []
+        while i < n and lines[i].lstrip().startswith("|"):
+            block.append(lines[i])
+            i += 1
+        if len(block) >= 2 and "---" in block[1]:
+            header = block[0].lower()
+            if "state" in header or "status" in header:
+                rows.extend(block[2:])  # data rows only (skip header + separator)
+    return rows
+
+
+def test_status_tables_have_no_stale_pin_at_start_when_nothing_planned():
+    from harness.registry import _PLANNED_AGENTS, _PLANNED_ENVIRONMENTS
+
+    if _PLANNED_ENVIRONMENTS or _PLANNED_AGENTS:
+        return  # a planned cell may legitimately show PIN-AT-START; nothing to assert
+    for rel in ("README.md", "docs/VERSIONS.md"):
+        for row in _status_table_data_rows(read(rel)):
+            assert "PIN-AT-START" not in row, (
+                f"{rel} implementation-status table still marks a row "
+                f"'PIN-AT-START' while harness.registry lists no planned "
+                f"adapters (empty _PLANNED sets) -- stale status/registry "
+                f"drift: {row.strip()}"
+            )
