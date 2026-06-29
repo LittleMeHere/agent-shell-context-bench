@@ -1,9 +1,11 @@
 """Conformance for the WSL2 environment (E3).
 
 Proves `WslEnvironment` satisfies the same measurement contract as the Windows
-reference. Structural mode runs anywhere (no infra). The live battery is gated
-on a host where `wsl -l -v` shows the pinned `Ubuntu-24.04` distro, exactly as
-the PowerShell reference's live battery is gated on a Windows host.
+reference. `WslEnvironment` fail-constructs without `wsl` on PATH (by design),
+so even the STRUCTURAL battery is gated on `wsl` being present (a Windows host)
+— it cannot run on the Linux CI runner. The live battery additionally needs the
+pinned `Ubuntu-24.04` distro registered, exactly as the PowerShell reference's
+live battery is gated on a Windows host.
 
 Native-argv note: WSL2's `exec` runs inside Ubuntu, so the live battery is given
 WSL-native trivially-succeeding / long-sleeping commands (`true` / `sleep 30`)
@@ -15,6 +17,7 @@ Run: python -m pytest tests/ -q   (or: python tests/test_windows_wsl2_conformanc
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +35,13 @@ from tests.conformance import assert_environment_conforms
 # Windows paths invalid inside the distro).
 _OK_ARGV = ["true"]
 _SLEEP_ARGV = ["sleep", "30"]
+
+
+def _wsl_present() -> bool:
+    """True iff the `wsl` launcher is on PATH. `WslEnvironment.__init__`
+    fail-constructs without it, so even the structural battery is gated on this
+    — present on a Windows host, absent on the Linux CI runner."""
+    return shutil.which("wsl") is not None
 
 
 def _wsl_distro_available() -> bool:
@@ -55,6 +65,8 @@ def _wsl_distro_available() -> bool:
 
 
 def test_wsl2_structural():
+    if not _wsl_present():
+        pytest.skip("wsl not on PATH; WslEnvironment fail-constructs without it")
     obs = assert_environment_conforms(WslEnvironment())
     assert obs["env_id"] == "windows_wsl2"
     assert obs["canary_count"] == 3
@@ -65,6 +77,8 @@ def test_wsl2_canary_paths_are_absolute_unc():
     """canary_paths() must be absolute host paths (UNC bridge translations) so
     the base canary I/O can write/verify them over the live mount and the
     battery's is_absolute() check holds on the Windows host."""
+    if not _wsl_present():
+        pytest.skip("wsl not on PATH; WslEnvironment fail-constructs without it")
     env = WslEnvironment()
     paths = env.canary_paths()
     assert len(paths) == 3
