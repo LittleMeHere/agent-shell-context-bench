@@ -1,0 +1,106 @@
+# macOS environment (E5) self-invocation smoke — docs/VERSIONS.md E5.
+#
+# Proves the macos_actions EnvironmentAdapter works END-TO-END on the pinned
+# macos-26 runner: the harness self-invokes one CAPABILITY trial (C01) on the
+# E5 env, exercising the real sandbox / probe / exec / snapshot / canary /
+# success-check / immutable-log path locally on the runner, then uploads the
+# trial log as an artifact.
+#
+# SAFETY (matches the harness contract + CLAUDE.md):
+#   * CAPABILITY task only (C01). The seeded-error `tasks/trap/*` tasks are
+#     designed to trigger agent spirals and are NEVER run here.
+#   * No real agent CLI / API credentials are provisioned. A tiny local
+#     `claude` shim emits one harmless stream-json event so the harness drives
+#     the agent seam through the E5 environment without any external call and
+#     without mutating the sandbox (the emitted command is a no-op `echo`, so
+#     the canary sentinels stay intact). The trial logs as a real datum.
+#   * This is the macOS env's parallel to tests/test_pwsh7_conformance.py's
+#     live path: it runs where the env can actually run (the macos-26 runner).
+
+name: macOS env (E5) smoke
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "harness/environments/macos_actions.py"
+      - "tests/test_macos_actions_conformance.py"
+      - ".github/workflows/macos-actions-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  macos-e5-smoke:
+    # Pinned per docs/VERSIONS.md E5 (advanced macos-14 -> macos-26 on
+    # 2026-06-12; macos-26 is the current macos-latest default).
+    runs-on: macos-26
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Conformance battery (structural + live on the runner)
+        # The live battery is gated on darwin and runs here on the macos-26
+        # runner; structural + registry checks run regardless.
+        run: python -m pytest tests/test_macos_actions_conformance.py -q
+
+      - name: Install no-op agent shim on PATH
+        # A minimal `claude` stand-in so the harness can self-invoke without
+        # any external API. It answers `--version` and, under `-p`, emits one
+        # stream-json assistant event whose only command is a harmless `echo`
+        # (no sandbox mutation -> canaries stay intact). This exercises the
+        # full E5 agent seam; it is NOT the real agent and collects no science.
+        run: |
+          SHIM_DIR="$RUNNER_TEMP/shim-bin"
+          mkdir -p "$SHIM_DIR"
+          cat > "$SHIM_DIR/claude" <<'SHIM'
+          #!/usr/bin/env bash
+          # --version probe used once per cell by the adapter.
+          for arg in "$@"; do
+            if [ "$arg" = "--version" ]; then
+              echo "0.0.0-ci-shim (not a real Claude Code CLI)"
+              exit 0
+            fi
+          done
+          # Headless run: emit one stream-json event the parser understands,
+          # then a terminal result event. The single tool_use is a no-op echo.
+          printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"shim-1","name":"Bash","input":{"command":"echo macos-e5-smoke"}}]}}'
+          printf '%s\n' '{"type":"result","result":"ci shim run complete"}'
+          exit 0
+          SHIM
+          chmod +x "$SHIM_DIR/claude"
+          echo "$SHIM_DIR" >> "$GITHUB_PATH"
+
+      - name: Harness self-invocation on a capability task (C01) on E5
+        # One trial of a CAPABILITY task on the macos_actions env. Drives the
+        # real E5 sandbox/probe/exec/snapshot/check/log path on the runner.
+        # NOT a trap task. The trial will register FAIL (the shim does no real
+        # work) — the artifact of interest is the trial log proving the cell
+        # wiring works on macOS, not a passing outcome.
+        run: |
+          python -m harness run \
+            --task C01 \
+            --agent claude_code \
+            --model claude-opus-4-8 \
+            --env macos_actions \
+            --trials 1 \
+            --output "$RUNNER_TEMP/e5-trial-logs"
+
+      - name: Upload trial log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-e5-trial-logs
+          path: ${{ runner.temp }}/e5-trial-logs
+          if-no-files-found: error

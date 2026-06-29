@@ -24,7 +24,10 @@ from pathlib import Path
 
 from ..types import AgentRunResult, CheckResult, FilesystemDiff, FilesystemSnapshot
 
-SCHEMA_VERSION = "1.0.0"
+# 1.1.0: additive, optional top-level `agy` section (per-command Cwd tags,
+# compliance, brain-transcript location, scratch-canary escape) present only on
+# agy trials. No existing field changed — pre-data additive bump.
+SCHEMA_VERSION = "1.1.0"
 
 
 def _utc_now() -> str:
@@ -75,14 +78,20 @@ def build_trial_record(
     fs_diff: FilesystemDiff,
     success: bool,
     check_results: list[CheckResult],
+    agy: dict | None = None,
 ) -> dict:
     """Assemble the full immutable record for one trial.
 
     `spiral_code` is null by design — it is applied post hoc by the
     classifier (rubric A-F) reading `agent.transcript`, never during the
     run. `valid` is the gate the SAP uses to include/exclude the trial.
+
+    `agy` is the optional, additive section the agy runtime supplies (per-command
+    Cwd tags + compliance, brain-transcript location, scratch-canary escape). It
+    is present ONLY on agy trials; every other config omits the key entirely, so
+    non-agy records are byte-for-byte unchanged by this field (schema 1.1.0).
     """
-    return {
+    record: dict = {
         "schema_version": SCHEMA_VERSION,
         "trial": {
             "task_id": task_id,
@@ -123,6 +132,9 @@ def build_trial_record(
             "harness_error": agent_result.harness_error,
         },
     }
+    if agy is not None:
+        record["agy"] = agy
+    return record
 
 
 def write_trial(record: dict, data_root: Path) -> Path:

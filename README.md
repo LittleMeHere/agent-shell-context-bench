@@ -57,8 +57,8 @@ agent-shell-context-bench/
     trap/                    T01-T09: seeded-error tasks (legacy folder name; concept renamed to "seeded-error tasks" per 2026-05-30 DECISIONS — tasks designed to trigger known failure modes)
   harness/
     runner.py                Trial orchestration
-    adapters/                Per-agent adapters (Claude Code implemented; Codex / agy adapter pending)
-    environments/            Per-environment adapters (Windows PS 5.1 implemented; pwsh 7 / WSL2 / Linux / macOS pending)
+    adapters/                Per-agent adapters (Claude Code / Codex / agy — all implemented)
+    environments/            Per-environment adapters (Windows PS 5.1 + pwsh 7 implemented; WSL2 / Linux / macOS pending)
     classifier/rubric.py     Spiral classification rubric (A-F codes)
     logging/                 Per-trial immutable log writer
   scripts/
@@ -74,18 +74,18 @@ agent-shell-context-bench/
 
 ## Implementation status at pre-registration-v1
 
-Per the methodology-vs-implementation discipline in DECISIONS, pre-registration locks **methodology**, not implementation completeness. PIN-AT-START is a legitimate pre-reg state for V1 cells whose adapters land post-tag.
+Per the methodology-vs-implementation discipline in DECISIONS, pre-registration locks **methodology**, not implementation completeness: a V1 cell could be PIN-AT-START at the tag and have its adapter land post-tag with no methodology change. As of 2026-06-26 **all V1 adapters have landed** (implementation only — methodology unchanged). The table below reflects current code; the remaining **pre-data obligations** (real-CLI / brain re-smokes, and `PSTAX_GCP_SSH` for E4) are tracked in `docs/VERSIONS.md`.
 
 | Component | Status |
 |---|---|
 | Claude Code adapter (configs #1, #2) | Implemented + parser-verified against real CLI output (current CLI/model pins and the full verification history live in `docs/VERSIONS.md` — the single aggregated record) |
 | Windows PS 5.1 environment | Implemented + canary-confirmed escape detection |
-| Codex adapter (configs #3, #4) | PIN-AT-START — schema characterized via 2026-05-25 smoke; adapter ~6h post-tag |
-| agy adapter (configs #5, #6, #7) | PIN-AT-START — transcript schema characterized; adapter ~12-20h post-tag with agy-specific Cwd handling |
-| Windows pwsh 7 env (E2) | PIN-AT-START — `PowerShellEnvironment` subclass, ~2h post-tag |
-| Windows WSL2 env (E3) | PIN-AT-START — `wsl -d` wrapper, ~3h post-tag |
-| Linux native env (E4) | PIN-AT-START — SSH wrapper, ~4h post-tag |
-| macOS env (E5) | PIN-AT-START — GitHub Actions YAML + harness self-invocation, ~4h post-tag |
+| Codex adapter (configs #3, #4) | Implemented — `CodexAdapter` (`exec --json` parser); conformance-tested against synthetic fixtures. Real-CLI re-smoke (0.139.0) is a pre-data obligation |
+| agy adapter (configs #5, #6, #7) | Implemented — `AgyAdapter` + cross-env runtime (out-of-band brain-transcript parse, `settings.json` model pin, per-command Cwd tagging, scratch canary; runs on all 5 envs via the `HomeFilesystem` seam); conformance-tested against synthetic transcripts. 1.0.7 brain-schema re-smoke is a pre-data obligation |
+| Windows pwsh 7 env (E2) | Implemented — `Pwsh7Environment` subclass (overrides only the shell binary); conformance-verified live on pwsh 7.x |
+| Windows WSL2 env (E3) | Implemented — `WslEnvironment` (`wsl -d Ubuntu-24.04 --`, UNC host-view bridge); structural conformance verified |
+| Linux native env (E4) | Implemented — `LinuxNativeEnvironment` (SSH transport + tar sync-back); structural conformance verified; live run needs `PSTAX_GCP_SSH` |
+| macOS env (E5) | Implemented — `MacOSActionsEnvironment`; structural conformance verified. The Actions self-invocation smoke (capability C01) for `macos-26` is *defined*; a green CI run is a pre-data obligation |
 
 Per-CLI / per-environment qualification gate for any future additions: SAP S5.
 
@@ -103,7 +103,7 @@ python -m harness run \
   --output data/
 ```
 
-For PIN-AT-START cells the runner will raise `NotImplementedError` with a clear message naming the unbuilt adapter — see `harness/registry.py`.
+Every pre-registered cell now has a registered adapter; the runner raises `NotImplementedError` only for an identifier outside the V1 matrix — see `harness/registry.py`. Cells other than Claude Code × Windows PS 5.1 are runnable in code but carry pre-data obligations (real-CLI / brain re-smokes, and `PSTAX_GCP_SSH` for E4) recorded in `docs/VERSIONS.md` before their data is collected.
 
 ## Reproducibility
 

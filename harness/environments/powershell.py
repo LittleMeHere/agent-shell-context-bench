@@ -37,6 +37,7 @@ from typing import ClassVar
 from ..fs import local_snapshot
 from ..types import FilesystemSnapshot, ProcessResult, SandboxHandle
 from .base import EnvironmentAdapter
+from .home_fs import LocalHomeFilesystem
 
 # Windows PowerShell 5.1 (NOT pwsh 7+). See D2 2026-05-23 in DECISIONS.md.
 # Pinned by absolute path under System32 so a researcher's PATH order
@@ -47,9 +48,17 @@ _DEFAULT_SANDBOX_ROOT = Path(
 )
 
 
-class PowerShellEnvironment(EnvironmentAdapter):
+class PowerShellEnvironment(EnvironmentAdapter, LocalHomeFilesystem):
     env_id: ClassVar[str] = "windows_powershell"
     description: ClassVar[str] = "Windows 11 native, Windows PowerShell 5.1 (powershell.exe)"
+
+    # The shell binary this environment measures, pinned by absolute path so a
+    # researcher's PATH order cannot reroute it (D2 2026-05-23). This is the
+    # single extension point for a same-host shell variant: a subclass overrides
+    # ONLY this to measure a different shell while inheriting sandbox / snapshot
+    # / canary / exec / probe unchanged, so the two cells differ in exactly the
+    # shell (see pwsh7.py — the pre-registered pwsh-7 within-Windows contrast).
+    _SHELL_BINARY: ClassVar[str] = _POWERSHELL
 
     def __init__(self, sandbox_root: Path | None = None) -> None:
         super().__init__()
@@ -179,7 +188,7 @@ class PowerShellEnvironment(EnvironmentAdapter):
         # (data) rather than a silent hang. -ExecutionPolicy Bypass so a
         # default-restricted policy doesn't refuse to run the probe.
         return self._spawn(
-            [_POWERSHELL, "-NoProfile", "-NonInteractive",
+            [self._SHELL_BINARY, "-NoProfile", "-NonInteractive",
              "-ExecutionPolicy", "Bypass", "-Command", script],
             cwd=cwd,
             timeout=timeout,

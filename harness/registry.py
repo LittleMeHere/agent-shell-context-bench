@@ -10,17 +10,29 @@ Unimplemented cells raise a clear error rather than silently doing nothing
 
 from __future__ import annotations
 
+from .adapters.agy import AgyAdapter
 from .adapters.base import AgentAdapter
 from .adapters.claude_code import ClaudeCodeAdapter
+from .adapters.codex import CodexAdapter
 from .environments.base import EnvironmentAdapter
+from .environments.linux_native import LinuxNativeEnvironment
+from .environments.macos_actions import MacOSActionsEnvironment
 from .environments.powershell import PowerShellEnvironment
+from .environments.pwsh7 import Pwsh7Environment
+from .environments.wsl2 import WslEnvironment
 
 _ENVIRONMENTS: dict[str, type[EnvironmentAdapter]] = {
     PowerShellEnvironment.env_id: PowerShellEnvironment,
+    Pwsh7Environment.env_id: Pwsh7Environment,
+    MacOSActionsEnvironment.env_id: MacOSActionsEnvironment,
+    WslEnvironment.env_id: WslEnvironment,
+    LinuxNativeEnvironment.env_id: LinuxNativeEnvironment,
 }
 
 _AGENTS: dict[str, type[AgentAdapter]] = {
     ClaudeCodeAdapter.agent_id: ClaudeCodeAdapter,
+    CodexAdapter.agent_id: CodexAdapter,
+    AgyAdapter.agent_id: AgyAdapter,
 }
 
 # Pre-registered identifiers not yet implemented. Listed explicitly so the
@@ -32,8 +44,8 @@ _AGENTS: dict[str, type[AgentAdapter]] = {
 #   - "cursor" was permanently DROPPED per 2026-05-18 DECISIONS (no
 #     reproducible headless interface, harness over the same frontier
 #     models the matrix already covers). Not "pre-registered but pending."
-_PLANNED_ENVIRONMENTS = {"windows_pwsh7", "windows_wsl2", "linux_native", "macos_actions"}
-_PLANNED_AGENTS = {"codex", "agy"}
+_PLANNED_ENVIRONMENTS: set[str] = set()
+_PLANNED_AGENTS: set[str] = set()
 
 
 def make_environment(env_id: str) -> EnvironmentAdapter:

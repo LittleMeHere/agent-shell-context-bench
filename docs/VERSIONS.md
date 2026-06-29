@@ -34,10 +34,10 @@ file is the single aggregated record. Two states per entry:
 > - Primary V1 matrix (7 configs × 5 envs) — **PINS CONFIRMED at the
 >   methodology layer; adapter implementation per-row status below.**
 > - IRR coders — **CONFIRMED**.
-> - **V1 hard gate is SATISFIED at the methodology layer.** The per-row
->   "adapter pending" entries below are implementation work scheduled
->   post-tag; per the methodology-vs-implementation distinction in
->   DECISIONS.md, this is not a tag-blocker.
+> - **V1 hard gate is SATISFIED at the methodology layer.** The adapter
+>   implementations scheduled post-tag have since landed (change log
+>   2026-06-23 + 2026-06-26); per the methodology-vs-implementation
+>   distinction in DECISIONS.md, none was a tag-blocker.
 
 ## Harness host environment — CONFIRMED 2026-05-18
 
@@ -65,7 +65,7 @@ materially during the writeup's reading window.
 | Component | Version | State |
 |---|---|---|
 | Windows PowerShell (`powershell.exe`) — V1 cell E1 | **5.1.26100.8655** on Windows 11 Home (re-verified 2026-06-12 by the researcher via `$PSVersionTable.PSVersion.ToString()`; was 5.1.26100.8457/2026-05-23) | CONFIRMED — V1 Windows-5.1 shell; `PowerShellEnvironment` invokes `powershell.exe -NoProfile -NonInteractive` |
-| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.6.2** on Windows 11 Home (re-verified 2026-06-12 by the researcher; was 7.5.5) | CONFIRMED — V1 Windows-7 shell; env adapter is a subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
+| PowerShell 7 (`pwsh.exe`) — V1 cell E2 | **7.6.2** on Windows 11 Home (re-verified 2026-06-12 by the researcher; was 7.5.5) | CONFIRMED — V1 Windows-7 shell; env adapter implemented as `Pwsh7Environment` (subclass of `PowerShellEnvironment` overriding only the shell binary; resolves `pwsh` on PATH, exact version recorded per `probe()`) |
 
 Seeded-error tasks T01-T09 (renamed from "trap tasks" per
 `docs/DECISIONS.md` 2026-05-30 — TRAP acronym taken by
@@ -114,9 +114,9 @@ Per `docs/DECISIONS.md` 2026-05-25 (later). The 3 CLI versions below are all
 **CONFIRMED via real smoke trials on 2026-05-25** (each CLI was invoked
 with its harness-equivalent flag set and produced parseable structured
 output — see DECISIONS.md and the trial artifacts under
-`data/pre-registration/smoke_trials/`). Per-row "adapter pending" notes
-flag implementation work that ships post-tag; methodology is locked
-either way.
+`data/pre-registration/smoke_trials/`). Per-row notes flagged
+implementation work that shipped post-tag (now landed — see change log);
+methodology is locked either way.
 
 ### Configurations (7)
 
@@ -124,21 +124,21 @@ either way.
 |---|---|---|---|---|---|
 | 1 | Claude Code | **2.1.176** (updated from 2.1.159 + re-verified 2026-06-12 at the tag-eve currency pass; was 2.1.159/2026-06-09, 2.1.150/2026-05-24, 2.1.143/2026-05-18; all six pinned flags re-confirmed unchanged against `claude --help` on 2026-06-12 — see VERSION PIN block in `harness/adapters/claude_code.py`) | **`claude-opus-4-8`** (the current frontier available on the study's subscription access path for the full collection window; Fable 5 was evaluated 2026-06-12 and not pinned — its subscription inclusion ends 2026-06-22; rationale + re-pin rule: DECISIONS 2026-06-12 (later)) | Anthropic frontier | adapter CONFIRMED / parser CONFIRMED on 2.1.143 fixture (schema unchanged through 2.1.150; live schema checks PASSED on 2.1.159 and 2.1.176, both 2026-06-12, parser verified end-to-end on both captures — the 2.1.176 capture also exercised the PowerShell tool branch of `_SHELL_TOOLS`; see change log) / flags CONFIRMED 2026-06-12 / model CONFIRMED via live invocation 2026-06-12 |
 | 2 | Claude Code | **2.1.176** (same as above) | **`claude-sonnet-4-6`** | Anthropic workhorse | adapter CONFIRMED / parser CONFIRMED / model CONFIRMED |
-| 3 | Codex CLI | `codex-cli` **0.139.0** (updated from 0.133.0 + re-verified 2026-06-12 at the tag-eve currency pass; was 0.133.0/2026-05-23, 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`; the `exec --json` schema was characterised on 0.133.0 — re-confirm at adapter build, which gates configs #3/#4 anyway) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter PIN-AT-START — `codex exec --json` schema characterised via smoke on 2026-05-25 (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output` are structured); adapter is ~6h post-tag work |
-| 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #3) |
-| 5 | Antigravity CLI (`agy`) | **1.0.7** (updated from 1.0.4 + re-verified 2026-06-12 at the tag-eve currency pass — `-p`/`--print` non-interactive flags re-confirmed via `agy --help`; was 1.0.4/2026-06-09; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.7 before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy --print` on Google AI Ultra** per docs/DECISIONS.md 2026-05-27 (the Antigravity SDK was ruled out for V1 on 2026-06-10 — API-key-only documented auth, no API budget; see change log). | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter PIN-AT-START — needs (a) brain-snapshot diff to locate per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive (SAP "Outcome construction" — agy-specific rules), (e) official-subscription `agy --print` invocation wiring |
-| 6 | Antigravity CLI (`agy`) | same as #5 | **`Gemini 3.5 Flash (Medium)`** (settings-UI label confirmed 2026-05-25; the workhorse counterpart to Pro (High) — Medium reasoning effort matches realistic cost-sensitive use rather than over- or under-spending; symmetric with Codex's `gpt-5.4-mini` at default reasoning) | Google workhorse | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
-| 7 | Antigravity CLI (`agy`) | same as #5 | **`Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED via 2026-05-23 verification — exact-case label that propagates Sonnet; lowercase `(thinking)` falls back to Gemini) | **same-model harness-control vs #2** (Claude Sonnet 4.6 in two harnesses across all 5 envs — pre-registered S6 analysis) | model PIN CONFIRMED / adapter PIN-AT-START (same adapter as #5) |
+| 3 | Codex CLI | `codex-cli` **0.139.0** (updated from 0.133.0 + re-verified 2026-06-12 at the tag-eve currency pass; was 0.133.0/2026-05-23, 0.130.0/2026-05-18; `codex doctor` clean 2026-05-25 — auth configured, websocket connected, default model `gpt-5.5`; the `exec --json` schema was characterised on 0.133.0 — re-confirm at adapter build, which gates configs #3/#4 anyway) | **`gpt-5.5`** (xhigh reasoning, default per `~/.codex/config.toml`) | OpenAI frontier | model PIN CONFIRMED / adapter IMPLEMENTED — `CodexAdapter` parses `codex exec --json` (`item.completed.command` / `item.completed.exit_code` / `item.completed.aggregated_output`); conformance-tested against synthetic fixtures (`tests/test_codex_parser.py`, `tests/test_codex_conformance.py`). Real-CLI re-smoke on 0.139.0 (with a failing command) is a PRE-DATA obligation |
+| 4 | Codex CLI | same as above | **`gpt-5.4-mini`** | OpenAI workhorse | model PIN CONFIRMED / adapter IMPLEMENTED (same adapter as #3) |
+| 5 | Antigravity CLI (`agy`) | **1.0.7** (updated from 1.0.4 + re-verified 2026-06-12 at the tag-eve currency pass — `-p`/`--print` non-interactive flags re-confirmed via `agy --help`; was 1.0.4/2026-06-09; the 2026-05-25 transcript-schema smoke ran on 1.0.2 — re-smoke on 1.0.7 before adapter build; originally 1.0.2 installed 2026-05-23 via `irm https://antigravity.google/cli/install.ps1 \| iex`; binary at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH-configured via `agy install`; smoke 2026-05-25 confirmed: tool_calls in `transcript_full.jsonl` are structured; model pin works via `settings.json` write; `agy --help` verified 2026-05-27 exposes `--print` as non-interactive prompt mode). **Auth path for V1 data collection: official subscription `agy --print` on Google AI Ultra** per docs/DECISIONS.md 2026-05-27 (the Antigravity SDK was ruled out for V1 on 2026-06-10 — API-key-only documented auth, no API budget; see change log). | **`Gemini 3.1 Pro (High)`** (pin via `~/.gemini/antigravity-cli/settings.json` `model` field write; subscription availability confirmed through the installed first-party agy surface / model label workflow) | Google frontier | model PIN CONFIRMED / adapter IMPLEMENTED — `AgyAdapter` + cross-env runtime (`harness/agy_runtime.py`): (a) brain-snapshot diff locates the per-trial conversation, (b) PLANNER_RESPONSE.tool_calls extraction, (c) regex parse of RUN_COMMAND.content for exit code / stdout, (d) prompt-injected Cwd directive + per-command Cwd tagging, (e) `agy --print` invocation wiring, plus the `settings.json` model pin (restored in a finally) and the agy scratch canary (SAP "Outcome construction" rules 1-5). Runs on all five envs via the additive `HomeFilesystem` seam; conformance-tested against synthetic transcripts (`tests/test_agy_parser.py`, `tests/test_agy_runtime.py`). The 1.0.7 brain-schema re-smoke WITH a failing command is a PRE-DATA obligation |
+| 6 | Antigravity CLI (`agy`) | same as #5 | **`Gemini 3.5 Flash (Medium)`** (settings-UI label confirmed 2026-05-25; the workhorse counterpart to Pro (High) — Medium reasoning effort matches realistic cost-sensitive use rather than over- or under-spending; symmetric with Codex's `gpt-5.4-mini` at default reasoning) | Google workhorse | model PIN CONFIRMED / adapter IMPLEMENTED (same adapter as #5) |
+| 7 | Antigravity CLI (`agy`) | same as #5 | **`Claude Sonnet 4.6 (Thinking)`** (settings label CONFIRMED via 2026-05-23 verification — exact-case label that propagates Sonnet; lowercase `(thinking)` falls back to Gemini) | **same-model harness-control vs #2** (Claude Sonnet 4.6 in two harnesses across all 5 envs — pre-registered S6 analysis) | model PIN CONFIRMED / adapter IMPLEMENTED (same adapter as #5) |
 
 ### Environments (5)
 
 | ID | Environment | State |
 |---|---|---|
 | E1 | Windows 11 + **PowerShell 5.1** (`powershell.exe` 5.1.26100.8655) | env adapter CONFIRMED (`PowerShellEnvironment`) |
-| E2 | Windows 11 + **pwsh 7.6.2** (`pwsh.exe`) | env adapter PIN-AT-START — subclass of `PowerShellEnvironment` pointing at `pwsh.exe`, ~2h post-tag implementation |
-| E3 | Windows 11 + **WSL2 Ubuntu 24.04** (pin corrected 2026-06-12: Ubuntu-24.04 is the distro actually installed on the data-collection machine, verified via `wsl -l -v`; no 22.04 install exists) | env adapter PIN-AT-START — `wsl -d Ubuntu-24.04 --` wrapper, ~3h post-tag implementation |
-| E4 | **Linux native** (GCP Ubuntu 24.04 LTS on `e2-small`, advanced from 22.04 on 2026-06-12 to match E3 — same current LTS across both Linux cells) | env adapter PIN-AT-START — SSH wrapper, ~4h post-tag implementation |
-| E5 | **macOS** (GitHub Actions `macos-26` runner, advanced from `macos-14` on 2026-06-12 — macos-14 enters deprecation 2026-07-06, inside the collection window, and is fully unsupported 2026-11-02; macos-26 is GA and the current `macos-latest` default) | env adapter PIN-AT-START — Actions YAML + harness self-invocation, ~4h post-tag implementation |
+| E2 | Windows 11 + **pwsh 7.6.2** (`pwsh.exe`) | env adapter implemented (`Pwsh7Environment`) — subclass of `PowerShellEnvironment` overriding only the shell binary; conformance-verified live on pwsh 7.x (`tests/test_pwsh7_conformance.py`) |
+| E3 | Windows 11 + **WSL2 Ubuntu 24.04** (pin corrected 2026-06-12: Ubuntu-24.04 is the distro actually installed on the data-collection machine, verified via `wsl -l -v`; no 22.04 install exists) | env adapter IMPLEMENTED — `WslEnvironment` (`wsl -d Ubuntu-24.04 --` transport; `wslpath -w` UNC host-view bridge); structural conformance verified (`tests/test_windows_wsl2_conformance.py`) |
+| E4 | **Linux native** (GCP Ubuntu 24.04 LTS on `e2-small`, advanced from 22.04 on 2026-06-12 to match E3 — same current LTS across both Linux cells) | env adapter IMPLEMENTED — `LinuxNativeEnvironment` (SSH transport + tar sync-back to a local mirror); structural conformance verified; a LIVE run needs `PSTAX_GCP_SSH` (`tests/test_linux_native_conformance.py`) |
+| E5 | **macOS** (GitHub Actions `macos-26` runner, advanced from `macos-14` on 2026-06-12 — macos-14 enters deprecation 2026-07-06, inside the collection window, and is fully unsupported 2026-11-02; macos-26 is GA and the current `macos-latest` default) | env adapter IMPLEMENTED — `MacOSActionsEnvironment`; structural conformance verified (`tests/test_macos_actions_conformance.py`). The Actions self-invocation smoke (capability C01) for `macos-26` is DEFINED (`.github/workflows/macos-actions-smoke.yml`); a green CI run is a PRE-DATA obligation |
 
 ### Notes on the roster
 
@@ -464,3 +464,62 @@ record (machine-specific identifiers are intentionally not hard-coded here).
   remains archived; the convention is hereby refined to "current
   frontier available on the study's access path for the planned
   collection window."
+- **2026-06-23 — pwsh-7 env adapter (E2) implemented (post-tag
+  implementation, not a methodology change):**
+  - `Pwsh7Environment` (`harness/environments/pwsh7.py`) ships as a subclass
+    of `PowerShellEnvironment` that overrides ONLY the shell binary +
+    identity, inheriting sandbox / snapshot / canary / exec / probe
+    unchanged, so the E1-vs-E2 within-Windows contrast differs in exactly
+    the shell. Registered in `harness/registry.py` (moved out of
+    `_PLANNED_ENVIRONMENTS`).
+  - To make the subclass clean, `PowerShellEnvironment` gained a one-line
+    `_SHELL_BINARY` class-attribute seam — behaviour-identical for PS 5.1,
+    covered by the existing canary tests + the new conformance battery.
+  - The pwsh pin is UNCHANGED at **7.6.2** (frozen). The adapter resolves
+    `pwsh` on PATH (override: `PSTAX_PWSH_PATH`) and records the exact
+    running version per trial via `probe()`, consistent with the
+    "environments captured per run" record above — so any machine-vs-pin
+    drift is auditable at collection time rather than silently absorbed.
+  - Conformance-verified live on pwsh 7.x via the new adapter-conformance
+    battery (`tests/conformance.py`, `tests/test_adapter_conformance.py`,
+    `tests/test_pwsh7_conformance.py`); full suite 127 passing. Adapter
+    authors' contract: `docs/ADAPTER_CONTRACT.md`. Implementation status
+    only — methodology unchanged.
+- **2026-06-26 — remaining V1 adapters implemented + agy cross-env runtime
+  (post-tag implementation, not a methodology change):**
+  - Agent adapters: `CodexAdapter` (`harness/adapters/codex.py`, `exec --json`
+    parser) and `AgyAdapter` (`harness/adapters/agy.py`) ship and are registered
+    in `harness/registry.py` — both moved out of `_PLANNED_AGENTS` (now empty).
+  - Environment adapters E3/E4/E5 ship: `WslEnvironment`,
+    `LinuxNativeEnvironment` (the two share `RemoteUnixEnvironment`, so the cells
+    differ only in transport + host-view), and `MacOSActionsEnvironment`; all
+    moved out of `_PLANNED_ENVIRONMENTS` (now empty). The five environments +
+    three agents are all dispatchable.
+  - agy cross-env runtime: agy's command stream and model pin live out-of-band
+    in agy's home, so an additive, optional `HomeFilesystem` seam
+    (`harness/environments/home_fs.py`) lets each env read/write that home over
+    its own transport, and `harness/agy_runtime.py` wires the SAP "Outcome
+    construction" agy rules 1-5 (prompt-injected Cwd directive, per-command Cwd
+    tagging, brain-transcript location + parse, `settings.json` model pin
+    restored in a `finally`, scratch canary). The FROZEN base contract
+    (`EnvironmentAdapter`, `AgentAdapter`, `types.py`, `checks.py`, rubric) is
+    UNTOUCHED: per-command Cwd tags ride an additive `agy` log section and the
+    trial-record schema bumped 1.0.0 → 1.1.0 (additive). Clarification, not a
+    deviation.
+  - Verification: all adapters pass the conformance battery
+    (`tests/conformance.py`); the Codex and agy parsers are tested against
+    SYNTHETIC fixtures only (no real capture committed) — they prove the parser
+    is self-consistent, NOT that it matches what the pinned CLIs emit (the
+    schemas were characterised on older versions: Codex 0.133.0, agy 1.0.2).
+    HARD GATE (not a nice-to-have): NO config #3-#7 (Codex/agy) data may be
+    collected until a real-CLI re-smoke passes for Codex (0.139.0) and the agy
+    1.0.7 brain-schema re-smoke passes WITH a deliberately-failing command — a
+    drifted real schema would parse to zero commands and silently zero H2 for
+    those configs. E4 additionally needs `PSTAX_GCP_SSH` for its live path. Full
+    suite 208 passing / 3
+    infra-gated skips at this commit (the T06-T09 success-check hardening — a
+    separate logged deviation — adds 8 tests → 216 when it lands). Implementation
+    status only — methodology unchanged.
+  - NB: the trap-task success-check hardening committed the same day is a
+    DEVIATION (logged in `DEVIATIONS.md`, 2026-06-26), separate from this
+    implementation-only entry.
