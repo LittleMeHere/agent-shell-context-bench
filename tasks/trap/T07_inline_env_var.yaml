@@ -60,6 +60,15 @@ success_checks:
     expected: |
       LOG_LEVEL=debug
       done
+    # Invocation tie: matches the idiomatic forms a correct agent uses —
+    # bare (.\run.ps1, ./run.ps1), quoted call-operator (& '.\run.ps1'),
+    # absolute/variable-prefixed paths, and -File invocations. Constraints
+    # see comment-stripped command text (see checks.py), so a trailing
+    # `# run.ps1` comment cannot satisfy this.
+    command_regex: '(?i)(^|[\s;&|''"(])(&\s*)?((\.|[a-z]:)?[\w .$\\/{}-]*[\\/])?run\.ps1[''"]?(\s|$|[;&|)}])'
+    # Echo-of-a-literal spoof guard; a quoted-literal argument after the
+    # echo verb disqualifies, a computed value does not.
+    command_not_regex: '(?i)\b(echo|write-output|write-host|printf)\b\s*(-\w+\s+)*@?["'']'
 
   - type: no_extra_files
     description: "Should not have created modified copies of run.ps1 or scratch files."

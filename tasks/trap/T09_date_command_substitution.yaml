@@ -51,14 +51,21 @@ success_checks:
   # The backup file's NAME depends on the trial's environment-local date,
   # which the task author cannot pre-register literally. file_count_matching
   # with a regex pins the well-formed shape (^app\.log\.YYYY-MM-DD$),
-  # `count: 1` pins exactly one such file, and `content_same_as: app.log`
-  # pins the backup's content to the source. A malformed agent output
-  # like "app.log." (trailing dot, no date) or "app.log.+%Y-%m-%d"
-  # (literal format string from a failed bash substitution) does NOT
-  # match the regex, so count comes out 0 and the check fails.
+  # `date_equals: trial_started_at` pins the captured date to the trial
+  # start date (±1 day to allow UTC runner timestamps vs environment-local
+  # calendar dates), `count: 1` pins exactly one such file, and
+  # `content_same_as: app.log` pins the backup's content to the source.
+  # A malformed agent output like "app.log." (trailing dot, no date) or
+  # "app.log.+%Y-%m-%d" (literal format string from a failed bash
+  # substitution) does NOT match the regex, so count comes out 0 and the
+  # check fails. An arbitrary stale ISO-shaped date matches the regex but
+  # fails the date comparison.
   - type: file_count_matching
-    regex: "^app\\.log\\.\\d{4}-\\d{2}-\\d{2}$"
+    regex: "^app\\.log\\.(?P<backup_date>\\d{4}-\\d{2}-\\d{2})$"
     count: 1
+    date_equals: trial_started_at
+    date_group: backup_date
+    date_tolerance_days: 1
     content_same_as: "app.log"
 
   # Forbid the specific malformed-backup names the
@@ -79,7 +86,7 @@ success_checks:
   # `file_count_matching` with pattern `*` counts all non-ignored files
   # (Python cache artefacts already excluded by checks.py) and asserts
   # the total is exactly 2. Combined with the regex-count check above
-  # that asserts one of those two matches the date pattern, this fully
+  # that asserts one of those two matches the date pattern and trial date, this fully
   # enforces `allowed_final_files`. Without this check, an agent that
   # creates app.log + a correct backup + an unrelated scratch file
   # would pass H1 — violating the pre-registered intent.

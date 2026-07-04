@@ -43,6 +43,7 @@ import ast
 import fnmatch
 import json
 import re
+from datetime import datetime, timedelta
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -255,11 +256,19 @@ def _read_text_for_check(
     error (missing sandbox root, missing file, unreadable, ignored path).
     Centralising this keeps every content check's failure modes identical.
 
-    `read_text` with default newline=None enables universal-newlines
-    translation: \\r\\n / \\r are normalised to \\n before comparison. This
+    Newlines are normalised (\\r\\n / \\r become \\n) before comparison. This
     is intentional — a task author writes the expected content with \\n
     newlines in YAML, and an agent that writes the right bytes but with
     \\r\\n on Windows still passes the byte-content check.
+
+    Encoding is decoded by BOM sniff: UTF-8 (with or without BOM) and
+    BOM-marked UTF-16 LE/BE are all accepted. No task prompt constrains
+    output encoding, and shell-default encodings differ BY ENVIRONMENT
+    (PowerShell 5.1 `>` writes UTF-16LE; `Set-Content -Encoding UTF8`
+    writes a BOM; pwsh 7 writes BOM-less UTF-8) — so a strict-UTF-8 read
+    would turn encoding into a hidden component of the measured construct
+    and concentrate false failures on specific environment arms. Content
+    that decodes under none of these fails closed as before.
     """
     if _is_ignored(rel_path):
         return None, CheckResult(
@@ -288,13 +297,28 @@ def _read_text_for_check(
             detail=f"file {rel_path!r} not found on disk at {file_path}",
         )
     try:
-        return file_path.read_text(encoding="utf-8"), None
-    except (OSError, UnicodeDecodeError) as exc:
+        raw = file_path.read_bytes()
+    except OSError as exc:
         return None, CheckResult(
             check_type=check_name,
             passed=False,
-            detail=f"file {rel_path!r} not readable as UTF-8: {exc}",
+            detail=f"file {rel_path!r} not readable: {exc}",
         )
+    if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+        encoding = "utf-16"  # BOM-directed; codec consumes the BOM
+    elif raw.startswith(b"\xef\xbb\xbf"):
+        encoding = "utf-8-sig"
+    else:
+        encoding = "utf-8"
+    try:
+        text = raw.decode(encoding)
+    except UnicodeDecodeError as exc:
+        return None, CheckResult(
+            check_type=check_name,
+            passed=False,
+            detail=f"file {rel_path!r} not decodable as {encoding}: {exc}",
+        )
+    return text.replace("\r\n", "\n").replace("\r", "\n"), None
 
 
 @check("python_parses")
@@ -376,8 +400,16 @@ def _file_contains_substring_count(
 def _file_content_equals(
     snap: FilesystemSnapshot, spec: Mapping[str, object]
 ) -> CheckResult:
-    """Fail unless file content equals `content` exactly (after universal-
-    newlines normalisation; see _read_text_for_check).
+    """Fail unless file content equals `content` (after newline
+    normalisation and encoding sniff; see _read_text_for_check), with
+    tolerance for trailing newlines: both sides are compared with
+    trailing \\n stripped.
+
+    The tolerance exists because the canonical correct methods disagree
+    about the final newline — heredocs, `echo`, and `Set-Content` append
+    one; `printf` and Python `write()` don't — and no task prompt pins it
+    down. Which trailing-newline convention an agent's tool of choice
+    follows is not part of any task's measured construct.
 
     Used for byte-exact outputs (T03 config.txt, T04 deploy.sh, T06 source
     preservation, C02 answer.txt = '5\\n') and for source-file
@@ -399,7 +431,7 @@ def _file_content_equals(
     # value with literal \r\n, but read_text already normalised the actual
     # side. Normalising both makes comparison symmetric.
     expected_norm = expected.replace("\r\n", "\n").replace("\r", "\n")
-    ok = actual == expected_norm
+    ok = actual.rstrip("\n") == expected_norm.rstrip("\n")
     if ok:
         return CheckResult(
             check_type="file_content_equals",
@@ -471,6 +503,34 @@ def _json_content_equals(
     )
 
 
+def _date_from_trial_started_at(raw: object) -> tuple[datetime | None, str | None]:
+    """Parse the runner's trial-start timestamp for date-sensitive checks.
+
+    Accepts a `datetime`, a colon-form ISO-8601 string, OR the runner's
+    filename-safe stamp — `runner._utc_now()` emits `%Y-%m-%dT%H-%M-%SZ` (dashes
+    in the TIME, because the same value names the Windows log file where colons
+    are illegal), e.g. ``2026-06-27T01-31-20Z``. That form is NOT
+    `fromisoformat`-parseable, so a colon-ISO parse is attempted first and, on
+    failure, the leading ``YYYY-MM-DD`` date component — identical in both forms
+    and all this check needs — is parsed directly. Without this fallback the
+    date-stamped check would error on every real trial (the runner only ever
+    produces the dash form)."""
+    if raw is None:
+        return None, "trial_started_at is required for this date-sensitive check"
+    if isinstance(raw, datetime):
+        return raw, None
+    text = str(raw).strip()
+    iso = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        return datetime.fromisoformat(iso), None
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(text[:10], "%Y-%m-%d"), None
+    except ValueError as exc:
+        return None, f"trial_started_at {raw!r} is not date-parseable: {exc}"
+
+
 @check("file_count_matching")
 def _file_count_matching(
     snap: FilesystemSnapshot, spec: Mapping[str, object]
@@ -528,6 +588,70 @@ def _file_count_matching(
             ),
             evidence=", ".join(matches[:20]),
         )
+
+    # Optional: dynamic date-stamped filenames. The regex must expose a named
+    # date group; the observed date is compared to the trial-start date. A
+    # small tolerance handles env-local dates when the runner records UTC.
+    date_equals = spec.get("date_equals")
+    if date_equals is not None:
+        if date_equals != "trial_started_at":
+            return CheckResult(
+                check_type="file_count_matching",
+                passed=False,
+                detail=(
+                    "file_count_matching date_equals currently supports only "
+                    "'trial_started_at'"
+                ),
+            )
+        if pattern is not None:
+            return CheckResult(
+                check_type="file_count_matching",
+                passed=False,
+                detail="date_equals requires a regex with a named date_group",
+            )
+        # `compiled` is the regex already built in the regex branch above —
+        # date_equals only reaches here with pattern is None (rejected just
+        # above), so the regex path ran and `compiled` is in scope.
+        group = str(spec.get("date_group", "date"))
+        trial_dt, err = _date_from_trial_started_at(spec.get("_trial_started_at"))
+        if err is not None:
+            return CheckResult(
+                check_type="file_count_matching",
+                passed=False,
+                detail=f"file_count_matching date comparison failed: {err}",
+            )
+        assert trial_dt is not None
+        try:
+            tolerance = int(spec.get("date_tolerance_days", 0))
+        except (TypeError, ValueError):
+            return CheckResult(
+                check_type="file_count_matching",
+                passed=False,
+                detail="date_tolerance_days must be an integer",
+            )
+        if tolerance < 0:
+            return CheckResult(
+                check_type="file_count_matching",
+                passed=False,
+                detail="date_tolerance_days must be non-negative",
+            )
+        date_format = str(spec.get("date_format", "%Y-%m-%d"))
+        allowed = {
+            (trial_dt + timedelta(days=offset)).strftime(date_format)
+            for offset in range(-tolerance, tolerance + 1)
+        }
+        for match_rel in matches:
+            match = compiled.fullmatch(match_rel)
+            observed = match.groupdict().get(group) if match else None
+            if observed not in allowed:
+                return CheckResult(
+                    check_type="file_count_matching",
+                    passed=False,
+                    detail=(
+                        f"matched file {match_rel!r} has {group}={observed!r}; "
+                        f"expected one of {sorted(allowed)!r}"
+                    ),
+                )
 
     # Optional: content equivalence to a reference file.
     content_same_as = spec.get("content_same_as")
@@ -612,18 +736,74 @@ def _normalise_lineendings(s: str) -> str:
     return s.replace("\r\n", "\n").replace("\r", "\n")
 
 
+def _strip_shell_comments(command: str) -> str:
+    """Remove comment text from a command before command-text constraints.
+
+    A command can carry constraint tokens inside a comment
+    (`"..." <# app.log #>` or `"..." # run.ps1`) without touching the
+    target at all, so constraints must see only the non-comment text.
+    Handles PowerShell block comments (<# ... #>) and #-to-end-of-line in
+    both PowerShell and POSIX shells. A # inside single or double quotes
+    is content; a # not at the start of a word (e.g. bash `${#var}`) is
+    content too.
+    """
+    text = re.sub(r"<#.*?#>", " ", command, flags=re.DOTALL)
+    out: list[str] = []
+    quote: str | None = None
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if quote is None and ch in "'\"":
+            quote = ch
+        elif quote == ch:
+            quote = None
+        elif (
+            quote is None
+            and ch == "#"
+            and (i == 0 or text[i - 1] in " \t\n;|&(")
+        ):
+            nl = text.find("\n", i)
+            if nl == -1:
+                break
+            i = nl
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 @check("agent_any_command_stdout_equals")
 def _agent_any_command_stdout_equals(
     snap: FilesystemSnapshot, spec: Mapping[str, object]
 ) -> CheckResult:
     """Fail unless AT LEAST ONE command the agent issued produced a stdout
-    that, after newline normalisation, exactly equals `expected`.
+    that, after newline normalisation and trailing-newline strip on both
+    sides, equals `expected`.
 
     'Any command' rather than 'last command' is deliberate: a sensible
     agent may verify its own work after the answer-producing command, and
     the pre-reg should not penalise that. The expected stdout is the
     agent's answer to the prompt; a verifying command's stdout is allowed
     to differ.
+
+    Trailing newlines are stripped because agent CLIs disagree with the
+    YAML convention here: the real recorded Claude Code capture
+    (tests/fixtures/claude_code_streamjson_C01.jsonl) shows the CLI trims
+    the final newline from tool_use_result stdout, while every YAML
+    `expected` block ends with one. Exact comparison would fail every
+    real trial on stdout tasks regardless of agent behaviour.
+
+    Command-text constraints (`command_contains`, `command_regex`,
+    `command_not_regex`) are applied to the command with comment text
+    removed (see _strip_shell_comments) — otherwise `"..." # app.log`
+    satisfies a contains-constraint without touching the target.
+
+    `require_empty_stderr: true` additionally requires the matching
+    command's own stderr to be empty. This is the per-command form of the
+    pre-registered `required_final_stderr_exact: ""` predicate: it scores
+    the answer-producing command, so an agent that triggers the seeded
+    error (stderr noise on an early attempt) and then recovers cleanly
+    still passes — recovery is task completion, not failure.
     """
     expected = spec.get("expected")
     if not isinstance(expected, str):
@@ -632,21 +812,87 @@ def _agent_any_command_stdout_equals(
             passed=False,
             detail="agent_any_command_stdout_equals requires a string 'expected' field",
         )
+
+    command_contains_raw = spec.get("command_contains", [])
+    if isinstance(command_contains_raw, str):
+        command_contains = [command_contains_raw]
+    else:
+        command_contains = list(command_contains_raw or [])  # type: ignore[arg-type]
+    if not all(isinstance(s, str) and s for s in command_contains):
+        return CheckResult(
+            check_type="agent_any_command_stdout_equals",
+            passed=False,
+            detail="command_contains must be a string or list of non-empty strings",
+        )
+    command_regex = spec.get("command_regex")
+    command_pattern = None
+    if command_regex is not None:
+        try:
+            command_pattern = re.compile(str(command_regex))
+        except re.error as exc:
+            return CheckResult(
+                check_type="agent_any_command_stdout_equals",
+                passed=False,
+                detail=f"command_regex {command_regex!r} did not compile: {exc}",
+            )
+    command_not_regex = spec.get("command_not_regex")
+    command_forbid_pattern = None
+    if command_not_regex is not None:
+        try:
+            command_forbid_pattern = re.compile(str(command_not_regex))
+        except re.error as exc:
+            return CheckResult(
+                check_type="agent_any_command_stdout_equals",
+                passed=False,
+                detail=f"command_not_regex {command_not_regex!r} did not compile: {exc}",
+            )
+
+    require_empty_stderr = bool(spec.get("require_empty_stderr", False))
+
     commands, err = _agent_commands_or_failure(spec, "agent_any_command_stdout_equals")
     if err is not None:
         return err
     assert commands is not None
-    expected_norm = _normalise_lineendings(expected)
+    expected_norm = _normalise_lineendings(expected).rstrip("\n")
+    stdout_matches = 0
+    constrained_out = 0
     for cmd in commands:
-        actual = _normalise_lineendings(getattr(cmd, "stdout", "") or "")
-        if actual == expected_norm:
-            return CheckResult(
-                check_type="agent_any_command_stdout_equals",
-                passed=True,
-                detail=(
-                    f"command #{getattr(cmd, 'index', '?')} stdout "
-                    f"matches expected ({len(expected_norm)} bytes)"
-                ),
+        actual = _normalise_lineendings(getattr(cmd, "stdout", "") or "").rstrip("\n")
+        if actual != expected_norm:
+            continue
+        stdout_matches += 1
+        command_text = _strip_shell_comments(str(getattr(cmd, "command", "") or ""))
+        if command_contains and not all(s in command_text for s in command_contains):
+            continue
+        if command_pattern is not None and not command_pattern.search(command_text):
+            continue
+        if command_forbid_pattern is not None and command_forbid_pattern.search(command_text):
+            continue
+        constrained_out += 1
+        if require_empty_stderr:
+            stderr_text = _normalise_lineendings(
+                getattr(cmd, "stderr", "") or ""
+            ).strip()
+            if stderr_text:
+                continue
+        return CheckResult(
+            check_type="agent_any_command_stdout_equals",
+            passed=True,
+            detail=(
+                f"command #{getattr(cmd, 'index', '?')} stdout "
+                f"matches expected ({len(expected_norm)} bytes)"
+            ),
+        )
+    constraint_detail = ""
+    if stdout_matches:
+        constraint_detail = (
+            f"; {stdout_matches} command(s) had matching stdout but failed "
+            "command-text constraints"
+        )
+        if constrained_out:
+            constraint_detail = (
+                f"; {constrained_out} command(s) matched stdout and "
+                "command-text constraints but wrote to stderr"
             )
     return CheckResult(
         check_type="agent_any_command_stdout_equals",
@@ -654,6 +900,7 @@ def _agent_any_command_stdout_equals(
         detail=(
             f"no command among {len(commands)} produced stdout matching the "
             f"expected {len(expected_norm)}-byte answer"
+            f"{constraint_detail}"
         ),
         evidence=f"commands_seen={len(commands)}",
     )
@@ -666,10 +913,14 @@ def _agent_all_command_stderrs_empty(
     """Fail if ANY command the agent issued produced non-empty stderr
     (after newline normalisation and surrounding-whitespace strip).
 
-    Used by tasks (T06, T08) whose binary outcome requires no error
-    output. A vacuous pass on an empty command list is intentionally
-    permissive — the accompanying agent_any_command_stdout_equals will
-    fail a no-op trial, so this check does not need to.
+    No task uses this as of 2026-07-03: T06/T08 moved to
+    `require_empty_stderr` on the stdout check, which scopes the stderr
+    requirement to the answer-producing command — the all-commands form
+    scored a fire-then-recover trajectory as H1 failure (see
+    DEVIATIONS.md). Retained for tasks whose intent genuinely is
+    "no command may ever write to stderr". A vacuous pass on an empty
+    command list is intentionally permissive — pair it with a check
+    that fails a no-op trial.
     """
     commands, err = _agent_commands_or_failure(spec, "agent_all_command_stderrs_empty")
     if err is not None:
@@ -726,6 +977,7 @@ def evaluate_checks(
     *,
     sandbox_host_root: Path | str | None = None,
     agent_commands: Sequence[Any] | None = None,
+    trial_started_at: object | None = None,
 ) -> tuple[bool, list[CheckResult]]:
     """Run every check. Returns (overall_success, per-check results).
 
@@ -737,7 +989,8 @@ def evaluate_checks(
     forwarded into content-based check specs (see _CONTEXT_CHECKS).
     `agent_commands` is the per-command transcript; it is forwarded into
     agent-trace check specs (see _AGENT_CHECKS). Snapshot-only checks
-    ignore both.
+    ignore both. `trial_started_at` is forwarded to context checks that need
+    dynamic, trial-start-relative expectations such as dated filenames.
     """
     expected = _expected_files_from(specs)
     results: list[CheckResult] = []
@@ -756,7 +1009,11 @@ def evaluate_checks(
         if ctype == "no_extra_files":
             spec = {**spec, "_expected_files": tuple(expected)}
         elif ctype in _CONTEXT_CHECKS:
-            spec = {**spec, "_sandbox_host_root": sandbox_host_root}
+            spec = {
+                **spec,
+                "_sandbox_host_root": sandbox_host_root,
+                "_trial_started_at": trial_started_at,
+            }
         elif ctype in _AGENT_CHECKS:
             spec = {**spec, "_agent_commands": agent_commands}
         results.append(fn(snap, spec))

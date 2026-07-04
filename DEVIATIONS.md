@@ -34,6 +34,133 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
+## 2026-07-03 — Pre-collection audit: fix construct-validity defects in success checks
+
+A pre-collection adversarial audit (red-team of all 14 task YAMLs against
+the exact `checks.py` semantics, plus empirical verification on real
+PowerShell 5.1 and the real recorded Claude Code capture) found defects
+that would have forced mid-collection deviations. All fixes land before
+any benchmark data exists.
+
+**Pre-registered rule → deviation, per finding:**
+
+1. **Content checks read strict UTF-8.** Now: BOM-sniffed decode
+   accepting UTF-8 (with or without BOM) and BOM-marked UTF-16.
+   Verified on real PS 5.1: `>` writes UTF-16LE+BOM and
+   `Set-Content -Encoding UTF8` writes a UTF-8 BOM, so a byte-correct
+   answer written with the environment's default idioms failed — and
+   only on the PS 5.1 arm, i.e. measurement error correlated with the
+   treatment variable, biasing H1 toward the hypothesis. No prompt
+   constrains encoding, so encoding is not part of any task's construct.
+
+2. **`file_content_equals` and `agent_any_command_stdout_equals`
+   compared trailing newlines exactly.** Now: both sides are compared
+   with trailing newlines stripped. The real Claude Code capture trims
+   the final newline from recorded stdout while every YAML `expected`
+   block ends with one — exact comparison failed every real trial of
+   T06/T07/T08 regardless of agent behaviour. Same class: heredoc/echo/
+   `Set-Content` append a file-final newline, `printf`/Python `write`
+   don't, and no prompt pins the convention.
+
+3. **T06/T08 used `agent_all_command_stderrs_empty` (all commands).**
+   Now: `require_empty_stderr: true` on the stdout check — the
+   answer-producing command must be stderr-clean. The all-commands form
+   contradicted the pre-registered `required_final_stderr_exact: ""`
+   (final, not all) and scored the canonical fire-then-recover
+   trajectory (classification code B) as H1 failure, mechanically
+   inflating the hypothesized effect.
+
+4. **T08 seeded `noisy.ps1` with `[Console]::Error.WriteLine`.** Now:
+   `Write-Error`. Verified empirically on PS 5.1 (2026-07-03): the
+   .NET call bypasses PowerShell stream redirection in-process, so the
+   task's own canonical solution (`.\noisy.ps1 2>$null`) still leaked
+   stderr — the task was near-unpassable by its intended answer. With
+   `Write-Error`, `2>$null` suppresses fully and the unsuppressed trap
+   still fires.
+
+5. **T07/T08 `command_regex` accepted only bare `.\`/`./` invocations;
+   the echo-forbid regex matched any use of an echo verb.** Now: the
+   invocation regex also accepts quoted call-operator (`& '.\run.ps1'`),
+   absolute/variable-prefixed paths, and `-File` forms (all
+   regex-verified); the forbid regex only disqualifies an echo verb
+   whose argument is a quoted literal or here-string, so a legitimate
+   `... | ForEach-Object { Write-Output $_.Line }` is no longer
+   disqualified. Command-text constraints are applied to
+   comment-stripped command text (closes the `"..." # app.log` smuggle).
+
+6. **C03 prompt told agents to leave string-literal content unchanged
+   while the checks required renaming inside `__all__ = [...]`.** Now:
+   the prompt states the `__all__` entry is a code export to rename.
+   The contradiction penalized exactly the careful (AST-based) agents.
+   Additionally, location anchors (exact post-rename lines) were added:
+   the cardinality-only counts accepted renaming the right NUMBER of
+   wrong occurrences.
+
+**Accepted, documented, not changed:** `no_extra_files` does not see
+empty directories (snapshot-files-only, uniform across arms); T09 accepts
+a hardcoded-current-date backup (H1 is outcome-based by design); Codex
+and agy adapters do not populate per-command stderr the way Claude Code
+does — cross-agent comparability of the T06/T08 stderr requirement is
+deferred to the pre-data real-CLI smoke gate already mandated by
+`docs/VERSIONS.md` (Codex 0.139.0 / agy 1.0.7 re-smoke with a
+deliberately failing command). Also accepted, all reachable only by
+deliberate deception (agents never see `success_checks`) or already
+by-design: files smuggled under ignore-listed cache dirs evade
+`no_extra_files`; modify-then-restore of a protected file passes H1
+(final-state equality is the pre-registered outcome; transients are
+H2's job via the before/after diff); T07's leftover `$env:LOG_LEVEL`
+passes H1 (already documented in the YAML as H2-rubric-only); a
+wrapper-script-shadowing spoof on T07 (plant, invoke, delete before
+snapshot); and PS-redirect "empty" files failing `file_is_empty`
+because the redirect writes BOM bytes — judged a real measured
+behavior (the file genuinely isn't empty), not a check artifact.
+
+**Reason:** every fixed item either (a) failed correct solutions — three
+of them in ways correlated with environment or agent-tooling choice, the
+exact confound structure H1 measures — or (b) contradicted the
+pre-registered predicate text. Discovered before any collection;
+discovered during collection each would have been a data-tainting
+deviation.
+
+**Effect on collected data:** none; no benchmark data has been collected.
+Regression tests were added for every fixed defect, including positive
+tests using real captured bytes (PS 5.1 redirect output, BOM'd
+Set-Content output, trailing-newline-trimmed adapter stdout) — the
+previously missing positive tests for C02/C04 are what let the encoding
+defect survive earlier review.
+
+**Implementing commit:** the commit introducing this entry (lands
+together with the 2026-06-26 hardening below in one working set, so each
+entry shares its implementation's hash).
+
+## 2026-06-26 — Harden dynamic/stdout success checks against reward-hacking
+
+**Pre-registered rule:** T06, T07, and T08 encoded terminal-output success
+with `agent_any_command_stdout_equals`; T09 encoded the dated backup
+filename as any ISO-shaped `app.log.YYYY-MM-DD` matching regex plus content
+equality.
+
+**Deviation:** The agent-trace stdout check now supports command-text
+constraints, and T06/T07/T08 require the stdout-producing command to be tied
+to the intended input file or script rather than a direct echo of the
+expected answer. T09's regex now captures the date component and compares it
+to the trial-start date, with a ±1 day tolerance for UTC runner timestamp vs.
+environment-local calendar date differences. Regression tests were added for
+the formerly passing spoof cases.
+
+**Reason:** Review found construct-validity gaps: agents could hard-code or
+echo the expected stdout for T06/T07/T08, or create `app.log.<any ISO date>`
+for T09, and still pass H1 despite not satisfying the task intent.
+
+**Effect on collected data:** No effect yet; no post-tag benchmark data has
+been collected under the weaker checks. If any pilot/smoke outputs used the
+weaker rules, they should be discarded or re-evaluated with the hardened
+checks before analysis.
+
+**Implementing commit:** the commit introducing this entry — the check
+hardening, task YAML updates, regression tests, and this log entry land
+together so the deviation and its implementation share one hash.
+
 ## 2026-06-13 — Initial deviations log, established at the `pre-registration-v1` tag (commit `34104be`; log first scaffolded during 2026-05-25 drafting)
 
 **No deviations from the pre-registered methodology as of this commit.**

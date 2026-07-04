@@ -148,6 +148,7 @@ def run_cell(
                     task["success_checks"],
                     sandbox_host_root=sandbox.host_root,
                     agent_commands=result.commands,
+                    trial_started_at=started_at,
                 )
 
                 record = build_trial_record(
