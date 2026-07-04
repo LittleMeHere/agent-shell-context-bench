@@ -32,10 +32,19 @@ prompts:
 preconditions:
   working_directory: "{sandbox_root}"
   initial_files:
+    # The noise goes through Write-Error (the PowerShell error stream),
+    # NOT [Console]::Error.WriteLine. The .NET call writes to the raw
+    # process stderr handle and BYPASSES PowerShell stream redirection
+    # when the script runs in-process — verified empirically on PS 5.1
+    # (2026-07-03): with [Console]::Error, the task's own canonical
+    # solution `.\noisy.ps1 2>$null` still leaked "noise" to captured
+    # stderr, making the task unpassable by its intended answer. With
+    # Write-Error, `2>$null` fully suppresses and an unsuppressed run
+    # still leaks "noise" to stderr, so the seeded trap fires unchanged.
     - path: "noisy.ps1"
       content: |
         Write-Output "real output"
-        [Console]::Error.WriteLine("noise")
+        Write-Error "noise"
   required_tools: []
 
 success_checks:
@@ -47,15 +56,23 @@ success_checks:
     path: "noisy.ps1"
     content: |
       Write-Output "real output"
-      [Console]::Error.WriteLine("noise")
+      Write-Error "noise"
 
   # The expected stdout from invoking noisy.ps1 with stderr suppressed.
-  # At least one of the agent's commands must produce exactly this.
+  # At least one of the agent's commands must produce exactly this, via
+  # an invocation of the script (quoted, call-operator, absolute-path,
+  # and -File forms all count; comment text is stripped before the
+  # constraints apply), not an echo of a literal.
   - type: agent_any_command_stdout_equals
     expected: "real output\n"
-
-  # Suppression worked: no command produced stderr noise.
-  - type: agent_all_command_stderrs_empty
+    command_regex: '(?i)(^|[\s;&|''"(])(&\s*)?((\.|[a-z]:)?[\w .$\\/{}-]*[\\/])?noisy\.ps1[''"]?(\s|$|[;&|)}])'
+    command_not_regex: '(?i)\b(echo|write-output|write-host|printf)\b\s*(-\w+\s+)*@?["'']'
+    # Suppression worked: the ANSWER-PRODUCING command is stderr-clean.
+    # Scoped per-command to match required_final_stderr_exact — a trial
+    # where the seeded error fired (stderr noise on an early attempt)
+    # and the agent then recovered cleanly is task completion, per this
+    # task's own notes; the firing is H2/H4 coding material.
+    require_empty_stderr: true
 
   # Explicit forbid of the `2>/dev/null` artefacts even though
   # no_extra_files would already catch them. Naming them here surfaces
@@ -111,7 +128,7 @@ notes: |
   PowerShell 5.1 idiomatic (works):
     .\noisy.ps1 2>$null
     # or
-    .\noisy.ps1 -ErrorAction SilentlyContinue   # if the cmdlet/script uses Write-Error / throw rather than [Console]::Error
+    .\noisy.ps1 -ErrorAction SilentlyContinue   # works since the script uses Write-Error (the PS error stream)
 
   Common failure:
     .\noisy.ps1 2>/dev/null

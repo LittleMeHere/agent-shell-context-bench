@@ -18,6 +18,7 @@ prompt: |
   Rename `process_data` to `process_record` everywhere it is a real code
   reference (definition, function call, import, attribute access). Leave
   docstring text, comment text, and string-literal content unchanged.
+  The name inside `__all__` is a code export, not prose — rename it too.
 
   After renaming, every .py file must still parse as valid Python (you
   may verify with `python -c "import ast; ast.parse(open(p).read())"`).
@@ -178,6 +179,50 @@ success_checks:
     path: "tests/test_processor.py"
     substring: "process_record"
     count: 2
+
+  # Location anchors. The counts above verify CARDINALITY only — a rename
+  # of the right number of WRONG occurrences (e.g. a comment instead of
+  # the actual call) would satisfy them. Each anchor pins one renamed code
+  # reference to its exact post-rename line. Together with the counts,
+  # every occurrence is fully determined: the anchored code references
+  # account for every expected `process_record`, which forces the
+  # remaining `process_data` occurrences to be the preserved prose ones.
+  - type: file_contains_substring_count
+    path: "lib/processor.py"
+    substring: "def process_record(record):"
+    count: 1
+  - type: file_contains_substring_count
+    path: "lib/__init__.py"
+    substring: "from .processor import process_record"
+    count: 1
+  - type: file_contains_substring_count
+    path: "lib/__init__.py"
+    substring: '__all__ = ["process_record"]'
+    count: 1
+  - type: file_contains_substring_count
+    path: "app/main.py"
+    substring: "from lib import process_record"
+    count: 1
+  - type: file_contains_substring_count
+    path: "app/main.py"
+    substring: "result = process_record(sample)"
+    count: 1
+  - type: file_contains_substring_count
+    path: "app/utils.py"
+    substring: "from lib.processor import process_record"
+    count: 1
+  - type: file_contains_substring_count
+    path: "app/utils.py"
+    substring: "return process_record(record)"
+    count: 1
+  - type: file_contains_substring_count
+    path: "tests/test_processor.py"
+    substring: "from lib.processor import process_record"
+    count: 1
+  - type: file_contains_substring_count
+    path: "tests/test_processor.py"
+    substring: 'assert process_record({"id": 1})["ok"] is True'
+    count: 1
 
   # Forbid backup / log artefacts the binary_success_predicate already
   # named. Glob-level so any *.bak or *process_data_old* variant fails.

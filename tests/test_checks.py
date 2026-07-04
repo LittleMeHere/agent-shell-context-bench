@@ -789,6 +789,73 @@ def test_file_content_equals_fails_closed_without_sandbox_host_root():
     assert "sandbox host root" in results[0].detail
 
 
+def test_file_content_equals_accepts_ps51_redirect_utf16():
+    """PS 5.1 `>` / `Out-File` write UTF-16LE with BOM — the exact bytes
+    below were captured from a real PS 5.1 `'5' > file` on 2026-07-03.
+    Which encoding a shell's redirect writes varies BY ENVIRONMENT (the
+    treatment variable), so a strict-UTF-8 read would concentrate false
+    failures on the PS 5.1 arm and bias the cross-environment comparison.
+    The BOM-sniffing reader must decode this to a passing '5'."""
+    root = Path(tempfile.mkdtemp(prefix="checks_test_utf16_"))
+    (root / "answer.txt").write_bytes(b"\xff\xfe5\x00\r\x00\n\x00")
+    snap = _snap_from_disk(root)
+    passed, results = evaluate_checks(
+        snap,
+        [{"type": "file_content_equals", "path": "answer.txt", "content": "5\n"}],
+        sandbox_host_root=root,
+    )
+    assert passed, results[0].detail
+
+
+def test_file_content_equals_accepts_utf8_bom():
+    """PS 5.1 `Set-Content -Encoding UTF8` writes a UTF-8 BOM (captured:
+    b'\\xef\\xbb\\xbf5\\r\\n'); the BOM must be stripped, not compared."""
+    root = Path(tempfile.mkdtemp(prefix="checks_test_bom_"))
+    (root / "answer.txt").write_bytes(b"\xef\xbb\xbf5\r\n")
+    snap = _snap_from_disk(root)
+    passed, results = evaluate_checks(
+        snap,
+        [{"type": "file_content_equals", "path": "answer.txt", "content": "5\n"}],
+        sandbox_host_root=root,
+    )
+    assert passed, results[0].detail
+
+
+def test_file_content_equals_fails_closed_on_undecodable_bytes():
+    root = Path(tempfile.mkdtemp(prefix="checks_test_junk_"))
+    (root / "a.txt").write_bytes(b"\x81\x82\xff binary junk")
+    snap = _snap_from_disk(root)
+    passed, results = evaluate_checks(
+        snap,
+        [{"type": "file_content_equals", "path": "a.txt", "content": "x"}],
+        sandbox_host_root=root,
+    )
+    assert not passed
+    assert "not decodable" in results[0].detail
+
+
+def test_file_content_equals_tolerates_trailing_newline_difference():
+    """`printf '5'` / Python write('5') omit the final newline; heredocs,
+    echo, and Set-Content append one. No prompt pins the convention, so
+    the comparison strips trailing newlines on both sides."""
+    root = _write_sandbox({"a.txt": "5"})
+    snap = _snap_from_disk(root)
+    passed, results = evaluate_checks(
+        snap,
+        [{"type": "file_content_equals", "path": "a.txt", "content": "5\n"}],
+        sandbox_host_root=root,
+    )
+    assert passed, results[0].detail
+    # ...but content differences beyond the trailing newline still fail.
+    root2 = _write_sandbox({"a.txt": "6"})
+    passed2, _ = evaluate_checks(
+        _snap_from_disk(root2),
+        [{"type": "file_content_equals", "path": "a.txt", "content": "5\n"}],
+        sandbox_host_root=root2,
+    )
+    assert not passed2
+
+
 # -- json_content_equals --------------------------------------------------
 
 def test_json_content_equals_passes_on_structural_match():
@@ -975,9 +1042,16 @@ def test_file_count_matching_ignores_pycache_in_match_set():
 # -- agent_any_command_stdout_equals --------------------------------------
 
 class _StubCommand:
-    """Duck-typed CommandRecord for tests; only stdout/stderr/index are read."""
-    def __init__(self, index: int, stdout: str = "", stderr: str = "") -> None:
+    """Duck-typed CommandRecord for tests."""
+    def __init__(
+        self,
+        index: int,
+        command: str = "",
+        stdout: str = "",
+        stderr: str = "",
+    ) -> None:
         self.index = index
+        self.command = command
         self.stdout = stdout
         self.stderr = stderr
 
@@ -1043,6 +1117,128 @@ def test_agent_any_command_stdout_equals_normalises_crlf():
     assert passed
 
 
+def test_agent_any_command_stdout_equals_can_require_command_text():
+    snap = _snap({})
+    commands = [
+        _StubCommand(0, command="Write-Output 'real answer'", stdout="real answer\n"),
+        _StubCommand(1, command="Get-Content app.log | Select-String ERROR", stdout="real answer\n"),
+    ]
+    passed, _ = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "real answer\n",
+            "command_contains": ["app.log", "ERROR"],
+            "command_not_regex": r"(?i)\b(write-output|echo|printf)\b",
+        }],
+        agent_commands=commands,
+    )
+    assert passed
+
+
+def test_agent_any_command_stdout_equals_rejects_matching_stdout_from_wrong_command():
+    snap = _snap({})
+    commands = [
+        _StubCommand(0, command="Write-Output 'real answer'", stdout="real answer\n"),
+    ]
+    passed, results = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "real answer\n",
+            "command_contains": ["app.log", "ERROR"],
+            "command_not_regex": r"(?i)\b(write-output|echo|printf)\b",
+        }],
+        agent_commands=commands,
+    )
+    assert not passed
+    assert "failed command-text constraints" in results[0].detail
+
+
+def test_agent_any_command_stdout_equals_tolerates_trailing_newline():
+    """Adapters record stdout with the final newline trimmed (see the real
+    fixture capture); the YAML expected blocks end with one. Both sides
+    are trailing-newline-stripped, in either direction."""
+    snap = _snap({})
+    commands = [_StubCommand(0, command="cmd", stdout="real answer")]
+    passed, _ = evaluate_checks(
+        snap,
+        [{"type": "agent_any_command_stdout_equals", "expected": "real answer\n"}],
+        agent_commands=commands,
+    )
+    assert passed
+    commands2 = [_StubCommand(0, command="cmd", stdout="real answer\n")]
+    passed2, _ = evaluate_checks(
+        snap,
+        [{"type": "agent_any_command_stdout_equals", "expected": "real answer"}],
+        agent_commands=commands2,
+    )
+    assert passed2
+
+
+def test_agent_any_command_stdout_equals_require_empty_stderr():
+    """With require_empty_stderr, only a stderr-clean matching command
+    passes; a noisy match falls through with a stderr-specific detail."""
+    snap = _snap({})
+    noisy_only = [
+        _StubCommand(0, command="run.ps1", stdout="ok\n", stderr="noise\n"),
+    ]
+    passed, results = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "ok\n",
+            "require_empty_stderr": True,
+        }],
+        agent_commands=noisy_only,
+    )
+    assert not passed
+    assert "wrote to stderr" in results[0].detail
+    recovered = noisy_only + [
+        _StubCommand(1, command="run.ps1", stdout="ok\n", stderr=""),
+    ]
+    passed2, _ = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "ok\n",
+            "require_empty_stderr": True,
+        }],
+        agent_commands=recovered,
+    )
+    assert passed2
+
+
+def test_agent_any_command_stdout_equals_strips_comments_for_constraints():
+    """Comment-smuggled tokens (`# app.log` / `<# app.log #>`) must not
+    satisfy command_contains; a # inside quotes is content, not comment."""
+    snap = _snap({})
+    smuggled = [_StubCommand(0, command='$x # app.log', stdout="ok\n")]
+    passed, _ = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "ok\n",
+            "command_contains": ["app.log"],
+        }],
+        agent_commands=smuggled,
+    )
+    assert not passed
+    quoted_hash = [
+        _StubCommand(0, command='Select-String "#err" app.log', stdout="ok\n"),
+    ]
+    passed2, _ = evaluate_checks(
+        snap,
+        [{
+            "type": "agent_any_command_stdout_equals",
+            "expected": "ok\n",
+            "command_contains": ["app.log"],
+        }],
+        agent_commands=quoted_hash,
+    )
+    assert passed2
+
+
 # -- agent_all_command_stderrs_empty --------------------------------------
 
 def test_agent_all_command_stderrs_empty_passes_when_all_clean():
@@ -1099,6 +1295,7 @@ def test_agent_all_command_stderrs_empty_fails_closed_without_commands_kwarg():
 import yaml as _yaml  # local: only the per-task suite needs it
 
 _TASKS_DIR = _BENCH / "tasks"
+_TEST_TRIAL_STARTED_AT = "2026-05-25T12:00:00+00:00"
 
 
 def _load_task_specs(task_yaml_relpath: str) -> list[dict]:
@@ -1133,6 +1330,7 @@ def _run_task_checks(
     *,
     sandbox: Path | None = None,
     agent_commands: list | None = None,
+    trial_started_at: str = _TEST_TRIAL_STARTED_AT,
 ) -> tuple[bool, list]:
     """Load and evaluate a task's success_checks. If `sandbox` is None the
     task's preconditions are materialised (the no-op-agent scenario)."""
@@ -1145,6 +1343,7 @@ def _run_task_checks(
         specs,
         sandbox_host_root=sandbox,
         agent_commands=agent_commands or [],
+        trial_started_at=trial_started_at,
     )
 
 
@@ -1174,6 +1373,31 @@ def test_c02_wrong_answer_fails():
     assert fce_fail is not None, "file_content_equals on answer.txt should fail"
 
 
+def test_c02_correct_answer_passes():
+    """POSITIVE (previously missing): the correct answer written the plain
+    way passes end to end. Every C02 test before this was a negative, so
+    nothing verified a correct solution could actually succeed."""
+    root = _materialize_preconditions("capability/C02_csv_quoted_edge_cases.yaml")
+    (root / "answer.txt").write_text("5\n", encoding="utf-8")
+    passed, results = _run_task_checks(
+        "capability/C02_csv_quoted_edge_cases.yaml", sandbox=root
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_c02_correct_answer_via_ps51_redirect_passes():
+    """POSITIVE with the bytes a real PS 5.1 `$count > answer.txt` writes
+    (UTF-16LE + BOM + CRLF, captured 2026-07-03). The correct answer via
+    the environment's default redirect encoding must pass — otherwise the
+    failure rate is an artifact of the arm's encoding, not agent behaviour."""
+    root = _materialize_preconditions("capability/C02_csv_quoted_edge_cases.yaml")
+    (root / "answer.txt").write_bytes(b"\xff\xfe5\x00\r\x00\n\x00")
+    passed, results = _run_task_checks(
+        "capability/C02_csv_quoted_edge_cases.yaml", sandbox=root
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
 def test_c04_noop_fails():
     """No-op: 11 project/ files present, summary.txt missing →
     file_exists(summary.txt) fails."""
@@ -1201,6 +1425,73 @@ def test_c04_wrong_summary_fails():
         None,
     )
     assert fce_fail is not None
+
+
+def test_c04_correct_summary_passes():
+    """POSITIVE (previously missing): the correct summary passes end to
+    end, including the 11 source-preservation checks against the
+    materialised seed files."""
+    root = _materialize_preconditions("capability/C04_directory_tree_summary.yaml")
+    (root / "summary.txt").write_text(
+        "total_files: 7\ntotal_bytes: 81\nmax_depth: 3\n",
+        encoding="utf-8",
+    )
+    passed, results = _run_task_checks(
+        "capability/C04_directory_tree_summary.yaml", sandbox=root
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_c03_yaml_correct_rename_passes():
+    """POSITIVE against the real YAML (the unit-style C03 tests run a
+    hand-copied spec list, so YAML drift — e.g. the location anchors —
+    is invisible to them). Applies the intended rename, including the
+    `__all__` entry, to materialised preconditions."""
+    root = _materialize_preconditions("capability/C03_rename_symbol_in_codebase.yaml")
+    for py in root.rglob("*.py"):
+        rel = py.relative_to(root).as_posix()
+        py.write_text(
+            _apply_correct_rename(py.read_text(encoding="utf-8"), rel),
+            encoding="utf-8",
+        )
+    passed, results = _run_task_checks(
+        "capability/C03_rename_symbol_in_codebase.yaml", sandbox=root
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_c03_right_counts_wrong_locations_fails():
+    """Renaming the right NUMBER of occurrences in the wrong PLACES (the
+    comment instead of the call in app/main.py) satisfies the cardinality
+    counts but must fail the location anchors."""
+    root = _materialize_preconditions("capability/C03_rename_symbol_in_codebase.yaml")
+    for py in root.rglob("*.py"):
+        rel = py.relative_to(root).as_posix()
+        content = py.read_text(encoding="utf-8")
+        if rel == "app/main.py":
+            content = (
+                content
+                .replace("from lib import process_data", "from lib import process_record")
+                # WRONG: renames the legacy comment, leaves the call.
+                .replace("old process_data behavior", "old process_record behavior")
+            )
+        else:
+            content = _apply_correct_rename(content, rel)
+        py.write_text(content, encoding="utf-8")
+    passed, results = _run_task_checks(
+        "capability/C03_rename_symbol_in_codebase.yaml", sandbox=root
+    )
+    assert not passed
+    anchor_fail = next(
+        (r for r in results
+         if r.check_type == "file_contains_substring_count" and not r.passed
+         and "process_record(sample)" in r.detail),
+        None,
+    )
+    assert anchor_fail is not None, (
+        "the `result = process_record(sample)` anchor should catch the "
+        "wrong-location rename"
+    )
 
 
 def test_c05_noop_fails():
@@ -1358,7 +1649,12 @@ def test_t06_correct_stdout_passes():
         "2026-05-20 10:00:25 ERROR auth expired\n"
     )
     root = _materialize_preconditions("trap/T06_pipe_grep_head.yaml")
-    commands = [_StubCommand(0, stdout=expected_stdout, stderr="")]
+    commands = [_StubCommand(
+        0,
+        command="Get-Content app.log | Select-String ERROR | Select-Object -First 5",
+        stdout=expected_stdout,
+        stderr="",
+    )]
     passed, results = _run_task_checks(
         "trap/T06_pipe_grep_head.yaml",
         sandbox=root,
@@ -1369,8 +1665,9 @@ def test_t06_correct_stdout_passes():
         raise AssertionError(f"correct T06 should pass; failures: {failing}")
 
 
-def test_t06_noisy_stderr_fails():
-    """The agent produced the right stdout but ALSO leaked stderr noise."""
+def test_t06_noisy_answer_command_fails():
+    """The ANSWER-PRODUCING command itself leaked stderr noise —
+    require_empty_stderr on the stdout check must fail the trial."""
     expected_stdout = (
         "2026-05-20 10:00:05 ERROR connection refused\n"
         "2026-05-20 10:00:07 ERROR retry failed\n"
@@ -1378,17 +1675,150 @@ def test_t06_noisy_stderr_fails():
         "2026-05-20 10:00:20 ERROR auth expired\n"
         "2026-05-20 10:00:25 ERROR auth expired\n"
     )
-    commands = [_StubCommand(0, stdout=expected_stdout, stderr="grep: warning\n")]
+    commands = [_StubCommand(
+        0,
+        command="Get-Content app.log | Select-String ERROR | Select-Object -First 5",
+        stdout=expected_stdout,
+        stderr="grep: warning\n",
+    )]
     passed, results = _run_task_checks(
         "trap/T06_pipe_grep_head.yaml", agent_commands=commands
     )
     assert not passed
-    stderr_fail = next(
+    stdout_fail = next(
         (r for r in results
-         if r.check_type == "agent_all_command_stderrs_empty" and not r.passed),
+         if r.check_type == "agent_any_command_stdout_equals" and not r.passed),
         None,
     )
-    assert stderr_fail is not None
+    assert stdout_fail is not None
+    assert "stderr" in stdout_fail.detail
+
+
+def test_t06_trap_fired_then_recovered_passes():
+    """The canonical code-B trajectory: the seeded error fires (`grep`
+    missing on PS 5.1 → stderr on attempt #0), the agent recovers with a
+    clean native pipeline. Recovery IS task completion — the earlier
+    all-command stderr check scored this as H1 failure, baking 'trap
+    fired' into the binary outcome instead of 'task completed'."""
+    expected_stdout = (
+        "2026-05-20 10:00:05 ERROR connection refused\n"
+        "2026-05-20 10:00:07 ERROR retry failed\n"
+        "2026-05-20 10:00:15 ERROR fallback timeout\n"
+        "2026-05-20 10:00:20 ERROR auth expired\n"
+        "2026-05-20 10:00:25 ERROR auth expired\n"
+    )
+    commands = [
+        _StubCommand(
+            0,
+            command="grep ERROR app.log | head -5",
+            stdout="",
+            stderr="grep : The term 'grep' is not recognized...\n",
+        ),
+        _StubCommand(
+            1,
+            command="Get-Content app.log | Select-String ERROR | Select-Object -First 5",
+            stdout=expected_stdout,
+            stderr="",
+        ),
+    ]
+    passed, results = _run_task_checks(
+        "trap/T06_pipe_grep_head.yaml", agent_commands=commands
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_t06_stdout_without_trailing_newline_passes():
+    """Real adapters trim the final newline from recorded stdout (the
+    fixture tests/fixtures/claude_code_streamjson_C01.jsonl shows Claude
+    Code does); the YAML `expected` blocks end with one. The comparison
+    strips trailing newlines on both sides — without that, every real
+    trial of the stdout tasks failed regardless of agent behaviour."""
+    trimmed_stdout = (
+        "2026-05-20 10:00:05 ERROR connection refused\n"
+        "2026-05-20 10:00:07 ERROR retry failed\n"
+        "2026-05-20 10:00:15 ERROR fallback timeout\n"
+        "2026-05-20 10:00:20 ERROR auth expired\n"
+        "2026-05-20 10:00:25 ERROR auth expired"
+    )
+    commands = [_StubCommand(
+        0,
+        command="Get-Content app.log | Select-String ERROR | Select-Object -First 5",
+        stdout=trimmed_stdout,
+        stderr="",
+    )]
+    passed, results = _run_task_checks(
+        "trap/T06_pipe_grep_head.yaml", agent_commands=commands
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_t06_computed_write_output_pipeline_passes():
+    """Write-Output of a COMPUTED value (unwrapping MatchInfo objects) is
+    a legitimate pipeline, not the echo-a-literal spoof; the forbid regex
+    only disqualifies an echo verb whose argument is a quoted literal."""
+    expected_stdout = (
+        "2026-05-20 10:00:05 ERROR connection refused\n"
+        "2026-05-20 10:00:07 ERROR retry failed\n"
+        "2026-05-20 10:00:15 ERROR fallback timeout\n"
+        "2026-05-20 10:00:20 ERROR auth expired\n"
+        "2026-05-20 10:00:25 ERROR auth expired\n"
+    )
+    commands = [_StubCommand(
+        0,
+        command=(
+            "Get-Content app.log | Select-String ERROR | "
+            "Select-Object -First 5 | ForEach-Object { Write-Output $_.Line }"
+        ),
+        stdout=expected_stdout,
+        stderr="",
+    )]
+    passed, results = _run_task_checks(
+        "trap/T06_pipe_grep_head.yaml", agent_commands=commands
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_t06_comment_smuggled_tokens_fail():
+    """Constraint tokens carried in a comment must not count: command
+    text is comment-stripped before command_contains applies, so
+    `$lines <# app.log ERROR #>` does not satisfy the constraints."""
+    expected_stdout = (
+        "2026-05-20 10:00:05 ERROR connection refused\n"
+        "2026-05-20 10:00:07 ERROR retry failed\n"
+        "2026-05-20 10:00:15 ERROR fallback timeout\n"
+        "2026-05-20 10:00:20 ERROR auth expired\n"
+        "2026-05-20 10:00:25 ERROR auth expired\n"
+    )
+    commands = [_StubCommand(
+        0,
+        command="$lines <# app.log ERROR #>",
+        stdout=expected_stdout,
+        stderr="",
+    )]
+    passed, _ = _run_task_checks(
+        "trap/T06_pipe_grep_head.yaml", agent_commands=commands
+    )
+    assert not passed
+
+
+def test_t06_echoed_expected_output_without_reading_log_fails():
+    expected_stdout = (
+        "2026-05-20 10:00:05 ERROR connection refused\n"
+        "2026-05-20 10:00:07 ERROR retry failed\n"
+        "2026-05-20 10:00:15 ERROR fallback timeout\n"
+        "2026-05-20 10:00:20 ERROR auth expired\n"
+        "2026-05-20 10:00:25 ERROR auth expired\n"
+    )
+    commands = [_StubCommand(
+        0,
+        command="Write-Output @' ...hard-coded answer... '@",
+        stdout=expected_stdout,
+        stderr="",
+    )]
+    passed, _ = _run_task_checks(
+        "trap/T06_pipe_grep_head.yaml", agent_commands=commands
+    )
+    assert not passed
 
 
 def test_t07_noop_fails():
@@ -1403,13 +1833,39 @@ def test_t07_noop_fails():
 
 
 def test_t07_correct_passes():
-    commands = [_StubCommand(0, stdout="LOG_LEVEL=debug\ndone\n")]
+    commands = [_StubCommand(
+        0,
+        command="$env:LOG_LEVEL='debug'; .\\run.ps1; Remove-Item Env:LOG_LEVEL",
+        stdout="LOG_LEVEL=debug\ndone\n",
+    )]
     passed, results = _run_task_checks(
         "trap/T07_inline_env_var.yaml", agent_commands=commands
     )
     if not passed:
         failing = [(r.check_type, r.detail) for r in results if not r.passed]
         raise AssertionError(f"correct T07 should pass; failures: {failing}")
+
+
+def test_t07_quoted_call_operator_invocation_passes():
+    """`& '.\\run.ps1'` is the idiomatic PS form whenever the path is
+    quoted — the invocation regex must accept it (and absolute-path and
+    -File forms), or correct trials fail on command-text grounds."""
+    for invocation in (
+        "$env:LOG_LEVEL='debug'; & '.\\run.ps1'",
+        '$env:LOG_LEVEL="debug"; & ".\\run.ps1"',
+        "powershell -File .\\run.ps1",
+        "$env:LOG_LEVEL='debug'; & C:\\sandbox\\run.ps1",
+    ):
+        commands = [_StubCommand(
+            0, command=invocation, stdout="LOG_LEVEL=debug\ndone\n"
+        )]
+        passed, results = _run_task_checks(
+            "trap/T07_inline_env_var.yaml", agent_commands=commands
+        )
+        assert passed, (
+            invocation,
+            [r.detail for r in results if not r.passed],
+        )
 
 
 def test_t07_modified_run_ps1_fails():
@@ -1419,11 +1875,27 @@ def test_t07_modified_run_ps1_fails():
         'Write-Output "LOG_LEVEL=debug"\nWrite-Output "done"\n',
         encoding="utf-8",
     )
-    commands = [_StubCommand(0, stdout="LOG_LEVEL=debug\ndone\n")]
+    commands = [_StubCommand(
+        0,
+        command=".\\run.ps1",
+        stdout="LOG_LEVEL=debug\ndone\n",
+    )]
     passed, _ = _run_task_checks(
         "trap/T07_inline_env_var.yaml",
         sandbox=root,
         agent_commands=commands,
+    )
+    assert not passed
+
+
+def test_t07_echoed_expected_output_without_invoking_script_fails():
+    commands = [_StubCommand(
+        0,
+        command='Write-Output "LOG_LEVEL=debug"; Write-Output "done"',
+        stdout="LOG_LEVEL=debug\ndone\n",
+    )]
+    passed, _ = _run_task_checks(
+        "trap/T07_inline_env_var.yaml", agent_commands=commands
     )
     assert not passed
 
@@ -1440,7 +1912,12 @@ def test_t08_noop_fails():
 
 
 def test_t08_correct_passes():
-    commands = [_StubCommand(0, stdout="real output\n", stderr="")]
+    commands = [_StubCommand(
+        0,
+        command=".\\noisy.ps1 2>$null",
+        stdout="real output\n",
+        stderr="",
+    )]
     passed, results = _run_task_checks(
         "trap/T08_stderr_redirect.yaml", agent_commands=commands
     )
@@ -1449,17 +1926,60 @@ def test_t08_correct_passes():
         raise AssertionError(f"correct T08 should pass; failures: {failing}")
 
 
+def test_t08_trap_fired_then_recovered_passes():
+    """Code-B trajectory: first attempt uses `2>/dev/null` (stderr leaks,
+    artifact created then cleaned up), second attempt suppresses properly.
+    The answer-producing command is clean, so H1 passes — per the task's
+    own notes, 'binary success can still pass' after a cleaned-up recovery."""
+    commands = [
+        _StubCommand(
+            0,
+            command=".\\noisy.ps1 2>/dev/null",
+            stdout="real output\n",
+            stderr="noise\n",
+        ),
+        _StubCommand(
+            1,
+            command=".\\noisy.ps1 2>$null",
+            stdout="real output\n",
+            stderr="",
+        ),
+    ]
+    passed, results = _run_task_checks(
+        "trap/T08_stderr_redirect.yaml", agent_commands=commands
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
 def test_t08_null_artifact_fails():
     """Agent ran `.\\noisy.ps1 2>/dev/null` and PowerShell created a literal
     'null' file in the sandbox. no_extra_files (or no_files_matching('null'))
     catches it."""
     root = _materialize_preconditions("trap/T08_stderr_redirect.yaml")
     (root / "null").write_text("noise\n", encoding="utf-8")
-    commands = [_StubCommand(0, stdout="real output\n", stderr="")]
+    commands = [_StubCommand(
+        0,
+        command=".\\noisy.ps1 2>$null",
+        stdout="real output\n",
+        stderr="",
+    )]
     passed, _ = _run_task_checks(
         "trap/T08_stderr_redirect.yaml",
         sandbox=root,
         agent_commands=commands,
+    )
+    assert not passed
+
+
+def test_t08_echoed_expected_output_without_invoking_script_fails():
+    commands = [_StubCommand(
+        0,
+        command='Write-Output "real output"',
+        stdout="real output\n",
+        stderr="",
+    )]
+    passed, _ = _run_task_checks(
+        "trap/T08_stderr_redirect.yaml", agent_commands=commands
     )
     assert not passed
 
@@ -1503,6 +2023,26 @@ def test_t09_malformed_backup_name_fails():
     assert not passed
 
 
+def test_t09_stale_iso_date_backup_fails():
+    """A backup with any old ISO-shaped date is still wrong; the date must
+    match the trial start (within the YAML's timezone tolerance)."""
+    root = _materialize_preconditions("trap/T09_date_command_substitution.yaml")
+    (root / "app.log.1900-01-01").write_text(
+        "production log\nrows here\n", encoding="utf-8"
+    )
+    passed, results = _run_task_checks(
+        "trap/T09_date_command_substitution.yaml", sandbox=root
+    )
+    assert not passed
+    fcm_fail = next(
+        (r for r in results
+         if r.check_type == "file_count_matching" and not r.passed),
+        None,
+    )
+    assert fcm_fail is not None
+    assert "backup_date" in fcm_fail.detail
+
+
 def test_t09_backup_with_wrong_content_fails():
     """Backup exists with correct name but content drifted from app.log."""
     root = _materialize_preconditions("trap/T09_date_command_substitution.yaml")
@@ -1518,6 +2058,44 @@ def test_t09_backup_with_wrong_content_fails():
     )
     assert fcm_fail is not None
     assert "differs from reference" in fcm_fail.detail
+
+
+def test_t09_correct_backup_with_real_runner_timestamp_passes():
+    """POSITIVE + the missing regression: a correctly-dated, correct-content
+    backup PASSES, and crucially `trial_started_at` is the runner's REAL stamp
+    (`_utc_now()` -> dashes in the time, e.g. 2026-06-27T01-31-20Z), which
+    `datetime.fromisoformat` cannot parse. Every other T09 test fed the colon
+    fixture, so this is the only one that exercises the format the runner
+    actually emits; without the parser fallback it failed for every real trial.
+    """
+    from harness.runner import _utc_now
+
+    root = _materialize_preconditions("trap/T09_date_command_substitution.yaml")
+    started_at = _utc_now()                       # the format the runner truly passes
+    assert "Z" in started_at and ":" not in started_at.split("T", 1)[1]  # dash-time, not ISO
+    backup_date = started_at[:10]                 # YYYY-MM-DD
+    app_log = (root / "app.log").read_text(encoding="utf-8")
+    (root / f"app.log.{backup_date}").write_text(app_log, encoding="utf-8")
+
+    passed, results = _run_task_checks(
+        "trap/T09_date_command_substitution.yaml",
+        sandbox=root,
+        trial_started_at=started_at,
+    )
+    assert passed, [r.detail for r in results if not r.passed]
+
+
+def test_date_from_trial_started_at_accepts_runner_and_iso_forms():
+    """Unit guard for the parser: the runner's filename-safe stamp (dash time)
+    and colon-form ISO both yield the right calendar date; junk still errors."""
+    from harness.checks import _date_from_trial_started_at
+
+    dt, err = _date_from_trial_started_at("2026-06-27T01-31-20Z")  # runner's real form
+    assert err is None and dt is not None and dt.strftime("%Y-%m-%d") == "2026-06-27"
+    dt2, err2 = _date_from_trial_started_at("2026-05-25T12:00:00+00:00")  # colon ISO
+    assert err2 is None and dt2 is not None and dt2.strftime("%Y-%m-%d") == "2026-05-25"
+    _, err3 = _date_from_trial_started_at("not-a-date")
+    assert err3 is not None
 
 
 if __name__ == "__main__":

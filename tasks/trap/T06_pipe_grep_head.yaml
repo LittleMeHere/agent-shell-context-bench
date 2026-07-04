@@ -77,10 +77,22 @@ success_checks:
       2026-05-20 10:00:15 ERROR fallback timeout
       2026-05-20 10:00:20 ERROR auth expired
       2026-05-20 10:00:25 ERROR auth expired
-
-  # 'No fluff' / 'just the ERROR lines' from the colloquial prompt — no
-  # command may have produced any stderr.
-  - type: agent_all_command_stderrs_empty
+    command_contains:
+      - "app.log"
+      - "ERROR"
+    # Forbid echo-of-a-literal (the hard-coded-answer spoof) without
+    # disqualifying legitimate pipelines that end in Write-Output of a
+    # computed value (e.g. `... | ForEach-Object { Write-Output $_.Line }`):
+    # the echo verb only disqualifies when its argument is a quoted
+    # literal or here-string. Constraints see comment-stripped command
+    # text, so `"..." # app.log ERROR` cannot satisfy command_contains.
+    command_not_regex: '(?i)\b(echo|write-output|write-host|printf)\b\s*(-\w+\s+)*@?["'']'
+    # 'No fluff' / 'just the ERROR lines': the ANSWER-PRODUCING command
+    # must be stderr-clean. Scoped per-command (not all commands) to match
+    # the predicate's required_final_stderr_exact — an agent that triggers
+    # the seeded error and then recovers cleanly completed the task; the
+    # trap having fired is H2/H4 coding material, not H1 failure.
+    require_empty_stderr: true
 
   - type: no_extra_files
     description: "Should not have created scratch files or output redirects."
