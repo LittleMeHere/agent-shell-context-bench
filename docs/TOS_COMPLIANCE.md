@@ -20,12 +20,13 @@ recorded from the Wayback Machine availability API the same day. Quotes
 below preserve source wording exactly; typography (quote marks, dashes)
 and whitespace are normalized, and bracketed ellipses mark elisions.
 
-Pre-tag evidence checklist (last updated 2026-06-12; researcher
+Pre-tag evidence checklist (last updated 2026-07-02; researcher
 browser-capture sessions 2026-06-10 and 2026-06-11). Tag
 `pre-registration-v1` was cut 2026-06-13T00:40:39Z; items 1, 2, and 4
 closed before the tag, and items 3 and 5 remain standing (item 3 is a
 snapshot-coverage / optional-hardening note, item 5 is a
-data-collection-start obligation):
+data-collection-start obligation, partially re-confirmed 2026-07-02 with a
+capture residual noted in the item):
 
 1. **[DONE 2026-06-11] Disclosure to all three vendors.** Anthropic and
    OpenAI disclosure emails sent 2026-06-11; the Google disclosure was
@@ -62,9 +63,17 @@ data-collection-start obligation):
    PDF on 2026-06-11 and is quoted in the Google section. The SDK launch
    blog post is covered by an archive.org snapshot; its PDF rides with
    item 2.
-5. **Re-confirm the Anthropic Agent SDK credit policy at data-collection
-   start** - the documented billing basis for headless usage changes on
-   2026-06-15 (see Anthropic section).
+5. **[PARTIALLY RE-CONFIRMED 2026-07-02] Re-confirm the Anthropic Agent SDK
+   credit policy at data-collection start** - the documented billing basis
+   for headless usage was slated to change on 2026-06-15, but Anthropic
+   paused that change on its effective day: Agent SDK / `claude -p` usage
+   continues to draw from subscription usage limits, the same basis that was
+   in force at tag time (see the dated update in the Anthropic section).
+   Residual before collection: a live raw-HTML-cross-checked capture and a
+   fresh archive.org snapshot of the credit article (the 2026-07-02 check
+   ran in an environment whose network policy blocked direct HTTPS to
+   support.claude.com and archive.org), and a repeat of this re-confirmation
+   if collection starts materially later than 2026-07-02.
 
 ## Anthropic - configs #1 and #2
 
@@ -135,6 +144,33 @@ data-collection-start obligation):
   > "Your subscription usage limits stay the same and stay reserved for
   > interactive use of Claude Code, Claude Cowork, and Claude."
 
+  **Update 2026-07-02 (item 5 re-confirmation, partial):** Anthropic paused
+  the credit change on its effective day. The Help Center article now opens
+  with a pause notice - "We're pausing the changes to Claude Agent SDK usage
+  described below." - and Agent SDK / `claude -p` usage continues to draw
+  from the subscription's usage limits, i.e. the pre-change basis that was
+  in force at the pre-registration tag. Evidence: (i) first-party `.md`
+  variants of the Claude Code legal-and-compliance, headless, costs,
+  Agent-SDK-overview, and setup pages retrieved live 2026-07-02 - every
+  operative clause quoted above is unchanged verbatim, and the "Starting
+  June 15, 2026" credit notice no longer appears on any of those pages;
+  (ii) the article's pause wording as surfaced by search-indexed content
+  and multiple independent same-day reports (e.g. The New Stack, "Anthropic
+  pauses Claude Agent SDK subscription change on day it was due to take
+  effect",
+  https://thenewstack.io/anthropic-pauses-claude-agent-sdk-subscription-change/;
+  Hacker News item 48546618). Limitation: the retrieval environment's
+  network egress policy blocked direct HTTPS to support.claude.com and
+  archive.org, so no live raw-HTML cross-check or fresh snapshot of the
+  article itself was possible from that environment; that capture remains
+  owed (checklist item 5 residual). Because the pause leaves the tag-time
+  access path, billing basis, and compliance measures in force, this is an
+  evidence update, not a `DEVIATIONS.md` entry. Incidental observation from
+  the live 2026-07-02 costs page: Pro/Max plans now document a user-side
+  monthly spend cap on usage credits ("you can set a monthly spend limit on
+  usage credits with the `/usage-credits` command") - a user-configurable
+  cap, not a change to the plan-limits billing basis.
+
 **Source capture register (Anthropic):**
 
 | Source | Retrieved | Vendor date | archive.org snapshot |
@@ -144,6 +180,8 @@ data-collection-start obligation):
 | Claude Code legal-and-compliance | 2026-06-09 (live; first-party `.md` variant also captured) | n/a (docs page) | http://web.archive.org/web/20260610022333/https://code.claude.com/docs/en/legal-and-compliance (replay may render then error - client-side hydration; capture verified present) |
 | Claude Code headless docs | 2026-06-09 (live; first-party `.md` variant also captured) | n/a (docs page) | http://web.archive.org/web/20260610035144/https://code.claude.com/docs/en/headless (same replay caveat; capture verified present) |
 | Agent SDK credit policy article | 2026-06-09 (live) | policy change effective June 15, 2026 | https://web.archive.org/web/20260610022536/https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan (content-bearing capture verified 2026-06-10) |
+| Agent SDK credit policy article - re-check | 2026-07-02 (indirect: direct HTTPS blocked by retrieval-env egress policy; pause corroborated via search-indexed article content, independent same-day reports, and the live docs-page sweep below) | change paused on 2026-06-15, its effective day | fresh snapshot owed at collection start (archive.org unreachable from retrieval env; item 5 residual) |
+| Claude Code docs `.md` variants: legal-and-compliance, headless, costs, agent-sdk/overview, setup | 2026-07-02 (live) | n/a (docs pages) | not snapshotted this pass (archive.org unreachable from retrieval env) |
 
 **Methodology interpretation.** Anthropic documents headless Claude Code use
 as a first-party feature, and the Consumer Terms' automated-access
@@ -160,11 +198,12 @@ credential bridges.
 **Compliance measures:**
 
 - Throttle to roughly 50% of the documented limits that govern headless
-  usage at run time. Note the documented basis changes on 2026-06-15: before
-  that date, per-tier rate caps; from that date, the monthly Agent SDK
-  credit per the credit policy article quoted above. Re-confirm the
-  documented allocation at data-collection start and record it in the
-  operations log.
+  usage at run time. The documented basis was slated to change on 2026-06-15
+  to a monthly Agent SDK credit, but Anthropic paused that change on its
+  effective day (see the 2026-07-02 update above): as of 2026-07-02 the
+  documented basis remains the per-tier subscription usage limits that were
+  in force at tag time. Re-confirm the documented allocation at
+  data-collection start and record it in the operations log.
 - Set Claude Code environment hygiene variables before trials:
   `DISABLE_TELEMETRY=1`, `DISABLE_ERROR_REPORTING=1`,
   `DISABLE_FEEDBACK_COMMAND=1`, and
