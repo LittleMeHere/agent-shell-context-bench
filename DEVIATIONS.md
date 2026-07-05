@@ -34,6 +34,31 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
+## 2026-07-05 — agy tool-version pin advanced 1.0.7 → 1.0.9 at the pre-data re-smoke
+
+**Pre-registered rule:** `docs/VERSIONS.md` pins Antigravity CLI (`agy`)
+1.0.7 for configs #5–#7, with a brain-schema re-smoke on the pinned build
+(including a deliberately failing command) as a hard PRE-DATA gate.
+
+**Deviation:** The pin is advanced to 1.0.9, the build actually installed
+when the gate re-smoke ran on 2026-07-04. The re-smoke PASSED all eight
+gate criteria on 1.0.9 (commands extracted from the real brain transcript,
+failing-command failure signal present, per-command Cwd tags classified,
+settings pin round-trip, scratch canary intact); evidence in
+`data/pre-registration/2026-07-04T04-11-01Z-agy-resmoke/`.
+
+**Reason:** The vendor CLI auto-advanced past the pinned build between the
+tag-eve currency pass and the gate run. Re-pinning to the verified
+installed build follows the existing track-current-with-live-re-verification
+convention (Claude Code 2.1.150 → 2.1.176 pin advance); collecting on a
+binary other than the pinned one, or pinning a build no longer installed,
+would be worse for reproducibility than the logged advance.
+
+**Effect on collected data:** none; no benchmark data has been collected.
+
+**Implementing commit:** the commit introducing this entry (also updates
+the `docs/VERSIONS.md` roster row and change log).
+
 ## 2026-07-03 — Pre-collection audit: fix construct-validity defects in success checks
 
 A pre-collection adversarial audit (red-team of all 14 task YAMLs against

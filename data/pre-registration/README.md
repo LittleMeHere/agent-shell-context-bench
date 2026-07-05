@@ -43,3 +43,10 @@ After the `pre-registration-v1` tag, any further smoke trials run for
 harness validation (e.g., when wiring up a new EnvironmentAdapter or
 AgentAdapter) should go here with a timestamped subfolder and a brief
 note in this README.
+
+- `2026-07-04T04-11-01Z-agy-resmoke/` — agy pre-data re-smoke (PASS),
+  VERSIONS.md hard-gate discharge. Ran on installed agy 1.0.9; pin
+  re-pinned 1.0.7 → 1.0.9 (DEVIATIONS.md 2026-07-05).
+- `2026-07-05T21-49-03Z-codex-resmoke/` — codex pre-data re-smoke (PASS)
+  on pinned 0.139.0, run inside a disposable GCP VM per TOS_COMPLIANCE;
+  VERSIONS.md hard-gate discharge.
