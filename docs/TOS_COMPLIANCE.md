@@ -63,17 +63,22 @@ capture residual noted in the item):
    PDF on 2026-06-11 and is quoted in the Google section. The SDK launch
    blog post is covered by an archive.org snapshot; its PDF rides with
    item 2.
-5. **[PARTIALLY RE-CONFIRMED 2026-07-02] Re-confirm the Anthropic Agent SDK
+5. **[RE-CONFIRMED 2026-07-05] Re-confirm the Anthropic Agent SDK
    credit policy at data-collection start** - the documented billing basis
    for headless usage was slated to change on 2026-06-15, but Anthropic
    paused that change on its effective day: Agent SDK / `claude -p` usage
    continues to draw from subscription usage limits, the same basis that was
    in force at tag time (see the dated update in the Anthropic section).
-   Residual before collection: a live raw-HTML-cross-checked capture and a
-   fresh archive.org snapshot of the credit article (the 2026-07-02 check
-   ran in an environment whose network policy blocked direct HTTPS to
-   support.claude.com and archive.org), and a repeat of this re-confirmation
-   if collection starts materially later than 2026-07-02.
+   The 2026-07-02 residual (live capture + fresh snapshot; that check ran in
+   an environment whose network policy blocked direct HTTPS to
+   support.claude.com and archive.org) was closed on 2026-07-05 from an
+   unblocked environment: the article was retrieved live with the pause
+   notice verbatim - "We're pausing the changes to Claude Agent SDK usage
+   described below. For now, nothing has changed: Claude Agent SDK,
+   `claude -p`, and third-party app usage still draw from your
+   subscription's usage limits." - and a fresh content-verified archive.org
+   snapshot was captured (see the register). Repeat this re-confirmation if
+   collection starts materially later than 2026-07-05.
 
 ## Anthropic - configs #1 and #2
 
@@ -180,7 +185,8 @@ capture residual noted in the item):
 | Claude Code legal-and-compliance | 2026-06-09 (live; first-party `.md` variant also captured) | n/a (docs page) | http://web.archive.org/web/20260610022333/https://code.claude.com/docs/en/legal-and-compliance (replay may render then error - client-side hydration; capture verified present) |
 | Claude Code headless docs | 2026-06-09 (live; first-party `.md` variant also captured) | n/a (docs page) | http://web.archive.org/web/20260610035144/https://code.claude.com/docs/en/headless (same replay caveat; capture verified present) |
 | Agent SDK credit policy article | 2026-06-09 (live) | policy change effective June 15, 2026 | https://web.archive.org/web/20260610022536/https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan (content-bearing capture verified 2026-06-10) |
-| Agent SDK credit policy article - re-check | 2026-07-02 (indirect: direct HTTPS blocked by retrieval-env egress policy; pause corroborated via search-indexed article content, independent same-day reports, and the live docs-page sweep below) | change paused on 2026-06-15, its effective day | fresh snapshot owed at collection start (archive.org unreachable from retrieval env; item 5 residual) |
+| Agent SDK credit policy article - re-check | 2026-07-02 (indirect: direct HTTPS blocked by retrieval-env egress policy; pause corroborated via search-indexed article content, independent same-day reports, and the live docs-page sweep below) | change paused on 2026-06-15, its effective day | superseded by the 2026-07-05 row below (item 5 residual closed) |
+| Agent SDK credit policy article - re-check (residual closure) | 2026-07-05 (live; pause notice retrieved verbatim from an unblocked environment) | change paused on 2026-06-15, its effective day | https://web.archive.org/web/20260705221145/https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan (Save Page Now 2026-07-05; capture content-verified same day - pause notice present in the archived HTML) |
 | Claude Code docs `.md` variants: legal-and-compliance, headless, costs, agent-sdk/overview, setup | 2026-07-02 (live) | n/a (docs pages) | not snapshotted this pass (archive.org unreachable from retrieval env) |
 
 **Methodology interpretation.** Anthropic documents headless Claude Code use
