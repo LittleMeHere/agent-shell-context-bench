@@ -50,3 +50,8 @@ note in this README.
 - `2026-07-05T21-49-03Z-codex-resmoke/` — codex pre-data re-smoke (PASS)
   on pinned 0.139.0, run inside a disposable GCP VM per TOS_COMPLIANCE;
   VERSIONS.md hard-gate discharge.
+- `2026-07-05-codex-e2e-shakedown/` — full `run_cell()` end-to-end
+  shakedown (PASS): real codex 0.139.0 × `gpt-5.4-mini` on C01 via
+  `linux_native` (self-SSH transport) on a disposable GCP VM — sandbox,
+  probe, agent, snapshot, hardened checks, trial record all wired.
+  Same session: `gpt-5.5` (config #3 model) availability confirmed live.
