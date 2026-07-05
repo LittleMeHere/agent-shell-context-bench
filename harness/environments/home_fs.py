@@ -97,9 +97,17 @@ class LocalHomeFilesystem(HomeFilesystem):
         return str(self._home_root() / rel)
 
     def home_read(self, rel: str) -> str | None:
+        # newline='' both here and in home_write: the pin/restore cycle must be
+        # byte-faithful. Default text mode would translate the LF-only files
+        # agy writes into CRLF on Windows, silently mutating the user's real
+        # settings.json on every restore. The remote implementation is already
+        # byte-faithful via base64.
         path = self._home_root() / rel
         try:
-            return path.read_text(encoding="utf-8") if path.is_file() else None
+            if not path.is_file():
+                return None
+            with path.open("r", encoding="utf-8", newline="") as fh:
+                return fh.read()
         except (OSError, UnicodeDecodeError):
             return None
 
@@ -107,7 +115,8 @@ class LocalHomeFilesystem(HomeFilesystem):
         path = self._home_root() / rel
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
+            with path.open("w", encoding="utf-8", newline="") as fh:
+                fh.write(content)
             return True
         except OSError:
             return False

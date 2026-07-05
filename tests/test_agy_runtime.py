@@ -159,6 +159,28 @@ def test_local_home_filesystem_roundtrip(tmp_path, monkeypatch):
     fs.home_remove(rel)
 
 
+def test_local_home_roundtrip_is_byte_faithful_for_lf_content(tmp_path, monkeypatch):
+    """Regression from the 2026-07-03 agy re-smoke: agy writes settings.json
+    with LF-only newlines; default text mode translated LF->CRLF on Windows,
+    so pin_model/restore_model mutated the user's real file on every restore.
+    The read->write round trip must reproduce the on-disk bytes exactly."""
+    monkeypatch.setenv("PSTAX_HOME_ROOT", str(tmp_path))
+    fs = LocalHomeFilesystem()
+    rel = ".gemini/antigravity-cli/settings.json"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True)
+
+    for label, raw in [
+        ("LF-only (agy's real style)", b'{\n  "model": "x"\n}\n'),
+        ("CRLF", b'{\r\n  "model": "x"\r\n}\r\n'),
+    ]:
+        target.write_bytes(raw)
+        text = fs.home_read(rel)
+        assert text is not None, label
+        assert fs.home_write(rel, text) is True, label
+        assert target.read_bytes() == raw, label
+
+
 def test_local_home_listdir_absent_dir_is_empty(tmp_path, monkeypatch):
     monkeypatch.setenv("PSTAX_HOME_ROOT", str(tmp_path))
     assert LocalHomeFilesystem().home_listdir("nope/missing") == []
