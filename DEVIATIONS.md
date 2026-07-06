@@ -34,25 +34,58 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
-## 2026-07-05 — agy tool-version pin advanced 1.0.7 → 1.0.9 at the pre-data re-smoke
+## 2026-07-05 — agy tool-version pin converted to PIN-AT-COLLECTION-START
 
 **Pre-registered rule:** `docs/VERSIONS.md` pins Antigravity CLI (`agy`)
 1.0.7 for configs #5–#7, with a brain-schema re-smoke on the pinned build
 (including a deliberately failing command) as a hard PRE-DATA gate.
 
-**Deviation:** The pin is advanced to 1.0.9, the build actually installed
-when the gate re-smoke ran on 2026-07-04. The re-smoke PASSED all eight
-gate criteria on 1.0.9 (commands extracted from the real brain transcript,
-failing-command failure signal present, per-command Cwd tags classified,
-settings pin round-trip, scratch canary intact); evidence in
-`data/pre-registration/2026-07-04T04-11-01Z-agy-resmoke/`.
+**Deviation:** The agy version pin changes from a fixed number to
+PIN-AT-COLLECTION-START, with an enforceable in-window freeze. On the
+first collection day: (a) the probe-observed agy version AND the
+`sha512` from the vendor's release manifest are recorded in the
+operations log; (b) the manifest URL is snapshotted to archive.org that
+same day, creating third-party timestamped proof of what the channel
+served (no historical capture of this manifest exists anywhere — the
+Wayback CDX index has zero entries for it); (c) the brain-schema
+re-smoke (with a deliberately failing command) is repeated that day on
+that exact build; (d) the updater host — a domain separate from the
+model-serving API — is blocked on the collection VMs, so the build
+provably cannot change inside the window, and the binary hash can be
+re-verified at any time; (e) the researcher retains a private copy of
+the binary for later re-verification (vendor licensing does not permit
+public redistribution). Every trial record additionally captures the
+actual CLI version (`agent_cli_version`), so any anomaly is visible in
+the data itself.
 
-**Reason:** The vendor CLI auto-advanced past the pinned build between the
-tag-eve currency pass and the gate run. Re-pinning to the verified
-installed build follows the existing track-current-with-live-re-verification
-convention (Claude Code 2.1.150 → 2.1.176 pin advance); collecting on a
-binary other than the pinned one, or pinning a build no longer installed,
-would be worse for reproducibility than the logged advance.
+**Reason:** A fixed pin is unenforceable on agy's distribution channel
+and pretending otherwise would falsify provenance. Demonstrated
+empirically while discharging the gate: the tag-eve pin was 1.0.7; the
+installed CLI had self-updated to 1.0.9 when the gate re-smoke ran on
+2026-07-04 (PASS, all eight criteria — evidence in
+`data/pre-registration/2026-07-04T04-11-01Z-agy-resmoke/`); by
+2026-07-05 the CLI had self-updated again to 1.0.16. Google's installer
+serves only the latest build, self-updates in place, and documents no
+version archive, so no chosen number can be installed or held. Codex
+(versioned release artifacts, no self-update; pin 0.139.0 verified
+exactly) and Claude Code (version-addressable install +
+`DISABLE_AUTOUPDATER`; pin 2.1.176 enforceable at collection-VM setup)
+keep their fixed pins — the discipline differs per channel because
+enforceability differs per channel. The gate's schema evidence stands:
+the parser held unchanged from the 1.0.2 characterisation through real
+1.0.9 output, so schema drift across vendor self-updates has been low;
+the day-one re-smoke re-verifies this on whatever build collection
+actually runs.
+
+On replicability: a fixed number never provided binary obtainability
+for agy — no reader could install 1.0.7 under the old pin either, since
+the vendor serves only the latest build to everyone. The day-one record
+(exact version + binary hash + third-party-archived manifest + frozen
+in-window binary) is strictly more verifiable than the fixed number it
+replaces. Binary obtainability remains vendor-constrained and is
+disclosed as a limitation — the same class as the served-model
+non-replicability that all three vendor arms already carry, since every
+CLI is a thin client to a remotely served model.
 
 **Effect on collected data:** none; no benchmark data has been collected.
 
