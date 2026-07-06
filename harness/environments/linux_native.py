@@ -134,7 +134,14 @@ class LinuxNativeEnvironment(RemoteUnixEnvironment):
                 f"{self.env_id}: no SSH target configured (set PSTAX_GCP_SSH); "
                 "cannot reach the Linux environment"
             )
-        return [self._ssh, *self._ssh_opts(), self._ssh_target, "--", *map(str, argv)]
+        # ssh concatenates its command words with spaces and hands the result
+        # to the remote login shell for re-parsing — argv boundaries do NOT
+        # survive the transport. Send ONE pre-quoted string so every element
+        # (`sh -c` scripts, agent prompts with spaces/newlines) arrives as
+        # sent. First caught live: `sh -c "rm -rf <dir> && ..."` reached the
+        # remote as bare words and rm ran with no operand.
+        remote = " ".join(shlex.quote(str(a)) for a in argv)
+        return [self._ssh, *self._ssh_opts(), self._ssh_target, "--", remote]
 
     def _remote_root(self) -> str:
         return self._sandbox_root

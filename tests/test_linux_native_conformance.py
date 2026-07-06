@@ -65,10 +65,16 @@ def test_linux_native_canary_handles_absolute_and_mapped():
     assert "/tmp/.pstax_canary_temp_dir" in remotes
 
 
-def test_linux_native_requires_ssh_target_for_exec():
+def test_linux_native_requires_ssh_target_for_exec(monkeypatch):
     """With no target configured, the transport refuses loudly rather than
     silently doing nothing (a benchmark that skips a cell corrupts the matrix);
-    exec surfaces this as a harness-side EnvironmentError before any spawn."""
+    exec surfaces this as a harness-side EnvironmentError before any spawn.
+
+    The constructor falls back to the module-level PSTAX_GCP_SSH pin, so that
+    fallback is neutralised here — otherwise this test can only pass on hosts
+    where E4 is UNconfigured, and fails on the actual collection host."""
+    import harness.environments.linux_native as ln
+    monkeypatch.setattr(ln, "_GCP_SSH_TARGET", None)
     env = LinuxNativeEnvironment(ssh_target=None)
     with pytest.raises(EnvironmentError):
         env._wrap_argv(["true"])
