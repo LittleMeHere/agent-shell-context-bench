@@ -798,7 +798,7 @@ is too narrow to support the intended decision.
 | W1 | V2 statistical amendment | IN PROGRESS — evidence drafts in `docs/V2_STATISTICAL_DECISION_MEMO.md` and `docs/D005_FINITE_ROSTER_IRR_MEMO.md`; trace in `docs/HYPOTHESIS_TRACEABILITY_MATRIX.md` | R-001 through R-004 and R-017 through R-020 resolved; new pre-data tag cut |
 | W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review | R-005, R-006, and R-016 VERIFIED |
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is implemented with hashed child tokens and record/event validation; epoch/drift rules, independent review, and authenticated cross-host child smokes remain | R-007 and R-013 through R-016 VERIFIED plus cross-host dry runs |
-| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, and finite-roster H1 point estimand implemented; D-005 interval and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
+| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimand, Clopper-Pearson-MOVER candidate, and exact sparse fallback implemented; full D-005 recovery/acceptance, epoch sensitivity, and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
 | W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
 | W6 | Five-environment collection qualification | IN PROGRESS — exact zero-quota preflight and portable oracles pass in all five environments, including 36/36 on `macos-26`; the 82-call manifest dry-run passes; the three authenticated macOS model/transcript/resource smokes remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
@@ -1938,3 +1938,22 @@ approved methodological decision.
   the three vendor subscription credentials: Claude Code, Codex, and agy must
   each complete the remaining analysis-excluded macOS transport call with
   credential cleanup. The shakedown receipt count remains 79/82.
+
+### 2026-08-15 — D-005 executable fixed-roster interval candidate
+
+- Added an executable H1 Family-B interval path that preserves equal
+  domain/family/instance/configuration weights and never pools sparse leaves.
+  The point estimate, marginal rates, RD interval, boundary-safe companion RR
+  envelope, and accepted three-way five-point classification are emitted from
+  one deterministic result object.
+- Prospective recovery falsified the Wilson-MOVER comparator at 92.1%
+  coverage in the N=24 split-N opposing-domain stress. The leading
+  Clopper-Pearson-MOVER candidate covered 97.0-100% across the current N=24
+  split-N grid with at most 0.5% wrong threshold declarations. It remains a
+  candidate pending the complete dependence/attrition/epoch envelope.
+- Leaves with fewer than three observations fail over to a simultaneous
+  Clopper-Pearson/Bonferroni envelope. The fallback is valid at singleton and
+  boundary cells and is allowed to remain inconclusive; it does not borrow
+  precision from another fixed task cell.
+- Twenty-six focused implementation/recovery tests pass. No benchmark data
+  were accessed, no task bytes changed, and no D-005 parameter was accepted.

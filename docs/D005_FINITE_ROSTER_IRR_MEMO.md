@@ -420,3 +420,42 @@ also pass.
 D-001, D-002, D-003, D-005, D-010, and D-013 remain OPEN. R-017, R-018, and
 R-022 remain OPEN. No benchmark trial was run and no frozen V1 methodology or
 task file was changed.
+
+## 12. 2026-08-15 executable fixed-roster interval candidate
+
+`analysis/v2_finite_roster.py` now implements the accepted hierarchical point
+weights as an executable interval candidate. It uses the MOVER construction
+for a linear combination of independent binomial proportions described by
+Zou, Huang, and Zhang (2009, DOI
+[`10.1016/j.csda.2008.09.033`](https://doi.org/10.1016/j.csda.2008.09.033)).
+Every context/configuration/family/instance leaf remains explicit; no sparse
+cell is pooled into another family or domain.
+
+Prospective recovery rejected the narrower Wilson-component version. In the
+N=24 broad split-N opposing-domain stress, its 95% interval covered only
+92.1% of 5,000 simulations. The retained leading candidate instead uses
+equal-tail Clopper-Pearson component limits inside MOVER. Across the current
+N=24 split-N grid it covered 97.0-100% of simulations; the largest wrong
+five-point threshold declaration rate was 0.5%. Under the diffuse null it
+made a bounded-small decision 71.2% of the time, and under the diffuse
+10-point alternative it made a decision-relevant declaration 64.1% of the
+time. These are calibrated-candidate results, not proof over an unrestricted
+data-generating class.
+
+The executable branch requires at least three observations in every fixed
+leaf. If that requirement fails, it uses a simultaneous
+Clopper-Pearson/Bonferroni linear envelope. The fallback is intentionally
+capable of returning a very wide, inconclusive interval; it cannot silently
+borrow information or manufacture precision from singleton cells. Companion
+marginal rates and a boundary-safe RR envelope are emitted with the accepted
+three-way D-001 classification.
+
+Twenty-six focused tests pass, including an independent MOVER calculation,
+permutation invariance, exact singleton/boundary fallback, hierarchical
+weight recovery, and a deterministic regression that preserves both the
+Wilson falsification and the Clopper-Pearson-MOVER repair.
+
+D-005 is not yet accepted. Before freeze, the candidate still requires the
+full differential-error/attrition/epoch scenario envelope, Family A and
+multiway sensitivity comparison on the same draws, a second implementation
+review, and researcher acceptance of the exact interval and fallback.

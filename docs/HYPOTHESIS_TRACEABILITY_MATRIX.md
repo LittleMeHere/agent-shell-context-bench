@@ -85,7 +85,7 @@ The frozen files were read, not modified.
 | Post-hoc D/E label | One auditable label per analysis trial, with coder provenance and evidence type | rubric, frozen prompt, planned coder sidecars | PARTIAL — backends and manifest selection are incomplete; primary label-selection rule is unstated | R-009, R-017 |
 | Code-E evidence | Distinguish canary-confirmed from transcript-evidenced E under the registered evidence rule | filesystem `escaped_paths`; transcript | CONTRADICTORY — the rater receives only prompt, binary outcome, and transcript, while the frozen prompt omits the special evidence rule | R-018 |
 | Frozen analysis dataset | Exact included trials and joined coder labels with source digests | `analysis/v2_analysis_manifest.py`; `scripts/v2_analysis_manifest.py` | PARTIAL — exact trial bytes and valid-slot membership are frozen/reconstructed; independent anchor and coder-label join remain | R-008, R-009 |
-| A1-A4 execution | Tested estimands, models, uncertainty, fallbacks, tables, and figures | `analysis/v2_analysis_dataset.py`; D-001/D-005 evidence modules | PARTIAL — A1 finite-roster point estimand exists; primary interval/fallback, epoch sensitivity, A2-A4, and reporting remain absent | R-008 |
+| A1-A4 execution | Tested estimands, models, uncertainty, fallbacks, tables, and figures | `analysis/v2_analysis_dataset.py`; `analysis/v2_finite_roster.py`; D-001/D-005 evidence modules | PARTIAL — A1 finite-roster point estimate plus Clopper-Pearson-MOVER candidate and exact sparse fallback exist; final interval acceptance, epoch sensitivity, A2-A4, and reporting remain absent | R-008 |
 | Publication dataset | Deterministic redacted release preserving inferential evidence | policy only | ABSENT | R-012 |
 
 ## 4. Canonical raw fields and required derived variables
@@ -123,7 +123,7 @@ The frozen files were read, not modified.
 | `seeded_error_task` | task ID in T01-T09 and YAML category agrees | PRESENT in task sources and dataset validation |
 | `primary_spiral_code` | approved coder/adjudication rule joined by full trial identity and transcript digest | OPEN DECISION |
 | `is_DE` | primary code is D or E, with E evidence class separately retained | ABSENT |
-| `task_weight` | equal domain, family, instance, and configuration weighting for the accepted finite roster | IMPLEMENTED for the A1 point estimand; interval/resampling use remains D-005 |
+| `task_weight` | equal domain, family, instance, and configuration weighting for the accepted finite roster | IMPLEMENTED for the A1 point estimate and executable D-005 interval candidate; final acceptance remains open |
 | `collection_epoch` | accepted four-epoch rule derived from digest-bound plan position; observed runtime changes are additional reported boundaries | IMPLEMENTED in scheduler constants and independent dataset reconstruction; D-005 interval pending |
 
 The analysis builder must fail closed if any required variable is missing,
@@ -142,17 +142,17 @@ record by silently guessing.
 | Task-population validity | The finite roster supports the narrow screening decision rather than general task reliability | `docs/TASK_FAMILY_QUALIFICATION.md`; `docs/D013_CEILING_SIMULATION_MEMO.md` | PARTIAL — Q1, full Q2, Q3, and final Q4 remain (R-022) |
 | Raw outcome | Programmatic task predicate, with valid timeout/incomplete runs forced to failure | task YAMLs; common outcome; analysis reconstruction | PRESENT across collection/analysis; predicate-clause equivalence remains R-021 |
 | agy outcome | Common observable task outcome; unavailable brain evidence invalidates only trace-dependent checks and blocks transcript analyses | accepted D-011 | IMPLEMENTED in runner/writer and analysis reconstruction; external review pending (R-019) |
-| Estimands | Equally weighted marginal Windows and Linux failure probabilities, primary risk difference, and companion risk ratio | D-001/D-005 | ACCEPTED and point estimates implemented; interval remains open |
-| Primary model | Family B finite-roster fixed-block primary; broad GLMM/superpopulation models are sensitivities | accepted D-005 | ACCEPTED DIRECTION — primary interval/resampling/fallback and Family A comparison remain open |
-| Decision | `L > .05` decision-relevant; `U < .05` bounded-small; otherwise inconclusive | accepted D-001 | ACCEPTED; cannot execute until D-005 interval is frozen |
+| Estimands | Equally weighted marginal Windows and Linux failure probabilities, primary risk difference, and companion risk ratio | D-001/D-005 | ACCEPTED; point estimates and candidate RD/RR intervals are implemented, but the interval is not frozen |
+| Primary model | Family B finite-roster fixed-block primary; broad GLMM/superpopulation models are sensitivities | accepted D-005 | ACCEPTED DIRECTION — Clopper-Pearson-MOVER plus simultaneous exact sparse fallback is the leading executable candidate; full recovery, Family A comparison, independent review, and acceptance remain open |
+| Decision | `L > .05` decision-relevant; `U < .05` bounded-small; otherwise inconclusive | accepted D-001 | ACCEPTED and executable for the candidate interval; not decision-bearing until D-005 is frozen |
 | Power | Prospective operating characteristics for the exact decision, roster, schedule, and resource cap; pilot does not resize from the named effect | D-003/D-005/D-013 | PARTIAL — extensive candidates exist; exact interval/N/schedule envelope remains open |
 | Required paper claim if positive | “On this registered finite benchmark and these execution-context bundles, the pooled task-weighted failure-rate estimate was [effect], with [interval/decision].” | bounded by pre-registration | NOT YET PRODUCIBLE |
 | Forbidden overclaim | “Windows intrinsically causes agent failure” or generalization to all tasks, machines, users, or model populations | HYPOTHESIS limitations | PRESENT as a restriction |
 
-**H1a readiness:** **RED.** Outcome and point-estimand reconstruction now form
-one executable chain, but task qualification, primary interval/fallback,
-prospective N, production blocked order/epoch rule, runtime freeze, manifest
-anchoring, and confirmatory data are not jointly complete.
+**H1a readiness:** **RED.** Outcome, point-estimand, candidate interval, and
+sparse fallback now form one executable chain, but task qualification, final
+interval acceptance, prospective N, epoch sensitivity, runtime freeze,
+manifest anchoring, and confirmatory data are not jointly complete.
 
 ## 6. H1b trace — descriptive full-suite gap
 

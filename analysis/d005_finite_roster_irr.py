@@ -22,6 +22,7 @@ from typing import Iterable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy.stats import beta
 from scipy.stats import t as student_t
 
 from analysis.d013_ceiling_operating_characteristics import (
@@ -584,6 +585,113 @@ def _interval_summary(
     return row
 
 
+def _bounds_summary(
+    *,
+    method: str,
+    estimate: NDArray[np.float64],
+    lower: NDArray[np.float64],
+    upper: NDArray[np.float64],
+    true_rd: float,
+    threshold: float,
+    common: dict[str, float | int | str | None],
+) -> dict[str, float | int | str | None]:
+    """Summarize a directly constructed interval on the D-001 branches."""
+
+    estimable = (
+        np.isfinite(estimate)
+        & np.isfinite(lower)
+        & np.isfinite(upper)
+        & (lower <= estimate)
+        & (estimate <= upper)
+    )
+    covered = estimable & (lower <= true_rd) & (true_rd <= upper)
+    above = estimable & (lower > threshold)
+    below = estimable & (upper < threshold)
+    inconclusive = estimable & ~above & ~below
+    if true_rd < threshold:
+        wrong = above
+    elif true_rd > threshold:
+        wrong = below
+    else:
+        wrong = above | below
+
+    width = np.where(estimable, upper - lower, np.nan)
+    row = dict(common)
+    row.update(
+        {
+            "record_type": "d005_finite_roster_interval",
+            "interval_method": method,
+            "true_rd": true_rd,
+            "decision_threshold_rd": threshold,
+            "estimable_probability": float(np.mean(estimable)),
+            "coverage_unconditional": float(np.mean(covered)),
+            "coverage_conditional_estimable": (
+                float(np.mean(covered[estimable])) if np.any(estimable) else None
+            ),
+            "decision_relevant_probability": float(np.mean(above)),
+            "bounded_small_probability": float(np.mean(below)),
+            "inconclusive_probability": float(np.mean(inconclusive)),
+            "wrong_threshold_declaration_probability": float(np.mean(wrong)),
+            "mean_interval_width_estimable": _finite_value(width),
+            "zero_width_probability": float(np.mean(estimable & (width == 0.0))),
+        }
+    )
+    return row
+
+
+def _wilson_bounds(
+    event_count: NDArray[np.int64],
+    total_count: NDArray[np.int64],
+    *,
+    confidence: float,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Vectorized Wilson score limits for independent binomial cells."""
+
+    z_value = NormalDist().inv_cdf(0.5 + confidence / 2.0)
+    z2 = z_value**2
+    proportion = event_count / total_count
+    denominator = 1.0 + z2 / total_count
+    center = (proportion + z2 / (2.0 * total_count)) / denominator
+    half_width = (
+        z_value
+        * np.sqrt(
+            proportion * (1.0 - proportion) / total_count
+            + z2 / (4.0 * total_count**2)
+        )
+        / denominator
+    )
+    return np.maximum(0.0, center - half_width), np.minimum(
+        1.0, center + half_width
+    )
+
+
+def _clopper_pearson_bounds(
+    event_count: NDArray[np.int64],
+    total_count: NDArray[np.int64],
+    *,
+    confidence: float,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Vectorized equal-tail exact binomial limits for MOVER recovery."""
+
+    tail = (1.0 - confidence) / 2.0
+    totals = np.broadcast_to(total_count, event_count.shape)
+    lower = np.zeros(event_count.shape, dtype=float)
+    upper = np.ones(event_count.shape, dtype=float)
+    positive = event_count > 0
+    below_total = event_count < totals
+    lower[positive] = beta.ppf(
+        tail,
+        event_count[positive],
+        totals[positive] - event_count[positive] + 1,
+    )
+    upper[below_total] = beta.ppf(
+        1.0 - tail,
+        event_count[below_total] + 1,
+        totals[below_total] - event_count[below_total],
+    )
+    return lower, upper
+
+
 def finite_roster_oracle_variance(
     linux_probability: NDArray[np.float64],
     windows_probability: NDArray[np.float64],
@@ -624,7 +732,7 @@ def simulate_finite_roster_design(
     replicates: int,
     seed: int,
 ) -> list[dict[str, float | int | str | None]]:
-    """Evaluate three analytic intervals on one exact candidate design.
+    """Evaluate finite-roster intervals on one exact candidate design.
 
     ``oracle_normal`` uses the known generating probabilities and is only a
     validation reference. ``jeffreys_plugin_normal`` stabilizes cell variance
@@ -743,6 +851,68 @@ def simulate_finite_roster_design(
         )
         unbiased_se = np.sqrt(unbiased_variance)
 
+    linux_lower, linux_upper = _wilson_bounds(
+        linux_count, counts, confidence=CONFIDENCE
+    )
+    windows_lower, windows_upper = _wilson_bounds(
+        windows_count, counts, confidence=CONFIDENCE
+    )
+    mover_lower = np.maximum(
+        -1.0,
+        estimate
+        - np.sqrt(
+            weight**2
+            * np.sum(
+                (windows_rate - windows_lower) ** 2
+                + (linux_upper - linux_rate) ** 2,
+                axis=axes,
+            )
+        ),
+    )
+    mover_upper = np.minimum(
+        1.0,
+        estimate
+        + np.sqrt(
+            weight**2
+            * np.sum(
+                (windows_upper - windows_rate) ** 2
+                + (linux_rate - linux_lower) ** 2,
+                axis=axes,
+            )
+        ),
+    )
+
+    linux_cp_lower, linux_cp_upper = _clopper_pearson_bounds(
+        linux_count, counts, confidence=CONFIDENCE
+    )
+    windows_cp_lower, windows_cp_upper = _clopper_pearson_bounds(
+        windows_count, counts, confidence=CONFIDENCE
+    )
+    cp_mover_lower = np.maximum(
+        -1.0,
+        estimate
+        - np.sqrt(
+            weight**2
+            * np.sum(
+                (windows_rate - windows_cp_lower) ** 2
+                + (linux_cp_upper - linux_rate) ** 2,
+                axis=axes,
+            )
+        ),
+    )
+    cp_mover_upper = np.minimum(
+        1.0,
+        estimate
+        + np.sqrt(
+            weight**2
+            * np.sum(
+                (windows_cp_upper - windows_rate) ** 2
+                + (linux_rate - linux_cp_lower) ** 2,
+                axis=axes,
+            )
+        ),
+    )
+
     return [
         _interval_summary(
             method="oracle_normal_reference",
@@ -764,6 +934,24 @@ def simulate_finite_roster_design(
             method="unbiased_cell_normal_candidate",
             estimate=estimate,
             standard_error=unbiased_se,
+            true_rd=true_rd,
+            threshold=DECISION_RD,
+            common=common,
+        ),
+        _bounds_summary(
+            method="mover_wilson_fixed_roster_candidate",
+            estimate=estimate,
+            lower=mover_lower,
+            upper=mover_upper,
+            true_rd=true_rd,
+            threshold=DECISION_RD,
+            common=common,
+        ),
+        _bounds_summary(
+            method="mover_clopper_pearson_fixed_roster_candidate",
+            estimate=estimate,
+            lower=cp_mover_lower,
+            upper=cp_mover_upper,
             true_rd=true_rd,
             threshold=DECISION_RD,
             common=common,

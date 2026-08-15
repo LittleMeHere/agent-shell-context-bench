@@ -233,6 +233,8 @@ def test_finite_roster_interval_rows_are_reproducible_and_exclusive() -> None:
         "oracle_normal_reference",
         "jeffreys_plugin_normal_candidate",
         "unbiased_cell_normal_candidate",
+        "mover_wilson_fixed_roster_candidate",
+        "mover_clopper_pearson_fixed_roster_candidate",
     }
     for row in first:
         total = sum(
@@ -277,6 +279,23 @@ def test_oracle_reference_has_reasonable_coverage_in_moderate_case() -> None:
     )
     assert 0.92 <= float(oracle["coverage_unconditional"]) <= 0.98
     assert abs(float(oracle["point_rd_bias"])) < 0.002
+
+
+def test_cp_mover_repairs_wilson_undercoverage_in_opposing_domain_stress() -> None:
+    rows = simulate_finite_roster_design(
+        _confirm_scenario("opposing_domain_mechanisms"),
+        design="split",
+        repetitions_per_family_config=10,
+        base_common_n=24,
+        replicates=4_000,
+        seed=20260815,
+    )
+    by_method = {row["interval_method"]: row for row in rows}
+    wilson = by_method["mover_wilson_fixed_roster_candidate"]
+    candidate = by_method["mover_clopper_pearson_fixed_roster_candidate"]
+    assert float(wilson["coverage_unconditional"]) < 0.95
+    assert float(candidate["coverage_unconditional"]) >= 0.95
+    assert float(candidate["wrong_threshold_declaration_probability"]) <= 0.01
 
 
 def test_oracle_variance_matches_independent_heterogeneous_loop() -> None:
