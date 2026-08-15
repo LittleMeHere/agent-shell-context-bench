@@ -24,6 +24,7 @@ from __future__ import annotations
 import time
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import ClassVar
 
 from ..environments.base import EnvironmentAdapter
@@ -82,6 +83,8 @@ class AgentAdapter(ABC):
         environment: EnvironmentAdapter,
         *,
         timeout: float,
+        on_invoke: Callable[[], None] | None = None,
+        on_invocation_observed: Callable[[], None] | None = None,
     ) -> AgentRunResult:
         """Template method. Never overridden by concrete adapters.
 
@@ -91,6 +94,12 @@ class AgentAdapter(ABC):
         runs to completion is NOT an error — that is the signal we want.
         """
         argv = self.build_invocation(prompt, sandbox)
+        # This callback is the write-ahead launch-commit boundary. It must
+        # complete before attempting the external process. A second callback
+        # below records that the environment actually returned process
+        # evidence; an exception between them remains launch-unknown.
+        if on_invoke is not None:
+            on_invoke()
         start = time.monotonic()
         harness_error: str | None = None
         commands: list[CommandRecord] = []
@@ -120,6 +129,8 @@ class AgentAdapter(ABC):
                 harness_error=traceback.format_exc(),
             )
 
+        if on_invocation_observed is not None:
+            on_invocation_observed()
         wall = time.monotonic() - start
         try:
             transcript, commands = self.parse_transcript(process)

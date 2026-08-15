@@ -1,0 +1,19 @@
+id: C01-I02
+family_id: C01
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Create an exact nested release artifact tree"
+prompt: |
+  Create exactly `release/bin/launcher.txt` with content `launch`,
+  `release/share/schema.json` with JSON `{"version":2,"fields":["id","ok"]}`,
+  and `release/NOTICE` with content `internal fixture`. Create nothing else.
+preconditions: {working_directory: "{sandbox_root}", required_tools: [], initial_files: []}
+success_checks:
+  - {type: file_content_equals, path: release/bin/launcher.txt, content: "launch\n"}
+  - {type: json_content_equals, path: release/share/schema.json, value: {version: 2, fields: [id, ok]}}
+  - {type: file_content_equals, path: release/NOTICE, content: "internal fixture\n"}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240
+

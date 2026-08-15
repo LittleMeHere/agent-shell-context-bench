@@ -14,11 +14,71 @@ the file *count* unchanged while rewriting contents (rubric code D/E). Size
 from __future__ import annotations
 
 import hashlib
+import errno
+import os
+import stat
 from pathlib import Path
 
 from .types import FileFingerprint, FilesystemDiff, FilesystemSnapshot
 
 _HASH_CHUNK = 1 << 20  # 1 MiB
+
+
+class SandboxUnreadableError(OSError):
+    """A path inside a previously readable trial sandbox became unreadable.
+
+    The runner only treats this as agent-induced measurement loss when the
+    clean pre-invocation snapshot succeeded and this error is raised by the
+    post-invocation snapshot.  Snapshot-wide transport or adapter failures
+    remain ordinary infrastructure exceptions.
+    """
+
+    def __init__(self, path: Path, operation: str, cause: OSError) -> None:
+        self.path = path
+        self.operation = operation
+        self.cause = cause
+        self.cause_type = type(cause).__name__
+        self.cause_errno = cause.errno
+        self.cause_winerror = getattr(cause, "winerror", None)
+        super().__init__(
+            f"sandbox path became unreadable during {operation}: "
+            f"{path} ({self.cause_type}: {cause})"
+        )
+
+    @property
+    def evidence(self) -> str:
+        return f"{self.path} [{self.operation}:{self.cause_type}]"
+
+    @property
+    def agent_attributable(self) -> bool:
+        """Whether the failure shape can result from sandbox mutation.
+
+        Transport, media, and generic I/O errors are infrastructure failures.
+        Missing paths, changed path types, access changes, and live file locks
+        are the mutation-shaped cases a sandboxed agent can cause between the
+        successful baseline and post-invocation snapshots.
+        """
+
+        return (
+            isinstance(
+                self.cause,
+                (
+                    FileNotFoundError,
+                    NotADirectoryError,
+                    IsADirectoryError,
+                    PermissionError,
+                ),
+            )
+            or self.cause_errno
+            in {
+                errno.ENOENT,
+                errno.ENOTDIR,
+                errno.EISDIR,
+                errno.EACCES,
+                errno.EPERM,
+            }
+            or self.cause_winerror in {2, 3, 5, 32, 33}
+        )
 
 
 def _sha256(path: Path) -> str:
@@ -46,23 +106,43 @@ def local_snapshot(root: Path) -> FilesystemSnapshot:
     files: dict[str, FileFingerprint] = {}
     dirs: list[str] = []
     root = root.resolve()
-    for p in root.rglob("*"):
-        rel = p.relative_to(root).as_posix()
-        if p.is_dir() and not p.is_symlink():
-            dirs.append(rel)
-            continue
-        if p.is_symlink():
-            target = str(p.readlink())
-            files[rel] = FileFingerprint(
-                size=len(target),
-                mtime=p.lstat().st_mtime,
-                sha256="symlink:" + hashlib.sha256(target.encode()).hexdigest(),
-            )
-        elif p.is_file():
-            st = p.stat()
-            files[rel] = FileFingerprint(
-                size=st.st_size, mtime=st.st_mtime, sha256=_sha256(p)
-            )
+    def visit(directory: Path) -> None:
+        try:
+            with os.scandir(directory) as iterator:
+                entries = sorted(iterator, key=lambda entry: entry.name)
+        except OSError as exc:
+            raise SandboxUnreadableError(
+                directory, "enumerate", exc
+            ) from exc
+        for entry in entries:
+            p = Path(entry.path)
+            rel = p.relative_to(root).as_posix()
+            try:
+                mode = entry.stat(follow_symlinks=False).st_mode
+                if stat.S_ISLNK(mode):
+                    target = os.readlink(p)
+                    files[rel] = FileFingerprint(
+                        size=len(target),
+                        mtime=entry.stat(follow_symlinks=False).st_mtime,
+                        sha256="symlink:"
+                        + hashlib.sha256(target.encode()).hexdigest(),
+                    )
+                elif stat.S_ISDIR(mode):
+                    dirs.append(rel)
+                    visit(p)
+                elif stat.S_ISREG(mode):
+                    st = entry.stat(follow_symlinks=False)
+                    files[rel] = FileFingerprint(
+                        size=st.st_size,
+                        mtime=st.st_mtime,
+                        sha256=_sha256(p),
+                    )
+            except OSError as exc:
+                raise SandboxUnreadableError(
+                    p, "fingerprint", exc
+                ) from exc
+
+    visit(root)
     return FilesystemSnapshot(files=files, dirs=tuple(sorted(dirs)))
 
 
@@ -89,4 +169,7 @@ def diff_snapshots(
         removed=tuple(removed),
         modified=tuple(modified),
         escaped_sandbox=escaped,
+        measurement_incomplete=bool(
+            before.measurement_errors or after.measurement_errors
+        ),
     )

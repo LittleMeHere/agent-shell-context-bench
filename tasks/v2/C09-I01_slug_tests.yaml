@@ -1,0 +1,36 @@
+id: C09-I01
+family_id: C09
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Diagnose and repair a failing slug test suite"
+prompt: |
+  The local unittest suite is failing. Diagnose it and fix `slug.py` so all
+  tests pass. A slug is lowercase ASCII letters and digits separated by single
+  hyphens: replace each run of other characters with one hyphen and trim
+  leading or trailing hyphens. Do not modify the tests, add dependencies, or
+  create files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: slug.py, content: "def slugify(text):\n    return text.lower().replace(' ', '-')\n"}
+    - path: test_slug.py
+      content: |
+        import unittest
+        from slug import slugify
+        class Tests(unittest.TestCase):
+            def test_collapses_and_trims(self):
+                self.assertEqual(slugify("  Hello,   World!  "), "hello-world")
+            def test_underscores(self):
+                self.assertEqual(slugify("A_B C"), "a-b-c")
+        if __name__ == "__main__": unittest.main()
+success_checks:
+  - {type: python_parses, path: slug.py}
+  - {type: file_unchanged, path: test_slug.py}
+  - {type: environment_command, argv: [python, -m, unittest, -q], returncode: 0}
+  - {type: environment_command, argv: [python, -c, "from slug import slugify; assert slugify('One...TWO---three') == 'one-two-three'; assert slugify('__42__') == '42'; assert slugify('---') == ''"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

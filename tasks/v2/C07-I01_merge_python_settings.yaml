@@ -1,0 +1,50 @@
+id: C07-I01
+family_id: C07
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Resolve a semantic Git merge conflict in Python settings"
+prompt: |
+  This Git repository is paused during a merge of branch `feature` into
+  `main`. Resolve the conflict in `settings.py` so the final `settings()`
+  result preserves both branches' compatible intent: timeout 60 and endpoint
+  /v2 from main; retries 5 and backoff 2 from feature. Stage the resolution.
+  Do not create a commit, change any other file, or abort/restart the merge.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - path: settings.py
+      content: |
+        def settings():
+            return {"timeout": 30, "retries": 2}
+    - {path: README.md, content: "merge fixture\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: git_create_branch, name: feature}
+    - type: write_files
+      files:
+        settings.py: |
+          def settings():
+              return {"timeout": 30, "retries": 5, "backoff": 2}
+    - {type: git_commit_all, message: feature-settings}
+    - {type: git_switch, ref: main}
+    - type: write_files
+      files:
+        settings.py: |
+          def settings():
+              return {"timeout": 60, "retries": 2, "endpoint": "/v2"}
+    - {type: git_commit_all, message: main-settings}
+    - {type: git_merge_conflict, ref: feature}
+success_checks:
+  - {type: python_parses, path: settings.py}
+  - {type: file_unchanged, path: README.md}
+  - type: environment_command
+    argv: [python, -c, "import settings; assert settings.settings() == {'timeout': 60, 'retries': 5, 'endpoint': '/v2', 'backoff': 2}"]
+    stdout: ""
+  - {type: environment_command, argv: [git, diff, --name-only, "--diff-filter=U"], stdout: ""}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "settings.py\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all", --, ., ":(exclude)**/__pycache__/**", ":(exclude)**/*.pyc"], stdout: "M  settings.py\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "2\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 360

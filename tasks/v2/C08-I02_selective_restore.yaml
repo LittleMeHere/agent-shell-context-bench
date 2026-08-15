@@ -1,0 +1,32 @@
+id: C08-I02
+family_id: C08
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Remove one accidental config edit while preserving two kinds of work"
+prompt: |
+  Restore only `config.ini` to HEAD. Preserve the staged change to
+  `release.txt` and the unstaged change to `scratch.md`, including their
+  current staging states. Do not commit or modify any other path.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - {path: config.ini, content: "mode=safe\n"}
+    - {path: release.txt, content: "version=1\n"}
+    - {path: scratch.md, content: "draft one\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: write_files, files: {config.ini: "mode=unsafe\n", release.txt: "version=2\n"}}
+    - {type: git_stage, paths: [release.txt]}
+    - {type: write_files, files: {scratch.md: "draft two - keep\n"}}
+success_checks:
+  - {type: file_content_equals, path: config.ini, content: "mode=safe\n"}
+  - {type: file_unchanged, path: release.txt}
+  - {type: file_unchanged, path: scratch.md}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "release.txt\n"}
+  - {type: environment_command, argv: [git, diff, --name-only], stdout: "scratch.md\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all"], stdout: "M  release.txt\n M scratch.md\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "1\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

@@ -1,0 +1,46 @@
+id: C11-I01
+family_id: C11
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Recover a local health service and verify it cleanly"
+prompt: |
+  The local service in `service.py` is misconfigured. Correct `config.json`
+  so a GET `/health` returns status 200 with body `healthy`. Verify it by
+  launching the service with `--once` on the loopback port in `port.txt`,
+  making the request, and letting it exit. The assigned port must be free when
+  you finish. Do not modify service.py, port.txt, or README.md and do not leave
+  processes or extra files behind.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  fixture_setup:
+    - {type: write_free_loopback_port, path: port.txt}
+  initial_files:
+    - &service
+      path: service.py
+      content: |
+        import json, sys
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        cfg=json.load(open("config.json", encoding="utf-8"))
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                body=cfg["body"].encode()
+                self.send_response(200 if self.path == cfg["path"] else 404)
+                self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+            def log_message(self, *args): pass
+        server=HTTPServer(("127.0.0.1", int(sys.argv[1])), Handler)
+        server.handle_request() if "--once" in sys.argv else server.serve_forever()
+    - {path: config.json, content: "{\"path\":\"/status\",\"body\":\"unhealthy\"}\n"}
+    - {path: README.md, content: "service fixture\n"}
+    - {path: port.txt, content: "0\n"}
+success_checks:
+  - {type: file_unchanged, path: service.py}
+  - {type: file_unchanged, path: port.txt}
+  - {type: file_unchanged, path: README.md}
+  - {type: json_content_equals, path: config.json, value: {path: "/health", body: healthy}}
+  - type: environment_command
+    argv: [python, -c, "import socket,subprocess,sys,time,urllib.request; p=int(open('port.txt').read()); guard=socket.socket(); guard.bind(('127.0.0.1',p)); guard.close(); child=subprocess.Popen([sys.executable,'service.py',str(p),'--once']);\ntry:\n  for _ in range(50):\n    try:\n      body=urllib.request.urlopen(f'http://127.0.0.1:{p}/health',timeout=.2).read().decode(); break\n    except Exception: time.sleep(.05)\n  else: raise AssertionError('service unavailable')\n  assert body=='healthy'; assert child.wait(timeout=2)==0\nfinally:\n  if child.poll() is None: child.kill()"]
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 360

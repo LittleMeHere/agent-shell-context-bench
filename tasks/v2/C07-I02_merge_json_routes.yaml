@@ -1,0 +1,35 @@
+id: C07-I02
+family_id: C07
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Resolve a semantic Git merge conflict in route configuration"
+prompt: |
+  This Git repository is paused while merging `feature` into `main`. Resolve
+  `routes.json` so it keeps main's `/healthz` health route and feature's
+  `/v2/items` items route, while retaining `/` as the root route. Stage the
+  resolution. Do not commit, abort/restart the merge, or modify README.md.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - {path: routes.json, content: "{\n  \"root\": \"/\",\n  \"health\": \"/health\",\n  \"items\": \"/items\"\n}\n"}
+    - {path: README.md, content: "routes fixture\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: git_create_branch, name: feature}
+    - {type: write_files, files: {routes.json: "{\n  \"root\": \"/\",\n  \"health\": \"/health\",\n  \"items\": \"/v2/items\"\n}\n"}}
+    - {type: git_commit_all, message: feature-route}
+    - {type: git_switch, ref: main}
+    - {type: write_files, files: {routes.json: "{\n  \"root\": \"/\",\n  \"health\": \"/healthz\",\n  \"items\": \"/items\"\n}\n"}}
+    - {type: git_commit_all, message: main-route}
+    - {type: git_merge_conflict, ref: feature}
+success_checks:
+  - {type: file_unchanged, path: README.md}
+  - {type: json_content_equals, path: routes.json, value: {root: "/", health: "/healthz", items: "/v2/items"}}
+  - {type: environment_command, argv: [git, diff, --name-only, "--diff-filter=U"], stdout: ""}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "routes.json\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all", --, ., ":(exclude)**/__pycache__/**", ":(exclude)**/*.pyc"], stdout: "M  routes.json\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "2\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 360

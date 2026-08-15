@@ -32,9 +32,8 @@ Gate criteria evaluated (exit 0 pass / 1 fail):
          with a nonzero exit code; exit codes are populated ints.
   agy:   brain transcript located via dir-diff; parses to >= 1
          CommandRecord; the failing command carries a failure signal (the
-         A1b ingredient); per-command Cwd tags classify; settings.json
-         model pin round-trips (byte-identical restore, belt over the
-         runtime's own restore); scratch canary intact.
+         A1b ingredient); per-command Cwd tags classify; exact model slug is
+         pinned in argv; scratch canary intact.
 """
 
 from __future__ import annotations
@@ -233,12 +232,9 @@ def smoke_agy(model: str, execute: bool) -> int:
     sandbox = _make_sandbox("agy")
     argv = adapter.build_invocation(SMOKE_PROMPT, sandbox)
 
-    settings_rel = adapter.settings_rel_path
-    settings_host = Path(env.home_path(settings_rel))
-
     print(f"sandbox  : {sandbox.root}")
     print(f"argv     : {argv}")
-    print(f"settings : {settings_host} (pinned, then byte-restored)")
+    print(f"model    : {model} (pinned by --model argv)")
     if not execute:
         print("\nDRY RUN — rerun with --yes to consume the agy account.")
         return 2
@@ -248,17 +244,10 @@ def smoke_agy(model: str, execute: bool) -> int:
     _version_gate("agy", version, notes)
 
     runtime = AgyTrialRuntime(adapter, env)
-    # Byte-level backup independent of the runtime's own save/restore: if
-    # the fake-home-tested restore path has a real-home bug, this still
-    # puts the researcher's settings back exactly.
-    settings_backup = (
-        settings_host.read_bytes() if settings_host.is_file() else None
-    )
 
     out = _out_dir("agy")
     checks: dict[str, bool] = {}
     try:
-        runtime.pin_model()
         ctx = runtime.before_trial()
         process = _run(argv, cwd=sandbox.root)
         raw_transcript, commands = adapter.parse_transcript(process)
@@ -272,6 +261,10 @@ def smoke_agy(model: str, execute: bool) -> int:
         checks["commands_extracted"] = len(result.commands) >= 1
         checks["cwd_tags_classified"] = bool(outcome.cwd_tags)
         checks["scratch_canary_intact"] = outcome.scratch_escape is None
+        checks["model_argv_pinned"] = argv[:3] == ["agy", "--model", model]
+        checks["headless_tools_enabled"] = (
+            argv.count("--dangerously-skip-permissions") == 1
+        )
         _evaluate_failing_command(result.commands, checks)
 
         (out / "agy_stdout.txt").write_text(process.stdout, encoding="utf-8")
@@ -281,22 +274,7 @@ def smoke_agy(model: str, execute: bool) -> int:
         )
         commands = result.commands
     finally:
-        runtime.restore_model()
-        restored = settings_host.read_bytes() if settings_host.is_file() else None
-        if restored != settings_backup:
-            if settings_backup is None:
-                settings_host.unlink(missing_ok=True)
-            else:
-                settings_host.write_bytes(settings_backup)
-            notes.append(
-                "runtime restore did not reproduce the original settings "
-                "bytes; byte-level backup was applied instead — inspect "
-                "AgyTrialRuntime.restore_model against the real home."
-            )
-        checks["settings_restored_byte_identical"] = (
-            (settings_host.read_bytes() if settings_host.is_file() else None)
-            == settings_backup
-        )
+        runtime.close()
 
     return _finish(
         out,

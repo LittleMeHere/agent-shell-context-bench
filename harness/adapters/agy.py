@@ -1,8 +1,8 @@
 """Antigravity CLI (`agy`) adapter — Google-lineage configs #5/#6/#7.
 
 agy's command stream does not come back on the process the harness launches,
-so it strains the `AgentAdapter` contract in three places, documented below as
-CONTRACT GAP (1)/(2)/(3). Each gap has a "what fits now" implementation here and
+so it strains the `AgentAdapter` contract in two places, documented below as
+CONTRACT GAP (1)/(3). Each gap has a "what fits now" implementation here and
 a "what the contract would need" note for the researcher's pre-registration
 decision. None is worked around by editing the base contract or overriding
 `AgentAdapter.run`: per `docs/ADAPTER_CONTRACT.md` ("implement the existing
@@ -12,14 +12,11 @@ decision, not an implementation one.
 ================================ VERSION PIN ===============================
 Flags below were last RE-CONFIRMED against `agy --help` per docs/VERSIONS.md:
 
-  Antigravity CLI version : 1.0.7   (was 1.0.4 / 1.0.2; tag-eve currency pass)
-  --print / -p re-confirmed on    : 2026-06-12 (tag-eve currency pass)
-  Transcript-schema smoke ran on  : 1.0.2 (2026-05-25); a re-smoke on 1.0.7
-                                    is a PRE-DATA obligation (VERSIONS.md
-                                    change log 2026-06-12 (later)) and MUST
-                                    include a deliberately-failing command so
-                                    the RUN_COMMAND failure-content format is
-                                    captured — see CAVEAT (ii) below.
+  Antigravity CLI version : 1.1.13  (collection-candidate VM probe)
+  --print / --model confirmed on  : 2026-08-14
+  Transcript-schema smoke ran on  : 1.1.13 (2026-08-14), including a
+                                    deliberately failing command and all three
+                                    collection-candidate model routes.
 
 Verified flag semantics (history + re-verify record: docs/VERSIONS.md):
   -p / --print              run once against a prompt, non-interactive, print
@@ -27,9 +24,14 @@ Verified flag semantics (history + re-verify record: docs/VERSIONS.md):
                             of `claude -p`). Confirmed exposed via `agy --help`
                             2026-05-27, re-confirmed at every pin tick.
 
-  NOT a flag — model pin    agy has NO `--model` argv flag. The model is pinned
-                            by WRITING `~/.gemini/antigravity-cli/settings.json`
-                            `model` field BEFORE invocation. See CONTRACT GAP (2).
+  --model <id>              pin the requested served-model route for this
+                            invocation. This supersedes the obsolete mutable
+                            settings.json pin used by older agy builds.
+
+  --dangerously-skip-permissions
+                            permit terminal/file tools in headless mode. Without
+                            this flag agy 1.1.13 auto-denies tool calls because
+                            no interactive permission prompt is available.
 
   NOT a flag — Cwd          agy's default shell Cwd is its own scratch dir
                             (`~/.gemini/antigravity-cli/scratch/`), NOT the
@@ -45,7 +47,8 @@ Verified flag semantics (history + re-verify record: docs/VERSIONS.md):
   Left OFF here so the cell measures the same autonomous surface as the others.
 
   >>> RE-VERIFY BEFORE COLLECTING agy DATA (post-tag, gates configs #5/#6/#7) <<<
-    1. `agy --version` + `agy --help`: re-confirm `--print`; update the pin.
+    1. `agy --version` + `agy --help`: re-confirm `--print` and `--model`;
+       update the pin.
     2. Re-run the transcript-schema smoke on the pinned version WITH a failing
        command; refresh the synthetic fixture's shape if the schema moved.
     3. agy transcripts embed real local paths + git identity — they need their
@@ -67,27 +70,23 @@ One JSON object per line. The load-bearing event types:
     `args.CommandLine` (the command string) and `args.Cwd` (the working dir
     the agent chose for THAT command — the input to Cwd compliance tagging).
 
-  * RUN_COMMAND — its `content` is PROSE, not structured fields: Created/
-    Completed timestamps, an outcome sentence ("The command completed
-    successfully."), an `Output:` block, and possible "<truncated N lines>"
-    markers. So exit_code / stdout are PARTIAL or ABSENT and must be parsed
-    best-effort from prose — never assumed.
+  * RUN_COMMAND — 1.1.13 carries a numeric `exit_code` and prose `content`.
+    Observed content layouts are a combined `Output:` block and separate
+    `Stdout:` / `Stderr:` blocks. Older captures omit the numeric field and
+    use an outcome sentence. Both layouts are parsed conservatively.
 
   * every event carries a `status` (observed: "DONE" / "ERROR").
 
-CAVEATS pre-registered for this adapter (VERSIONS.md 2026-06-10), still open
-until the 1.0.7 re-smoke closes them:
+CAVEATS retained for this adapter:
   (i)   long output is truncated in-transcript ("<truncated N lines>") — binary
         task success comes from filesystem checks, NOT transcript stdout; this
         parser surfaces stdout only as a best-effort diagnostic.
-  (ii)  no numeric exit code was seen in a SUCCESSFUL RUN_COMMAND; the FAILING
-        format is unverified. So exit_code rests on the outcome sentence +
-        event `status` until a failing sample is captured. We map: explicit
-        success sentence -> 0; explicit failure/error sentence or status ERROR
-        -> 1; otherwise None (never guess).
-  (iii) no per-response served-model field exists — model verification is the
-        settings.json pin (CONTRACT GAP (2)) plus model-change notices logged
-        as user-visible text. This adapter does not attempt served-model
+  (ii)  1.1.13's numeric exit code is authoritative when present. For legacy
+        records, explicit success/failure prose and ERROR status remain the
+        only accepted fallbacks; ambiguous prose stays None.
+  (iii) no per-response served-model field exists — model assignment is the
+        recorded `--model` argv plus any model-change notices logged as
+        user-visible text. This adapter does not attempt served-model
         extraction.
 
 The parser here implements the schema reader. It is unit-tested against
@@ -107,12 +106,6 @@ from .base import AgentAdapter
 
 
 # --- module-level constants (the pinned surface; see VERSION PIN) -----------
-
-# Settings file whose `model` field pins the cell's model. Written BEFORE the
-# run by the runner (CONTRACT GAP (2)); NOT an argv flag. Tilde-expanded by the
-# caller against the data-collection user's home — kept as a POSIX-ish literal
-# here so the pin is auditable in one place.
-SETTINGS_REL_PATH = ".gemini/antigravity-cli/settings.json"
 
 # Per-conversation brain transcript, relative to the agy brain root. The
 # `<conv-id>` segment is discovered per trial by diffing the brain/ directory
@@ -146,8 +139,16 @@ _FAILURE_SENTENCE = re.compile(
 # The `Output:` block in RUN_COMMAND.content, captured best-effort up to a
 # truncation marker or end of content. Used only as a diagnostic (CAVEAT (i)).
 _OUTPUT_BLOCK = re.compile(
-    r"Output:\s*\n?(?P<body>.*?)(?:\n<truncated\b|\Z)",
-    re.IGNORECASE | re.DOTALL,
+    r"^(?P<indent>[ \t]*)Output:[ \t]*\r?\n?(?P<body>.*?)(?:\r?\n[ \t]*<truncated\b|\Z)",
+    re.IGNORECASE | re.DOTALL | re.MULTILINE,
+)
+_STDOUT_BLOCK = re.compile(
+    r"^(?P<indent>[ \t]*)Stdout:[ \t]*\r?\n(?P<body>.*?)(?=^[ \t]*Stderr:[ \t]*(?:\r?\n|\Z)|\Z)",
+    re.IGNORECASE | re.DOTALL | re.MULTILINE,
+)
+_STDERR_BLOCK = re.compile(
+    r"^(?P<indent>[ \t]*)Stderr:[ \t]*\r?\n?(?P<body>.*)\Z",
+    re.IGNORECASE | re.DOTALL | re.MULTILINE,
 )
 _TRUNCATION_MARKER = re.compile(r"<truncated\s+\d+\s+lines?>", re.IGNORECASE)
 
@@ -158,8 +159,8 @@ class AgyAdapter(AgentAdapter):
 
     What fits the contract (built and tested here):
       * `agent_id`, `_default_cli_path`, `cli_version` — straightforward.
-      * `build_invocation` — `agy --print <prompt>` with the Cwd directive
-        prepended (the directive fits; the model pin does not — GAP (2)/(3)).
+      * `build_invocation` — `agy --model <id> --print <prompt>` with the Cwd
+        directive prepended (model pin fits argv; Cwd remains GAP (3)).
       * `parse_transcript(process)` — never raises, but it cannot see agy's
         commands (GAP (1)), so it returns a best-effort transcript from the
         prose stdout and an empty command list, and points the runner at
@@ -196,7 +197,7 @@ class AgyAdapter(AgentAdapter):
     ) -> list[str]:
         """argv that runs agy once, headless, against the prompt.
 
-        Two of the three contract gaps surface right here:
+        One contract gap surfaces right here:
 
         CONTRACT GAP (3) — Cwd binding by prompt injection (this DOES fit).
           agy has no flag to bind the sandbox, so the SAP's pre-registered
@@ -207,23 +208,23 @@ class AgyAdapter(AgentAdapter):
           `args.Cwd`, available only from the brain transcript and with no home
           on `CommandRecord` (see GAP (3) in `parse_brain_transcript`).
 
-        CONTRACT GAP (2) — model pin is a settings.json write, NOT argv.
-          The reference adapter appends `--model <id>`; agy has no such flag.
-          `build_invocation` returns argv ONLY and the base `run()` goes
-          straight from here into `environment.exec`, so there is no
-          adapter-controlled seam to perform the settings write between
-          build and exec. This method therefore does NOT pin the model — it
-          cannot. The pin must happen as a side effect BEFORE `run()` is
-          entered; `model_settings_patch()` below is the helper that produces
-          the merged settings, and the runner applies it before `run()` (see
-          `harness/agy_runtime.py`).
+        Model pinning fits the adapter contract directly: agy 1.1.13 exposes
+        `--model <id>`, so the exact preregistered route is part of the recorded
+        argv for every invocation. Flags precede the prompt value to avoid any
+        ambiguity in CLI parsing.
         """
         directive = self.CWD_DIRECTIVE_TEMPLATE.format(sandbox_root=sandbox.root)
         injected_prompt = f"{directive}\n\n{prompt}"
         # Flags verified against the pinned agy version — see VERSION PIN block.
-        # NB: no --model (GAP (2)) and no Cwd flag (GAP (3)); the model is a
-        # settings.json side effect and the Cwd is the injected directive above.
-        return [self.cli_path, "--print", injected_prompt]
+        # No Cwd flag (GAP (3)); the Cwd is the injected directive above.
+        return [
+            self.cli_path,
+            "--model",
+            self.model_id,
+            "--dangerously-skip-permissions",
+            "--print",
+            injected_prompt,
+        ]
 
     # ------------------------------------------------------------------ #
     # CONTRACT GAP (1): the command stream is out-of-band.
@@ -373,7 +374,7 @@ class AgyAdapter(AgentAdapter):
                         index=old.index,
                         command=old.command,
                         stdout=outcome["stdout"],
-                        stderr=old.stderr,
+                        stderr=outcome["stderr"],
                         exit_code=outcome["exit_code"],
                         offset_seconds=old.offset_seconds,
                         tool_name=old.tool_name,
@@ -430,53 +431,6 @@ class AgyAdapter(AgentAdapter):
                 tag = CWD_ELSEWHERE
             out.append({"index": entry.get("index"), "cwd": entry.get("cwd", ""), "tag": tag})
         return out
-
-    # ------------------------------------------------------------------ #
-    # CONTRACT GAP (2) helper: pin the model via settings.json.
-    #
-    # The reference adapter pins the model with `--model <id>` inside
-    # build_invocation. agy has no such flag; the model is the `model` field of
-    # ~/.gemini/antigravity-cli/settings.json, which must be written BEFORE the
-    # process starts. The base `run()` (NEVER overridden) flows
-    # build_invocation -> environment.exec with no adapter seam in between, so
-    # this write cannot live in the adapter's run path.
-    #
-    # WHAT FITS NOW: a pure, side-effect-free helper that RETURNS the settings
-    # mutation (merged dict + the file path), so the runner can apply it before
-    # entering `run()` and the logic stays tested here. It does NOT write the
-    # file itself (the adapter must not touch the filesystem out of band; and on
-    # remote envs the home dir is not the host's).
-    #
-    # WHAT THE CONTRACT WOULD NEED (researcher's call; do NOT edit base.py):
-    #   (a) Runner-side: before `run()`, the runner reads settings.json, applies
-    #       `model_settings_patch()`, writes it back through the ENVIRONMENT
-    #       (so a remote home is handled), runs the trial, restores the prior
-    #       settings after. No base-class change. Recommended.
-    #   (b) A pre-exec hook on the contract (e.g. an optional
-    #       `prepare(environment, sandbox)` the template `run()` calls before
-    #       exec). Clean, but it is a base-class addition -> SAP change.
-    #   (c) Pass the model via env var if a future agy build reads one — would
-    #       fit build_invocation/exec, but no such var is documented (re-check
-    #       at re-smoke). Until then, settings.json is the only pin.
-    # ------------------------------------------------------------------ #
-    def model_settings_patch(self, existing_settings: dict | None = None) -> dict:
-        """Return the settings.json content with this cell's `model` pinned.
-
-        Pure: merges `{"model": self.model_id}` into a COPY of
-        `existing_settings` (or {}), leaving every other key intact, and returns
-        it. The runner is responsible for the actual read/write through the
-        environment, before `run()` and restored after (CONTRACT GAP (2)).
-        Never raises.
-        """
-        merged = dict(existing_settings or {})
-        merged["model"] = self.model_id
-        return merged
-
-    @property
-    def settings_rel_path(self) -> str:
-        """Home-relative path of the settings file the model pin writes
-        (CONTRACT GAP (2)); the runner tilde-expands against the agy user."""
-        return SETTINGS_REL_PATH
 
     @property
     def scratch_canary_rel_path(self) -> str:
@@ -537,19 +491,22 @@ class AgyAdapter(AgentAdapter):
 
     @classmethod
     def _outcome_from_run_command(cls, event: dict) -> dict | None:
-        """Best-effort {exit_code, stdout} from a RUN_COMMAND event's prose.
+        """Best-effort outcome fields from a RUN_COMMAND event.
 
         Returns None if the event carries no usable content at all (so the
         positional pairing does not consume an unpaired command for a
         content-less event). Otherwise:
 
-          exit_code: 0  if an unambiguous success sentence is present and no
+          exit_code: the numeric 1.1.13 field when present; otherwise 0 if an
+                        unambiguous success sentence is present and no
                         failure sentence/ERROR status contradicts it;
                      1  if a failure sentence is present OR event status=="ERROR";
                      None otherwise (CAVEAT (ii): never guess).
-          stdout:    the `Output:` block body, best-effort, truncated to where
-                     a "<truncated N lines>" marker begins; "" if no Output
-                     block (CAVEAT (i): stdout is a diagnostic, may be partial).
+          stdout:    the `Stdout:` or legacy `Output:` block body, best-effort.
+          stderr:    the `Stderr:` block body when separately available;
+                     legacy combined Output records cannot separate streams.
+          output_observed: whether a recognized output envelope was present,
+                           including an explicitly empty Stdout block.
 
         Never raises.
         """
@@ -560,7 +517,9 @@ class AgyAdapter(AgentAdapter):
         if not content and not status:
             return None
 
-        # Outcome sentences precede the `Output:` block; restrict the
+        direct_exit_code = event.get("exit_code")
+
+        # Outcome sentences precede the output block; restrict the
         # success/failure search to that head region so a command whose OUTPUT
         # happens to contain "failed"/"error" cannot flip the verdict
         # (CAVEAT (ii): exit_code stays a best-effort signal, never a guess).
@@ -568,25 +527,51 @@ class AgyAdapter(AgentAdapter):
         head = content[: m_out.start()] if m_out else content
         has_success = bool(_SUCCESS_SENTENCE.search(head))
         has_failure = bool(_FAILURE_SENTENCE.search(head)) or status.upper() == "ERROR"
-        if has_failure:
+        if isinstance(direct_exit_code, int) and not isinstance(direct_exit_code, bool):
+            exit_code: int | None = direct_exit_code
+        elif has_failure:
             exit_code: int | None = 1
         elif has_success:
             exit_code = 0
         else:
             exit_code = None
 
+        def _block_text(match: re.Match[str]) -> str:
+            body = match.group("body").replace("\r\n", "\n").replace("\r", "\n")
+            indent = match.group("indent")
+            if indent:
+                body = "\n".join(
+                    line[len(indent):] if line.startswith(indent) else line
+                    for line in body.split("\n")
+                )
+            return body.strip("\n")
+
         stdout = ""
-        m = _OUTPUT_BLOCK.search(content)
+        stderr = ""
+        m = _STDOUT_BLOCK.search(content)
+        output_observed = m is not None
         if m:
-            stdout = m.group("body")
+            stdout = _block_text(m)
+            stderr_match = _STDERR_BLOCK.search(content)
+            if stderr_match:
+                stderr = _block_text(stderr_match)
+        else:
+            m = _OUTPUT_BLOCK.search(content)
+            output_observed = m is not None
+        if m:
+            if not stdout:
+                stdout = _block_text(m)
             # If the body itself still contains a truncation marker mid-stream,
             # cut at it (defensive; the regex usually stops before it).
             tm = _TRUNCATION_MARKER.search(stdout)
             if tm:
                 stdout = stdout[: tm.start()]
-            stdout = stdout.strip("\n")
-
-        return {"exit_code": exit_code, "stdout": stdout}
+        return {
+            "exit_code": exit_code,
+            "stdout": stdout,
+            "stderr": stderr,
+            "output_observed": output_observed,
+        }
 
     def cli_version(self, environment: EnvironmentAdapter) -> str:
         result = environment.exec(

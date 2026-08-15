@@ -24,7 +24,8 @@ _BENCH = Path(__file__).resolve().parents[1]
 if str(_BENCH) not in sys.path:
     sys.path.insert(0, str(_BENCH))
 
-from harness.checks import evaluate_checks
+from harness.checks import evaluate_checks, requires_agent_trace
+from harness.fs import local_snapshot
 from harness.types import FileFingerprint, FilesystemSnapshot
 
 
@@ -201,6 +202,16 @@ def test_unknown_check_type_fails_closed():
     bogus = next(r for r in results if r.check_type == "file_does_exist_maybe")
     assert not bogus.passed
     assert "unknown check type" in bogus.detail
+
+
+def test_trace_dependency_detection_is_exact():
+    assert requires_agent_trace([{"type": "file_exists", "path": "x"}]) is False
+    assert requires_agent_trace(
+        [
+            {"type": "file_exists", "path": "x"},
+            {"type": "agent_any_command_stdout_equals", "expected": "ok"},
+        ]
+    ) is True
 
 
 def test_missing_type_field_fails_closed():
@@ -2096,6 +2107,39 @@ def test_date_from_trial_started_at_accepts_runner_and_iso_forms():
     assert err2 is None and dt2 is not None and dt2.strftime("%Y-%m-%d") == "2026-05-25"
     _, err3 = _date_from_trial_started_at("not-a-date")
     assert err3 is not None
+
+
+def test_file_unchanged_compares_content_to_pre_agent_snapshot(tmp_path: Path):
+    target = tmp_path / "source.py"
+    target.write_text("print('original')\n", encoding="utf-8")
+    before = local_snapshot(tmp_path)
+
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+        snapshot_before=before,
+    )
+    assert passed
+    assert results[0].passed
+
+    target.write_text("print('changed')\n", encoding="utf-8")
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+        snapshot_before=before,
+    )
+    assert not passed
+    assert "differs" in results[0].detail
+
+
+def test_file_unchanged_fails_closed_without_baseline(tmp_path: Path):
+    (tmp_path / "source.py").write_text("pass\n", encoding="utf-8")
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+    )
+    assert not passed
+    assert "pre-agent" in results[0].detail
 
 
 if __name__ == "__main__":

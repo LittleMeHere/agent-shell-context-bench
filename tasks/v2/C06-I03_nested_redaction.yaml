@@ -1,0 +1,25 @@
+id: C06-I03
+family_id: C06
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Repair recursive secret redaction without mutating input"
+prompt: |
+  Fix `redact.py`. `redact(value)` must return a new recursively redacted
+  structure: dictionary values whose keys equal password, token, or secret
+  case-insensitively become "[REDACTED]"; other dict/list values recurse.
+  Preserve scalar values and do not mutate the input. Do not alter contract.txt.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: redact.py, content: "def redact(value):\n    return value\n"}
+    - {path: contract.txt, content: "redact(value) returns a new structure\n"}
+success_checks:
+  - {type: python_parses, path: redact.py}
+  - {type: file_unchanged, path: contract.txt}
+  - {type: environment_command, argv: [python, -c, "import copy, redact; x={'User':'a','Token':'t','nested':[{'password':'p','keep':2}],'secret_note':'visible'}; before=copy.deepcopy(x); y=redact.redact(x); assert x == before and y == {'User':'a','Token':'[REDACTED]','nested':[{'password':'[REDACTED]','keep':2}],'secret_note':'visible'} and y is not x"]}
+  - {type: environment_command, argv: [python, -c, "import copy, redact; x=[{'SECRET':'s','child':{'PaSsWoRd':'p','secretary':'keep'}},7,[]]; before=copy.deepcopy(x); y=redact.redact(x); assert x == before; assert y == [{'SECRET':'[REDACTED]','child':{'PaSsWoRd':'[REDACTED]','secretary':'keep'}},7,[]]; assert y is not x and y[0] is not x[0] and y[0]['child'] is not x[0]['child']"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

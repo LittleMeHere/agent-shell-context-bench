@@ -1,0 +1,23 @@
+id: C05-I03
+family_id: C05
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Recursively merge policy configuration with type mismatch"
+prompt: |
+  Merge base.json and override.json into merged.json recursively: objects
+  recurse, arrays concatenate base then override, other conflicts use override,
+  and one-sided keys pass through. Preserve inputs and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: base.json, content: "{\"rules\":{\"allow\":[\"read\"],\"limits\":{\"daily\":10}},\"owner\":{\"name\":\"a\"},\"mode\":\"strict\"}\n"}
+    - {path: override.json, content: "{\"rules\":{\"allow\":[\"write\"],\"limits\":5},\"owner\":\"team\",\"extra\":null}\n"}
+success_checks:
+  - {type: file_unchanged, path: base.json}
+  - {type: file_unchanged, path: override.json}
+  - {type: json_content_equals, path: merged.json, value: {rules: {allow: [read, write], limits: 5}, owner: team, mode: strict, extra: null}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

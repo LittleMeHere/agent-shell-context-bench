@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "status": "candidate",
+  "decision": "D-010",
+  "claim_scope": "exploratory_h2_h4",
+  "primary_label_source": "frozen_coder_1",
+  "adjudication_rewrites_primary": false,
+  "human_blinding": {
+    "environment_name": true,
+    "windows_linux_contrast": true,
+    "ai_labels": true,
+    "hypothesis_aggregate_results": true
+  },
+  "anchor": {
+    "labels": 50,
+    "always_run": true,
+    "sampling": "known_probability_stratified_by_programmatic_outcome_and_task_domain"
+  },
+  "focal_audit": {
+    "population": "valid_failed_trials",
+    "sampling": "blinded_context_stratified_srs",
+    "candidate_additional_labels": [100, 150],
+    "maximum_routine_total_labels": 200,
+    "automatic_third_stage": false
+  },
+  "gate": {
+    "allowed_inputs": [
+      "valid_failure_and_success_denominators",
+      "primary_coder_completeness_refusal_malformed_rates",
+      "golden_case_and_evidence_contract_status",
+      "aggregate_de_candidate_prevalence_without_named_context_effect",
+      "probability_weighted_anchor_error_diagnostics",
+      "prospective_precision_feasibility"
+    ],
+    "forbidden_inputs": [
+      "named_environment_effect_direction",
+      "hypothesis_threshold_crossing",
+      "forecast_significance_after_expansion",
+      "investigator_selected_interesting_cases"
+    ],
+    "outcomes": [
+      "stop_sparse",
+      "stop_invalid",
+      "run_bounded_audit"
+    ]
+  },
+  "larger_audit_requires_new_explicit_decision": true
+}

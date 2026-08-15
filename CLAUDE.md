@@ -5,6 +5,15 @@ across OS/shell execution contexts. This is the **public** methodology repo
 under the `LittleMeHere` GitHub identity. A separate private companion repo
 holds internal framing that cannot ship here.
 
+## Current pre-data project state (required reading)
+
+Before methodology, analysis, collection, scheduler, or publication work, read
+`docs/PRE_DATA_REMEDIATION.md`. That document is the authoritative current
+project-state handoff: it records open findings, statistical decisions,
+work-item ownership, required evidence, and readiness gates. Collection is
+blocked until its G0-G4 gates are satisfied. Do not substitute a global "ready"
+assessment for gate-specific evidence.
+
 ## Hard rules (privacy)
 
 1. **This repo has a public GitHub remote.** Verify with `git remote -v`

@@ -8,8 +8,10 @@ Windows reference does.
 
 Transport: every process is wrapped as ``ssh <opts> <target> -- <argv>``. The
 target host is read from the ``PSTAX_GCP_SSH`` environment variable (an
-``user@host`` string or an ``ssh`` config alias); optional ``PSTAX_GCP_SSH_KEY``
-and ``PSTAX_GCP_SSH_PORT`` refine it. SSH runs with ``BatchMode=yes`` so a
+``user@host`` string or an ``ssh`` config alias); optional ``PSTAX_GCP_SSH_KEY``,
+``PSTAX_GCP_SSH_PORT``, and ``PSTAX_GCP_SSH_KNOWN_HOSTS`` refine it. When the
+known-hosts path is supplied, SSH requires an already-pinned matching host key;
+otherwise it uses ``accept-new``. SSH always runs with ``BatchMode=yes`` so a
 missing key fails fast instead of hanging on a password prompt — a hung trial is
 worse than a refused one.
 
@@ -61,6 +63,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import ClassVar
 
+from ..fs import SandboxUnreadableError
 from ._remote import RemoteUnixEnvironment
 
 # SSH target + refinements, read from the environment so no host identifier is
@@ -69,6 +72,7 @@ from ._remote import RemoteUnixEnvironment
 _GCP_SSH_TARGET = os.environ.get("PSTAX_GCP_SSH")
 _GCP_SSH_KEY = os.environ.get("PSTAX_GCP_SSH_KEY")
 _GCP_SSH_PORT = os.environ.get("PSTAX_GCP_SSH_PORT")
+_GCP_SSH_KNOWN_HOSTS = os.environ.get("PSTAX_GCP_SSH_KNOWN_HOSTS")
 
 # POSIX root on the GCP box under which per-trial sandboxes live.
 _GCP_SANDBOX_ROOT = os.environ.get("PSTAX_GCP_SANDBOX_ROOT", "/tmp/pstax")
@@ -89,12 +93,14 @@ class LinuxNativeEnvironment(RemoteUnixEnvironment):
         ssh_target: str | None = None,
         ssh_key: str | None = None,
         ssh_port: str | None = None,
+        ssh_known_hosts: str | None = None,
         sandbox_root: str | None = None,
     ) -> None:
         super().__init__()
         self._ssh_target = ssh_target or _GCP_SSH_TARGET
         self._ssh_key = ssh_key or _GCP_SSH_KEY
         self._ssh_port = ssh_port or _GCP_SSH_PORT
+        self._ssh_known_hosts = ssh_known_hosts or _GCP_SSH_KNOWN_HOSTS
         self._sandbox_root = sandbox_root or _GCP_SANDBOX_ROOT
         # `ssh` (transport) and `tar` (host-side extract of the synced tree)
         # must both be on the host PATH for this cell to run at all; fail loudly
@@ -114,14 +120,21 @@ class LinuxNativeEnvironment(RemoteUnixEnvironment):
         """Non-interactive, fail-fast SSH options.
 
         BatchMode=yes turns a missing/declined key into an immediate failure
-        rather than a password-prompt hang; accept-new trusts a first-seen host
-        key (the GCP box is freshly provisioned) without disabling host-key
-        checking entirely; ConnectTimeout bounds an unreachable host."""
+        rather than a password-prompt hang. A configured known-hosts file makes
+        host identity fail closed with StrictHostKeyChecking=yes; without one,
+        accept-new supports a freshly provisioned GCP box without disabling
+        host-key checking entirely. ConnectTimeout bounds an unreachable host."""
         opts = [
             "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=accept-new",
             "-o", "ConnectTimeout=15",
         ]
+        if self._ssh_known_hosts:
+            opts += [
+                "-o", f"UserKnownHostsFile={self._ssh_known_hosts}",
+                "-o", "StrictHostKeyChecking=yes",
+            ]
+        else:
+            opts += ["-o", "StrictHostKeyChecking=accept-new"]
         if self._ssh_key:
             opts += ["-i", self._ssh_key]
         if self._ssh_port:
@@ -166,8 +179,11 @@ class LinuxNativeEnvironment(RemoteUnixEnvironment):
         host, where local ``tar -xf -`` rebuilds it under the mirror. The mirror
         is cleared first so a file the agent *deleted* remotely disappears
         locally too (a stale mirror would make a removed file look present and
-        miscount the diff). Best-effort: if the sandbox vanished remotely the
-        mirror is simply left empty, and the snapshot reflects that.
+        miscount the diff). Transport and extraction failures raise instead of
+        masquerading as an empty sandbox. A specifically missing or
+        permission-blocked remote sandbox raises ``SandboxUnreadableError``;
+        the runner uses the successful baseline/invocation boundary to decide
+        whether that is pre-invocation infrastructure or agent-caused loss.
         """
         mirror = self._mirror_for.get(sandbox.root)
         if mirror is None:
@@ -187,22 +203,67 @@ class LinuxNativeEnvironment(RemoteUnixEnvironment):
             producer = subprocess.run(
                 tar_cmd, capture_output=True, timeout=300
             )
-        except subprocess.TimeoutExpired:
-            return  # leave mirror empty; snapshot will reflect the failure
-        if producer.returncode != 0 or not producer.stdout:
-            return
-        # Extract the streamed tarball locally. On a non-zero extract, clear the
-        # mirror so the snapshot shows an honest empty rather than a corrupt
-        # partial tree (consistent with the producer-failure path above).
-        extract = subprocess.run(
-            ["tar", "-C", str(mirror), "-xf", "-"],
-            input=producer.stdout,
-            capture_output=True,
-            timeout=120,
-        )
+        except subprocess.TimeoutExpired as exc:
+            raise EnvironmentError(
+                f"{self.env_id}: remote sandbox snapshot timed out"
+            ) from exc
+        if producer.returncode != 0:
+            stderr = producer.stderr.decode(
+                "utf-8", errors="replace"
+            ).strip()
+            # OpenSSH reserves 255 for transport/authentication failure. Its
+            # diagnostics often contain "Permission denied" or "No such file"
+            # about credentials, so classify transport before interpreting tar
+            # diagnostics about the remote sandbox.
+            if producer.returncode == 255:
+                raise EnvironmentError(
+                    f"{self.env_id}: SSH snapshot transport failed: "
+                    f"{stderr[-1000:]}"
+                )
+            lowered = stderr.lower()
+            if "no such file or directory" in lowered:
+                raise SandboxUnreadableError(
+                    Path(sandbox.host_root),
+                    "remote_snapshot",
+                    FileNotFoundError(stderr),
+                )
+            if "permission denied" in lowered:
+                raise SandboxUnreadableError(
+                    Path(sandbox.host_root),
+                    "remote_snapshot",
+                    PermissionError(stderr),
+                )
+            raise EnvironmentError(
+                f"{self.env_id}: remote snapshot producer failed with "
+                f"exit {producer.returncode}: {stderr[-1000:]}"
+            )
+        if not producer.stdout:
+            raise EnvironmentError(
+                f"{self.env_id}: remote snapshot producer returned no tar data"
+            )
+        try:
+            extract = subprocess.run(
+                ["tar", "-C", str(mirror), "-xf", "-"],
+                input=producer.stdout,
+                capture_output=True,
+                timeout=120,
+            )
+        except subprocess.TimeoutExpired as exc:
+            shutil.rmtree(mirror, ignore_errors=True)
+            mirror.mkdir(parents=True, exist_ok=True)
+            raise EnvironmentError(
+                f"{self.env_id}: local snapshot extraction timed out"
+            ) from exc
         if extract.returncode != 0:
             shutil.rmtree(mirror, ignore_errors=True)
             mirror.mkdir(parents=True, exist_ok=True)
+            stderr = extract.stderr.decode(
+                "utf-8", errors="replace"
+            ).strip()
+            raise EnvironmentError(
+                f"{self.env_id}: local snapshot extraction failed with "
+                f"exit {extract.returncode}: {stderr[-1000:]}"
+            )
 
     def _teardown_host_mirror(self, sandbox) -> None:
         mirror = self._mirror_for.pop(sandbox.root, None)

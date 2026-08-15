@@ -1,0 +1,24 @@
+id: C05-I01
+family_id: C05
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Recursively merge deployment configuration"
+prompt: &merge_prompt |
+  Merge base.json and override.json into merged.json recursively: objects
+  recurse, arrays concatenate base then override, other conflicts use override,
+  and one-sided keys pass through. Preserve inputs and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: base.json, content: "{\"service\":{\"port\":80,\"tags\":[\"base\"],\"limits\":{\"cpu\":1,\"mem\":2}},\"debug\":false}\n"}
+    - {path: override.json, content: "{\"service\":{\"port\":8080,\"tags\":[\"prod\"],\"limits\":{\"mem\":4}},\"debug\":true}\n"}
+success_checks:
+  - {type: file_unchanged, path: base.json}
+  - {type: file_unchanged, path: override.json}
+  - {type: json_content_equals, path: merged.json, value: {service: {port: 8080, tags: [base, prod], limits: {cpu: 1, mem: 4}}, debug: true}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

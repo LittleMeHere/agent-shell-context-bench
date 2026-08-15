@@ -1,0 +1,27 @@
+id: C10-I02
+family_id: C10
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Assemble a deterministic importable metrics plugin"
+prompt: |
+  Build `dist/metrics_plugin.zip`. It must contain exactly `METADATA.json`,
+  `metrics_plugin/__init__.py`, and `metrics_plugin/plugin.py` in sorted order,
+  all timestamped 1980-01-01 00:00:00. Metadata must identify name
+  metrics-plugin and version 2.1.0. Preserve sources and add no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: metrics_plugin/__init__.py, content: "from .plugin import total\n"}
+    - {path: metrics_plugin/plugin.py, content: "def total(values):\n    return sum(values)\n"}
+success_checks:
+  - {type: file_exists, path: dist/metrics_plugin.zip}
+  - {type: file_unchanged, path: metrics_plugin/__init__.py}
+  - {type: file_unchanged, path: metrics_plugin/plugin.py}
+  - type: environment_command
+    argv: [python, -c, "import json,sys,zipfile; p='dist/metrics_plugin.zip'; z=zipfile.ZipFile(p); assert z.namelist()==['METADATA.json','metrics_plugin/__init__.py','metrics_plugin/plugin.py']; assert all(i.date_time==(1980,1,1,0,0,0) for i in z.infolist()); assert json.loads(z.read('METADATA.json'))=={'name':'metrics-plugin','version':'2.1.0'}; sys.path.insert(0,p); import metrics_plugin; assert metrics_plugin.total([2,3,5])==10"]
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

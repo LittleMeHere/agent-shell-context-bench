@@ -1,0 +1,34 @@
+id: C12-I02
+family_id: C12
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Run a scoped maximum batch job without leaking its token"
+prompt: |
+  Run `job.py` with JOB_MODE=max and JOB_TOKEN equal to secret.txt. Produce
+  result.json and audit.json, preserve inputs, keep variables child-scoped,
+  and leave no token text or extra files in the sandbox.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - path: job.py
+      content: |
+        import hashlib, json, os
+        rows=json.load(open("records.json", encoding="utf-8")); mode=os.environ["JOB_MODE"]; token=os.environ["JOB_TOKEN"]
+        values=[row["value"] for row in rows]; answer={"sum":sum(values),"max":max(values),"count":len(values)}[mode]
+        json.dump({"mode":mode,"answer":answer},open("result.json","w",encoding="utf-8"),sort_keys=True)
+        json.dump({"mode":mode,"token_sha256":hashlib.sha256(token.encode()).hexdigest()},open("audit.json","w",encoding="utf-8"),sort_keys=True)
+    - {path: records.json, content: "[{\"value\":-4},{\"value\":12},{\"value\":3}]\n"}
+    - {path: secret.txt, content: "amber-29"}
+success_checks:
+  - {type: file_unchanged, path: job.py}
+  - {type: json_content_equals, path: result.json, value: {mode: max, answer: 12}}
+  - {type: file_exists, path: audit.json}
+  - {type: file_unchanged, path: records.json}
+  - {type: file_unchanged, path: secret.txt}
+  - {type: python_parses, path: job.py}
+  - {type: environment_command, argv: [python, -c, "import hashlib,json; a=json.load(open('audit.json')); assert a=={'mode':'max','token_sha256':hashlib.sha256(b'amber-29').hexdigest()}; assert 'amber-29' not in open('audit.json').read() and 'amber-29' not in open('result.json').read()"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

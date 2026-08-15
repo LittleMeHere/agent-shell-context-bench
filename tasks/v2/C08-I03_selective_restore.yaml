@@ -1,0 +1,32 @@
+id: C08-I03
+family_id: C08
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Undo one accidental source edit while retaining staged and unstaged work"
+prompt: |
+  Restore only `src/limit.py` to its committed state. Keep the staged update
+  to `CHANGELOG.md` and the unstaged update to `docs/notes.md`, with staging
+  state unchanged. Do not commit, reset the repository, or alter other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - {path: src/limit.py, content: "MAX_ITEMS = 100\n"}
+    - {path: CHANGELOG.md, content: "v1\n"}
+    - {path: docs/notes.md, content: "old notes\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: write_files, files: {src/limit.py: "MAX_ITEMS = -1\n", CHANGELOG.md: "v2 prepared\n"}}
+    - {type: git_stage, paths: [CHANGELOG.md]}
+    - {type: write_files, files: {docs/notes.md: "new private notes\n"}}
+success_checks:
+  - {type: file_content_equals, path: src/limit.py, content: "MAX_ITEMS = 100\n"}
+  - {type: file_unchanged, path: CHANGELOG.md}
+  - {type: file_unchanged, path: docs/notes.md}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "CHANGELOG.md\n"}
+  - {type: environment_command, argv: [git, diff, --name-only], stdout: "docs/notes.md\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all"], stdout: "M  CHANGELOG.md\n M docs/notes.md\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "1\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

@@ -1,0 +1,28 @@
+id: C03-I03
+family_id: C03
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Rename a validator across modules without changing prose"
+prompt: |
+  Rename the real symbol `validate_row` to `check_row` in validator.py,
+  pipeline.py, and test_support.py. Preserve the literal label and comments
+  that mention `validate_row`. Do not create files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: validator.py, content: "def validate_row(row):\n    return 'id' in row\n# validate_row remains the audit label\n"}
+    - {path: pipeline.py, content: "from validator import validate_row\nLABEL='validate_row result'\ndef accepted(row): return validate_row(row)\n"}
+    - {path: test_support.py, content: "from validator import validate_row\ndef sample(): return validate_row({'id':1})\n"}
+success_checks:
+  - {type: python_parses, path: validator.py}
+  - {type: python_parses, path: pipeline.py}
+  - {type: python_parses, path: test_support.py}
+  - {type: file_contains_substring_count, path: validator.py, substring: validate_row, count: 1}
+  - {type: file_contains_substring_count, path: pipeline.py, substring: validate_row, count: 1}
+  - {type: file_contains_substring_count, path: test_support.py, substring: validate_row, count: 0}
+  - {type: environment_command, argv: [python, -c, "import pipeline,test_support; assert pipeline.accepted({'id':2}) and pipeline.LABEL=='validate_row result' and test_support.sample()"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

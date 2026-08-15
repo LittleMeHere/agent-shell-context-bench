@@ -187,6 +187,7 @@ def assert_environment_conforms(
     exercise_canaries: bool = False,
     exec_ok_argv: Sequence[str] | None = None,
     exec_sleep_argv: Sequence[str] | None = None,
+    exec_timeout_seconds: float = 0.5,
 ) -> dict[str, object]:
     """Run the EnvironmentAdapter contract battery.
 
@@ -292,7 +293,11 @@ def assert_environment_conforms(
             )
 
         # Invariant 5: a timeout is data, never a raised exception.
-        slow = env.exec(exec_sleep_argv, cwd=s0.root, timeout=0.5)
+        slow = env.exec(
+            exec_sleep_argv,
+            cwd=s0.root,
+            timeout=exec_timeout_seconds,
+        )
         assert isinstance(slow, ProcessResult) and slow.timed_out is True, (
             "exec() exceeding its timeout must return ProcessResult(timed_out="
             "True), never raise (a hung agent is rubric F, not a harness error)"

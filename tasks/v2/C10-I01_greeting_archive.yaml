@@ -1,0 +1,28 @@
+id: C10-I01
+family_id: C10
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Assemble a deterministic importable greeting package"
+prompt: |
+  Build `dist/greeting.zip` from the supplied package. The archive must contain
+  exactly `greeting/__init__.py`, `greeting/core.py`, and `METADATA.json` in
+  sorted order, each with ZIP timestamp 1980-01-01 00:00:00. METADATA.json must
+  be `{"name":"greeting","version":"1.0.0"}` semantically. Preserve sources
+  and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: greeting/__init__.py, content: "from .core import greet\n"}
+    - {path: greeting/core.py, content: "def greet(name):\n    return f'hello {name}'\n"}
+success_checks:
+  - {type: file_exists, path: dist/greeting.zip}
+  - {type: file_unchanged, path: greeting/__init__.py}
+  - {type: file_unchanged, path: greeting/core.py}
+  - type: environment_command
+    argv: [python, -c, "import json,sys,zipfile; p='dist/greeting.zip'; z=zipfile.ZipFile(p); assert z.namelist()==['METADATA.json','greeting/__init__.py','greeting/core.py']; assert all(i.date_time==(1980,1,1,0,0,0) for i in z.infolist()); assert json.loads(z.read('METADATA.json'))=={'name':'greeting','version':'1.0.0'}; sys.path.insert(0,p); import greeting; assert greeting.greet('Ada')=='hello Ada'"]
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

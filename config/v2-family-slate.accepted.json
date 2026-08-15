@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0.0",
+  "status": "accepted_design_unqualified",
+  "decision": "D-013",
+  "construct": "practitioner_facing_agent_bundle_reliability_across_execution_contexts",
+  "domains": [
+    {"id": "A", "name": "filesystem_paths_and_artifacts", "weight": "1/6"},
+    {"id": "B", "name": "data_configuration_text_and_encoding", "weight": "1/6"},
+    {"id": "C", "name": "repository_inspection_and_code_change", "weight": "1/6"},
+    {"id": "D", "name": "version_control_workflows", "weight": "1/6"},
+    {"id": "E", "name": "build_test_package_and_dependency", "weight": "1/6"},
+    {"id": "F", "name": "runtime_service_process_and_system_operations", "weight": "1/6"}
+  ],
+  "families": [
+    {
+      "id": "C01", "domain": "A", "origin": "existing_v1_fixture",
+      "title": "precise_nested_artifact_construction",
+      "workflow_analogue": "Create an exact project artifact tree from a written specification.",
+      "context_link": "Path creation, quoting, and verification routes differ across bundles while the artifact is portable.",
+      "not_measured": "It does not measure repository history, builds, or persistent services.",
+      "instances": ["C01-I01", "C01-I02", "C01-I03"],
+      "oracle": "The exact required tree and bytes exist and no unrequested artifacts exist.",
+      "counterpolicies": ["no_op", "partial_tree", "wrong_file_bytes", "extra_backup_artifact", "destructive_parent_edit"],
+      "demands": {"discovery_localization": "CONDITIONAL", "command_composition": "STRONG", "diagnosis_recovery": "ABSENT", "preservation_scope": "STRONG", "verification_tests": "CONDITIONAL", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C04", "domain": "A", "origin": "existing_v1_fixture",
+      "title": "recursive_artifact_inventory",
+      "workflow_analogue": "Inspect a heterogeneous directory tree and produce an exact derived inventory.",
+      "context_link": "Traversal, hidden-file handling, separators, and stable ordering expose bundle differences without mandating a command.",
+      "not_measured": "It does not measure semantic code edits or source-control state.",
+      "instances": ["C04-I01", "C04-I02", "C04-I03"],
+      "oracle": "The inventory has the exact portable records and all source bytes remain unchanged.",
+      "counterpolicies": ["no_op", "nonrecursive_scan", "omit_hidden_input", "modify_source", "extra_report"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "CONDITIONAL", "diagnosis_recovery": "CONDITIONAL", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C02", "domain": "B", "origin": "existing_v1_fixture",
+      "title": "quoted_csv_normalization",
+      "workflow_analogue": "Transform messy delimited records while preserving quoted delimiters and encodings.",
+      "context_link": "Available parsing routes, newline conventions, and quoting behavior differ across bundles.",
+      "not_measured": "It does not measure large-scale data performance or statistical correctness.",
+      "instances": ["C02-I01", "C02-I02", "C02-I03"],
+      "oracle": "The normalized table equals the semantic expected records and inputs remain byte-identical.",
+      "counterpolicies": ["no_op", "naive_delimiter_split", "wrong_newlines", "modify_input", "extra_debug_file"],
+      "demands": {"discovery_localization": "CONDITIONAL", "command_composition": "CONDITIONAL", "diagnosis_recovery": "CONDITIONAL", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C05", "domain": "B", "origin": "existing_v1_fixture",
+      "title": "recursive_configuration_merge",
+      "workflow_analogue": "Merge layered application configuration under explicit recursive semantics.",
+      "context_link": "Serialization tools and object models vary by environment while JSON semantics remain portable.",
+      "not_measured": "It does not measure live deployment configuration or secret management.",
+      "instances": ["C05-I01", "C05-I02", "C05-I03"],
+      "oracle": "The result matches the recursive semantic merge and both inputs remain unchanged.",
+      "counterpolicies": ["no_op", "shallow_merge", "replace_arrays", "modify_input", "malformed_output"],
+      "demands": {"discovery_localization": "ABSENT", "command_composition": "CONDITIONAL", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "CONDITIONAL"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C03", "domain": "C", "origin": "existing_v1_fixture",
+      "title": "semantic_symbol_rename",
+      "workflow_analogue": "Refactor a symbol across a small repository without rewriting prose lookalikes.",
+      "context_link": "Repository search, parsing, edit, and test routes vary across bundles.",
+      "not_measured": "It does not establish safety on large repositories or compiled languages.",
+      "instances": ["C03-I01", "C03-I02", "C03-I03"],
+      "oracle": "All code references change, protected prose remains exact, and every source file parses.",
+      "counterpolicies": ["no_op", "global_text_replace", "miss_one_reference", "syntax_break", "backup_file"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "CONDITIONAL", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "CONDITIONAL"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C06", "domain": "C", "origin": "new_v2_family",
+      "title": "cross_file_behavioral_bug_repair",
+      "workflow_analogue": "Diagnose and repair a behavioral bug spanning implementation, caller, and tests while preserving the public contract.",
+      "context_link": "Search, test invocation, failure interpretation, and multi-file editing create authentic context-sensitive routes.",
+      "not_measured": "It does not measure greenfield design quality or production-scale maintenance.",
+      "instances": ["C06-I01", "C06-I02", "C06-I03"],
+      "oracle": "Pinned behavioral tests pass, protected API fixtures remain unchanged, and only allowed source files change.",
+      "counterpolicies": ["no_op", "modify_protected_contract", "special_case_fixture", "change_public_api", "extra_dependency_artifact"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "CONDITIONAL", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C07", "domain": "D", "origin": "new_v2_family",
+      "title": "semantic_merge_conflict_resolution",
+      "workflow_analogue": "Resolve a real three-way source conflict by preserving compatible intent from both branches.",
+      "context_link": "Git inspection, conflict parsing, editing, testing, and state verification vary across execution bundles.",
+      "not_measured": "It does not measure remote collaboration, rebasing policy, or code-review judgment.",
+      "instances": ["C07-I01", "C07-I02", "C07-I03"],
+      "oracle": "No conflict remains, the index contains the intended semantic merge, tests pass, and no commit is created.",
+      "counterpolicies": ["no_op", "choose_ours", "choose_theirs", "remove_conflict_markers_only", "commit_result"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C08", "domain": "D", "origin": "new_v2_family",
+      "title": "selective_bad_change_recovery",
+      "workflow_analogue": "Remove one known-bad tracked change while preserving unrelated staged and unstaged work.",
+      "context_link": "Git status/diff interpretation and path-safe recovery require environment-aware command composition.",
+      "not_measured": "It does not measure remote history rewriting or organizational branching policy.",
+      "instances": ["C08-I01", "C08-I02", "C08-I03"],
+      "oracle": "The bad semantic change is absent, all protected work and index states are preserved, and history is unchanged.",
+      "counterpolicies": ["no_op", "reset_all_work", "restore_wrong_file", "lose_staged_state", "create_commit"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "CONDITIONAL", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C09", "domain": "E", "origin": "new_v2_family",
+      "title": "failing_test_and_build_repair",
+      "workflow_analogue": "Use a reproducible failing test/build to locate and repair a packaging or source defect.",
+      "context_link": "Tool discovery, invocation, path behavior, and error recovery differ while the offline project and oracle are fixed.",
+      "not_measured": "It does not measure network package resolution or ecosystem-wide compatibility.",
+      "instances": ["C09-I01", "C09-I02", "C09-I03"],
+      "oracle": "The pinned offline test and build commands pass and protected tests/dependency pins remain unchanged.",
+      "counterpolicies": ["no_op", "delete_failing_test", "skip_test", "change_expected_output", "add_dependency_artifact"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C10", "domain": "E", "origin": "new_v2_family",
+      "title": "deterministic_local_package_assembly",
+      "workflow_analogue": "Repair metadata and assemble an installable local package with deterministic contents.",
+      "context_link": "Build entrypoints, archives, paths, and smoke-test invocation expose bundle differences without network access.",
+      "not_measured": "It does not measure publishing credentials, registries, or dependency supply-chain security.",
+      "instances": ["C10-I01", "C10-I02", "C10-I03"],
+      "oracle": "The expected archive contents and metadata are exact, a clean local install smoke test passes, and sources stay in scope.",
+      "counterpolicies": ["no_op", "archive_wrong_files", "modify_package_source", "nondeterministic_metadata", "network_fetch"],
+      "demands": {"discovery_localization": "CONDITIONAL", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C11", "domain": "F", "origin": "new_v2_family",
+      "title": "local_service_health_recovery",
+      "workflow_analogue": "Diagnose a misconfigured local service, start it on an assigned loopback port, verify health, and stop it cleanly.",
+      "context_link": "Process launch, environment variables, ports, logs, and cleanup differ materially across bundles.",
+      "not_measured": "It does not measure distributed systems, privileged services, or external networking.",
+      "instances": ["C11-I01", "C11-I02", "C11-I03"],
+      "oracle": "The health and behavior probes pass during execution, the corrected config persists, and no child process remains.",
+      "counterpolicies": ["no_op", "hardcode_probe_output", "bind_wrong_interface", "leave_process_running", "modify_service_source"],
+      "demands": {"discovery_localization": "STRONG", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    },
+    {
+      "id": "C12", "domain": "F", "origin": "new_v2_family",
+      "title": "bounded_batch_job_execution",
+      "workflow_analogue": "Configure and run a local batch job with scoped environment, captured diagnostics, exact output, and cleanup.",
+      "context_link": "Environment scoping, quoting, subprocess behavior, encoding, and exit evidence vary across bundles.",
+      "not_measured": "It does not measure cloud schedulers, GPUs, or long-running production jobs.",
+      "instances": ["C12-I01", "C12-I02", "C12-I03"],
+      "oracle": "The exact output and diagnostic record exist, secrets are absent, inputs are unchanged, and no process or temp artifact remains.",
+      "counterpolicies": ["no_op", "global_environment_mutation", "leak_secret", "wrong_job_mode", "leave_temp_artifact"],
+      "demands": {"discovery_localization": "CONDITIONAL", "command_composition": "STRONG", "diagnosis_recovery": "STRONG", "preservation_scope": "STRONG", "verification_tests": "STRONG", "environment_adaptation": "STRONG"},
+      "qualification_status": "NOT_ASSESSED"
+    }
+  ],
+  "qualification": {
+    "required_gates": ["Q0", "Q1", "Q2", "Q3", "Q4"],
+    "current_bank_admitted": false,
+    "outcome_based_selection_forbidden": true,
+    "fresh_pilot_after_outcome_relevant_change": true
+  },
+  "harness_prerequisites": [
+    "portable_pre_agent_fixture_operations_for_git_repository_and_index_state",
+    "post_agent_oracles_for_git_graph_index_and_worktree_state",
+    "managed_process_probe_and_cleanup_oracles_for_runtime_families",
+    "instance_identity_and_digest_in_plan_attempt_and_trial_records"
+  ]
+}

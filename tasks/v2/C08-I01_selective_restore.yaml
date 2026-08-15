@@ -1,0 +1,32 @@
+id: C08-I01
+family_id: C08
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Restore one bad worktree change without losing staged or unstaged work"
+prompt: |
+  In this Git repository, restore only `bad.txt` to its committed content.
+  Preserve `staged.txt` exactly as staged and preserve the unstaged change in
+  `notes.txt`. Do not create a commit and do not change staging state.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - {path: bad.txt, content: "safe baseline\n"}
+    - {path: staged.txt, content: "staged baseline\n"}
+    - {path: notes.txt, content: "notes baseline\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: write_files, files: {bad.txt: "broken worktree\n", staged.txt: "approved staged change\n"}}
+    - {type: git_stage, paths: [staged.txt]}
+    - {type: write_files, files: {notes.txt: "important unstaged notes\n"}}
+success_checks:
+  - {type: file_content_equals, path: bad.txt, content: "safe baseline\n"}
+  - {type: file_unchanged, path: staged.txt}
+  - {type: file_unchanged, path: notes.txt}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "staged.txt\n"}
+  - {type: environment_command, argv: [git, diff, --name-only], stdout: "notes.txt\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all"], stdout: " M notes.txt\nM  staged.txt\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "1\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

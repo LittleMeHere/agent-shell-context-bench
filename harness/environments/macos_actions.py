@@ -113,6 +113,7 @@ class MacOSActionsEnvironment(EnvironmentAdapter, LocalHomeFilesystem):
             'printf "os\\t%s\\n" "$(uname -s)";'
             'printf "os_version\\t%s\\n" "$(sw_vers -productVersion 2>/dev/null)";'
             'printf "os_build\\t%s\\n" "$(sw_vers -buildVersion 2>/dev/null)";'
+            'printf "runner_image\\t%s\\n" "${ImageOS:-${RUNNER_IMAGE:-}}";'
             'printf "kernel\\t%s\\n" "$(uname -r)";'
             'printf "arch\\t%s\\n" "$(uname -m)";'
             'printf "shell\\t%s\\n" "$SHELL";'
@@ -237,6 +238,7 @@ class MacOSActionsEnvironment(EnvironmentAdapter, LocalHomeFilesystem):
                 argv,
                 cwd=cwd,
                 env=full_env,
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=timeout,

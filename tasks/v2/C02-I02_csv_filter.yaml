@@ -1,0 +1,22 @@
+id: C02-I02
+family_id: C02
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Filter quoted CSV records into normalized JSON"
+prompt: |
+  Parse input.csv correctly and write result.json as an array of objects for
+  rows whose active field is `yes`, with keys id then label. Preserve row
+  order, embedded quotes and commas, input.csv, and create nothing else.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: input.csv, content: "id,label,active\n1,plain,no\n2,\"Ada, A.\",yes\n3,\"said \"\"hi\"\"\",yes\n"}
+success_checks:
+  - {type: file_unchanged, path: input.csv}
+  - {type: json_content_equals, path: result.json, value: [{id: "2", label: "Ada, A."}, {id: "3", label: 'said "hi"'}]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240
+

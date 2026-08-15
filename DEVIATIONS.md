@@ -34,6 +34,63 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
+## 2026-08-15 — add an isolated candidate V2 capability task bank
+
+**Pre-registered rule:** V1 registers five capability-task YAMLs (C01-C05)
+and nine seeded-error task families (T01-T09). The registered task files are
+frozen after `pre-registration-v1`.
+
+**Deviation:** Thirty-six candidate V2 capability-instance YAMLs are added
+under the separate `tasks/v2/` namespace: three instances in each of twelve
+families spanning six declared domains. No registered V1 task YAML is edited,
+and the V2 files remain ineligible for paid collection until the V2 amendment,
+qualification gates, frozen runtime matrix/plan, and new pre-data tag are
+accepted.
+
+**Reason:** The remediation audit showed that five purposively selected
+capability probes omit intended workflow domains and cannot support the stated
+broad finite-roster interpretation. The isolated candidate bank permits
+outcome-blind construct, predicate, portability, and operating-characteristic
+qualification without rewriting the historical V1 task definitions.
+
+**Effect on collected data:** none. No pilot or confirmatory data have been
+collected. All current task-bank oracle, counter-policy, and shakedown records
+are analysis-excluded qualification evidence.
+
+**Implementing commit:** the commit introducing this entry; candidate tasks,
+validators, qualification evidence, scheduler/analysis identities, tests, and
+this record land together so the deviation and implementation share one hash.
+
+---
+
+## 2026-08-15 — bind the frozen V1 sizing wrapper to the signed blinded export
+
+**Pre-registered rule:** `scripts/size_from_pilot.py` is the frozen V1 sizing
+implementation. Its command-line wrapper accepted a caller-supplied JSON list
+of blinded trial rows, while the registered sizing constants and numerical
+algorithm operated on those rows.
+
+**Deviation:** The wrapper now accepts pilot input only through the signed,
+plan-bound R-005 blinded export plus its pre-outcome commitment. Ad-hoc JSON
+lists and a pilot export without the matching commitment fail closed. The
+registered sizing constants, task-class filter, numerical algorithm, budget
+cap, and output calculation are unchanged.
+
+**Reason:** An unbound list allowed omission, duplication, substitution, or
+relabeling of pilot rows before the otherwise frozen sizing calculation. The
+R-005 exporter now supplies the exact 460-row roster, sealed-label mapping,
+source-manifest digest, signature, and commitment needed to verify that
+boundary. Requiring it prevents provenance replacement from silently changing
+the confirmatory N.
+
+**Effect on collected data:** none. No blinded pilot or confirmatory data have
+been collected. Historical pre-registration smoke records are not analysis
+inputs and are unaffected.
+
+**Implementing commit:** the commit introducing this entry; the wrapper,
+export/commitment validator, sizing-lock boundary, tests, and this record land
+together so the deviation and implementation share one hash.
+
 ## 2026-07-05 — agy tool-version pin converted to PIN-AT-COLLECTION-START
 
 **Pre-registered rule:** `docs/VERSIONS.md` pins Antigravity CLI (`agy`)

@@ -1,0 +1,27 @@
+id: C02-I03
+family_id: C02
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Normalize quoted CSV null and multiline fields"
+prompt: |
+  Parse input.csv as CSV and write result.json. Each object has integer id and
+  text; an empty text field becomes null. Preserve the embedded newline in the
+  quoted field, row order, input bytes, and create no extra files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - path: input.csv
+      content: |
+        id,text
+        1,"line one
+        line two"
+        2,
+        3,"tail"
+success_checks:
+  - {type: file_unchanged, path: input.csv}
+  - {type: json_content_equals, path: result.json, value: [{id: 1, text: "line one\nline two"}, {id: 2, text: null}, {id: 3, text: tail}]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240

@@ -1,9 +1,10 @@
-"""Per-trial log: the open-data substrate of the whole study.
+"""Final per-trial records: the open-data substrate of the study.
 
-Every trial — valid or invalid — writes exactly one immutable JSON file.
-The analysis (SAP) reads only these files; nothing is computed from
-in-memory state. If a number in the paper cannot be re-derived from this
-directory by a stranger, it does not go in the paper.
+Every fully measured trial writes one immutable JSON record.  The append-only
+outer journal in :mod:`harness.attempts` also preserves pre/post-invocation
+infrastructure failures and reconciles every started invocation to either a
+record or an explicit terminal failure.  Analysis must consume that joined
+on-disk evidence, never in-memory state.
 """
 
 from .writer import SCHEMA_VERSION, build_trial_record, write_trial

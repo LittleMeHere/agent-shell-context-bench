@@ -1,0 +1,37 @@
+id: C12-I01
+family_id: C12
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Run a scoped sum batch job without leaking its token"
+prompt: |
+  Run `job.py` with JOB_MODE=sum and JOB_TOKEN set to the exact content of
+  `secret.txt`. It must produce result.json and audit.json. Keep the environment
+  scoped to the child process, preserve all inputs, do not expose the token in
+  output, and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - &job
+      path: job.py
+      content: |
+        import hashlib, json, os
+        rows=json.load(open("records.json", encoding="utf-8")); mode=os.environ["JOB_MODE"]; token=os.environ["JOB_TOKEN"]
+        values=[row["value"] for row in rows]
+        answer={"sum":sum(values),"max":max(values),"count":len(values)}[mode]
+        json.dump({"mode":mode,"answer":answer},open("result.json","w",encoding="utf-8"),sort_keys=True)
+        json.dump({"mode":mode,"token_sha256":hashlib.sha256(token.encode()).hexdigest()},open("audit.json","w",encoding="utf-8"),sort_keys=True)
+    - {path: records.json, content: "[{\"value\":2},{\"value\":5},{\"value\":8}]\n"}
+    - {path: secret.txt, content: "violet-17"}
+success_checks:
+  - {type: file_unchanged, path: job.py}
+  - {type: json_content_equals, path: result.json, value: {mode: sum, answer: 15}}
+  - {type: file_exists, path: audit.json}
+  - {type: file_unchanged, path: records.json}
+  - {type: file_unchanged, path: secret.txt}
+  - {type: python_parses, path: job.py}
+  - {type: environment_command, argv: [python, -c, "import hashlib,json; a=json.load(open('audit.json')); assert a=={'mode':'sum','token_sha256':hashlib.sha256(b'violet-17').hexdigest()}; assert 'violet-17' not in open('audit.json').read() and 'violet-17' not in open('result.json').read()"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
