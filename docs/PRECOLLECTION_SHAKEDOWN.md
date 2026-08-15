@@ -1,7 +1,8 @@
 # Precollection qualification and resource shakedown
 
-**Status:** IN PROGRESS — 79/82 current-manifest calls recorded; three
-authenticated macOS transport calls pending (zero-quota qualification passes)
+**Status:** IN PROGRESS — 82/82 current-manifest calls recorded; authenticated
+macOS transport, artifact custody, and credential cleanup pass; D-004 manual
+resource-envelope review remains
 **Work items:** D-004, D-007, D-009, R-010, G4
 **Analysis status:** every artifact described here is excluded from pilot and
 confirmatory inference
@@ -166,19 +167,28 @@ manifested retry is required, and record it as retry-tail evidence.
 
 As of 2026-08-15, current candidate manifest
 `ee6f15cf6b677d24bb2612b4202468ffb2ae41086d68e6f2c8389b895020e023`
-has 79/82 private, analysis-excluded receipts: all 70 resource-core calls and
-all nine transport calls for pwsh 7, WSL2, and Linux native. The remaining
-three calls are the macOS transport slice. The first execution attempt failed
-before model invocation because the shakedown child lacked the schedule token
-required by R-016; that receipt is preserved, the manifest-bound token path is
-covered by regression tests, and the fresh retry completed every attempted
-slice.
+has 82/82 private, analysis-excluded receipts: all 70 resource-core calls and
+all 12 transport calls. The first macOS execution attempt failed before model
+invocation because the shakedown child lacked the schedule token required by
+R-016; that receipt is preserved, the manifest-bound token path is covered by
+regression tests, and the fresh retry completed every attempted slice.
 
 The credential-free `macos-26` qualification is separately complete: exact
 runtime presence, live adapter conformance, collection preflight, and all
 36 current-bank oracle completions passed in GitHub Actions run
-`31913265675`. That evidence does not substitute for the three authenticated
-subscription-CLI calls above.
+`31913265675`. The authenticated subscription-CLI preservation retry then
+passed in private Actions run `31915184579`: Claude Code, Codex, and `agy`
+each completed its manifest-bound C01 call with return code zero and five
+receipt-bound artifacts. Independent post-download validation matched every
+artifact path, byte count, and SHA-256 against its receipt. The three receipt
+SHA-256 values are
+`ff66fe46deae988a3267593984ebb7d19b3187172210a2d804b71d7b12c4e175`,
+`505a2cd62441c847574805dc84c525688963f856518a0d0cf793e95e04935451`,
+and `7be436fd467bfa1c3cd512464185a77efb3ca87bb75f71b93a7abc7d8ddfc3e6`.
+The first successful model-call run is retained as retry-tail evidence because
+its uploaded archive omitted hidden attempt artifacts; the corrected retry
+used hidden-file preservation. After verified private download, all temporary
+Actions secrets and hosted artifacts were deleted and absence was checked.
 
 ## 4. What remains manual
 

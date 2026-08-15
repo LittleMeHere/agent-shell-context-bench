@@ -142,7 +142,9 @@ remains readable, but a schema-1.2 V2 plan is rejected because it lacks this
 binding.
 
 These results qualify runtime presence and portable executable outcomes in
-all five environments. Authenticated route smokes and 79/82
-resource-shakedown calls are complete, but the three macOS authenticated
-transport calls, fresh-human solvability, transcript adjudication, and Q3
-difficulty remain. The matrix therefore remains `candidate`.
+all five environments. All 82/82 resource-shakedown calls are complete,
+including authenticated Claude Code, Codex, and `agy` transport calls on
+`macos-26` with receipt validation and credential cleanup. Fresh-human
+solvability, transcript adjudication, Q3 difficulty, the D-004 manual
+resource-envelope review, and final matrix/plan freeze remain. The matrix
+therefore remains `candidate`.

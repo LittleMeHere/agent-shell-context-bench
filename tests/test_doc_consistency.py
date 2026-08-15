@@ -277,7 +277,7 @@ def test_active_v2_shakedown_status_is_consistent():
         assert CURRENT_SHAKEDOWN_DIGEST in text, (
             f"{rel} must name the current 82-call shakedown manifest"
         )
-        assert "79/82" in text, f"{rel} must report the current receipt count"
+        assert "82/82" in text, f"{rel} must report the current receipt count"
 
 
 def test_historical_v1_readme_routes_current_work_to_v2_handoff():
