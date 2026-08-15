@@ -800,11 +800,11 @@ is too narrow to support the intended decision.
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is implemented with hashed child tokens and record/event validation; epoch/drift rules, independent review, and authenticated cross-host child smokes remain | R-007 and R-013 through R-016 VERIFIED plus cross-host dry runs |
 | W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, and finite-roster H1 point estimand implemented; D-005 interval and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
 | W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
-| W6 | Five-environment collection qualification | IN PROGRESS — exact zero-quota preflight and portable oracles pass on Windows PowerShell, pwsh, WSL, and a fresh disposable GCP host; the 82-call manifest dry-run passes; macOS and authenticated model/transcript/resource smokes remain | R-010 plus all collection-start checks VERIFIED |
+| W6 | Five-environment collection qualification | IN PROGRESS — exact zero-quota preflight and portable oracles pass in all five environments, including 36/36 on `macos-26`; the 82-call manifest dry-run passes; the three authenticated macOS model/transcript/resource smokes remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
 | W8 | Publication and redaction | OPEN | R-012 VERIFIED |
 | W9 | Paper and release | OPEN | preprint, archival release, data/code package, and deviation report published |
-| W10 | Capability-task construct validation | IN PROGRESS — all 36 candidate instances, current-bank four-host portable oracles, the 217-check executable Q2 matrix, structural validator, instance/slot-bound V2 pilot plan/export, production blocked order/epoch contract, and H1 reconstruction are implemented; Q0/Q2/Q4 remain PARTIAL | macOS and fresh-human Q1 evidence, Q2 transcript adjudication, blinded Q3, interval recovery, final Q4 freeze, and R-022 VERIFIED before pilot |
+| W10 | Capability-task construct validation | IN PROGRESS — all 36 candidate instances, current-bank five-host portable oracles, the 217-check executable Q2 matrix, structural validator, instance/slot-bound V2 pilot plan/export, production blocked order/epoch contract, and H1 reconstruction are implemented; Q0/Q2/Q4 remain PARTIAL | fresh-human Q1 evidence, Q2 transcript adjudication, blinded Q3, interval recovery, final Q4 freeze, and R-022 VERIFIED before pilot |
 
 Workstreams may proceed in parallel only when they do not depend on an open
 methodological decision. Implementation must not silently decide W1.
@@ -1915,3 +1915,26 @@ approved methodological decision.
   expected infrastructure-gated skips. Prompt-drift, Python compilation,
   public-safety, documentation-consistency, and `git diff --check` gates also
   pass before publication.
+
+### 2026-08-15 — published macOS current-bank qualification
+
+- Published the remediation implementation on draft PR 8, branch
+  `codex/pre-data-readiness`. Public safety passes 1,332 tests with nine
+  expected infrastructure skips at commit
+  `fbbf3d47f6a0363e7cb9bb213a31a08120338f77`.
+- GitHub runner-images issue 14409 documents a macOS 15+ local-network-privacy
+  stall in Python's `socket.getfqdn()` between bind and listen. A narrow
+  compatibility shim now applies the maintainer-recommended bypass only to
+  Darwin `service.py --once` loopback processes. Qualified task bytes and the
+  task-bank digest are unchanged.
+- GitHub Actions run `31913265675` passes exact Python 3.11.9, Node 24.12.0,
+  Claude Code 2.1.231, Codex 0.147.0, agy 1.1.13, live macOS adapter
+  conformance, exact zero-quota collection preflight, and all 36 portable
+  oracle completions on the `macos-26` ARM64 runner. Artifact `9254250620`
+  has archive SHA-256
+  `27c0f2a7dab2470bc11a22bd8bd177d3c352dda6430e358819faa08223723a05`.
+- Five-environment runtime presence and current-bank portable oracles are now
+  complete. R-010/G4 remain open because GitHub authentication does not supply
+  the three vendor subscription credentials: Claude Code, Codex, and agy must
+  each complete the remaining analysis-excluded macOS transport call with
+  credential cleanup. The shakedown receipt count remains 79/82.

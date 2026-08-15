@@ -1,6 +1,7 @@
 # Precollection qualification and resource shakedown
 
-**Status:** IN PROGRESS — 79/82 current-manifest calls recorded; macOS pending
+**Status:** IN PROGRESS — 79/82 current-manifest calls recorded; three
+authenticated macOS transport calls pending (zero-quota qualification passes)
 **Work items:** D-004, D-007, D-009, R-010, G4
 **Analysis status:** every artifact described here is excluded from pilot and
 confirmatory inference
@@ -172,6 +173,12 @@ before model invocation because the shakedown child lacked the schedule token
 required by R-016; that receipt is preserved, the manifest-bound token path is
 covered by regression tests, and the fresh retry completed every attempted
 slice.
+
+The credential-free `macos-26` qualification is separately complete: exact
+runtime presence, live adapter conformance, collection preflight, and all
+36 current-bank oracle completions passed in GitHub Actions run
+`31913265675`. That evidence does not substitute for the three authenticated
+subscription-CLI calls above.
 
 ## 4. What remains manual
 

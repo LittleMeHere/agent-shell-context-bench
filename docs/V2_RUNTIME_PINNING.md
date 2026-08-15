@@ -128,9 +128,11 @@ of native Windows PowerShell, native pwsh, WSL2, and fresh E4 Linux (144 oracle
 completions total, zero model calls). The combined current-bank artifact
 SHA-256 is
 `dfe021ef67f4f8ac4b79b796a7a90ab4b2548e7a35c5f795ff28bfac7fa85436`.
-The macOS run of this exact bank remains open; its workflow installs the same
-exact runtimes and runs the same conformance, preflight, and 36-oracle protocol
-without credentials.
+GitHub Actions run `31913265675` then passed the same protocol on the
+`macos-26` ARM64 runner: exact runtimes, live conformance, zero-quota
+collection preflight, and 36/36 oracle completions. The uploaded qualification
+artifact has ID `9254250620` and archive SHA-256
+`27c0f2a7dab2470bc11a22bd8bd177d3c352dda6430e358819faa08223723a05`.
 
 Plan schema 1.3 now makes the runtime boundary fail closed: candidate matrices
 cannot create V2 plans; the plan embeds all CFG1-CFG7 model/agent/CLI pins plus
@@ -139,8 +141,8 @@ with an externally supplied frozen matrix. Historical V1 plan schema 1.2
 remains readable, but a schema-1.2 V2 plan is rejected because it lacks this
 binding.
 
-These results qualify runtime presence and four-environment portable
-executable outcomes. Authenticated route smokes and 79/82 resource-shakedown
-calls are complete, but macOS, fresh-human solvability, transcript
-adjudication, and Q3 difficulty remain. The matrix therefore remains
-`candidate`.
+These results qualify runtime presence and portable executable outcomes in
+all five environments. Authenticated route smokes and 79/82
+resource-shakedown calls are complete, but the three macOS authenticated
+transport calls, fresh-human solvability, transcript adjudication, and Q3
+difficulty remain. The matrix therefore remains `candidate`.

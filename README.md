@@ -85,7 +85,7 @@ Per the methodology-vs-implementation discipline in DECISIONS, pre-registration 
 | Windows pwsh 7 env (E2) | Implemented — `Pwsh7Environment` subclass (overrides only the shell binary); conformance-verified live on pwsh 7.x |
 | Windows WSL2 env (E3) | Implemented — `WslEnvironment` (`wsl -d Ubuntu-24.04 --`, UNC host-view bridge); structural conformance verified |
 | Linux native env (E4) | Implemented — `LinuxNativeEnvironment` (SSH transport + tar sync-back); V1 and current V2 live transport/conformance evidence recorded. |
-| macOS env (E5) | Implemented — `MacOSActionsEnvironment`; the historical V1 smoke passed, while the current V2 exact-runtime/oracle/resource workflow remains a collection-start gate. |
+| macOS env (E5) | Implemented — `MacOSActionsEnvironment`; the current V2 exact-runtime zero-quota preflight and all 36 portable oracles pass on `macos-26`. The three authenticated vendor transport calls remain a collection-start gate. |
 
 Per-CLI / per-environment qualification gate for any future additions: SAP S5.
 
