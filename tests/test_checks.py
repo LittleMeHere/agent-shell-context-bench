@@ -279,6 +279,32 @@ def test_environment_command_bypasses_proxies_for_loopback():
     }
 
 
+def test_environment_command_adds_macos_python_compat(monkeypatch):
+    captured = {}
+
+    def executor(argv, *, cwd, timeout, env):
+        captured.update(argv=argv, cwd=cwd, timeout=timeout, env=env)
+        return ProcessResult(
+            argv=tuple(argv),
+            returncode=0,
+            stdout="",
+            stderr="",
+            duration_seconds=0.0,
+            timed_out=False,
+        )
+
+    monkeypatch.setattr("harness.checks.sys.platform", "darwin")
+    passed, results = evaluate_checks(
+        FilesystemSnapshot(files=frozenset(), dirs=frozenset()),
+        [{"type": "environment_command", "argv": ["python", "-V"]}],
+        environment_exec=executor,
+        environment_cwd="/sandbox",
+    )
+
+    assert passed, results
+    assert Path(captured["env"]["PYTHONPATH"]).name == "python_compat"
+
+
 # -- spec mutation safety ------------------------------------------------
 
 def test_no_extra_files_does_not_mutate_input_specs():

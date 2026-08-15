@@ -49,6 +49,7 @@ import ast
 import fnmatch
 import json
 import re
+import sys
 from datetime import datetime, timedelta
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -100,6 +101,22 @@ _ENVIRONMENT_CHECK_ENV: Mapping[str, str] = {
     "http_proxy": "",
     "no_proxy": "127.0.0.1,localhost,::1",
 }
+_PYTHON_COMPAT_DIR = Path(__file__).resolve().parent / "python_compat"
+
+
+def _environment_check_env() -> Mapping[str, str]:
+    """Return the isolated oracle environment, plus platform compatibility.
+
+    GitHub's macOS 15+ runners can stall in ``socket.getfqdn()`` between a
+    Python HTTP server's bind and listen calls.  The injected ``sitecustomize``
+    is deliberately limited to Darwin ``service.py --once`` processes and
+    loopback names, matching the runner-images maintainers' documented
+    workaround without changing frozen task bytes.
+    """
+    env = dict(_ENVIRONMENT_CHECK_ENV)
+    if sys.platform == "darwin":
+        env["PYTHONPATH"] = str(_PYTHON_COMPAT_DIR)
+    return env
 
 
 def check(name: str) -> Callable[[CheckFn], CheckFn]:
@@ -169,7 +186,7 @@ def _environment_command(
         argv,
         cwd=cwd,
         timeout=float(timeout),
-        env=_ENVIRONMENT_CHECK_ENV,
+        env=_environment_check_env(),
     )
     stdout = _normalise_lineendings(result.stdout or "")
     stderr = _normalise_lineendings(result.stderr or "")
