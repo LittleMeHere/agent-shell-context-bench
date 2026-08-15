@@ -96,6 +96,46 @@ _SERVICE_CONFIGS = {
     "C11-I03": {"path": "/live", "body": "alive"},
 }
 
+_SERVICE_DIAGNOSTIC_SCRIPT = r"""
+import json, subprocess, sys, time, urllib.request
+port = int(open('port.txt', encoding='utf-8').read())
+expected_path = sys.argv[1]
+child = subprocess.Popen(
+    [sys.executable, 'service.py', str(port), '--once'],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    text=True,
+)
+observed = None
+errors = []
+try:
+    for _ in range(20):
+        if child.poll() is not None:
+            break
+        try:
+            observed = urllib.request.urlopen(
+                f'http://127.0.0.1:{port}{expected_path}', timeout=.2
+            ).read().decode()
+            break
+        except Exception as exc:
+            errors.append(f'{type(exc).__name__}: {exc}')
+            time.sleep(.05)
+finally:
+    poll_before_cleanup = child.poll()
+    if poll_before_cleanup is None:
+        child.kill()
+    stdout, stderr = child.communicate(timeout=2)
+print(json.dumps({
+    'port': port,
+    'observed': observed,
+    'errors': errors,
+    'poll_before_cleanup': poll_before_cleanup,
+    'returncode': child.returncode,
+    'child_stdout': stdout,
+    'child_stderr': stderr,
+}, sort_keys=True))
+""".strip()
+
 _JOB_ENVS = {
     "C12-I01": {"JOB_MODE": "sum", "JOB_TOKEN": "violet-17"},
     "C12-I02": {"JOB_MODE": "max", "JOB_TOKEN": "amber-29"},
@@ -168,6 +208,30 @@ def _write_files(
         environment,
         sandbox,
         ["python", "-c", _WRITE_FILES_SCRIPT, _payload(dict(files))],
+    )
+
+
+def _service_diagnostic(
+    environment: object,
+    sandbox: SandboxHandle,
+    task: Mapping[str, Any],
+) -> str:
+    expected = _SERVICE_CONFIGS.get(str(task["id"]))
+    if expected is None:
+        return ""
+    result = environment.exec(
+        ["python", "-c", _SERVICE_DIAGNOSTIC_SCRIPT, expected["path"]],
+        cwd=sandbox.root,
+        timeout=10,
+        env={
+            "NO_PROXY": "127.0.0.1,localhost,::1",
+            "no_proxy": "127.0.0.1,localhost,::1",
+        },
+    )
+    return (
+        f"; service_diagnostic rc={result.returncode!r} "
+        f"timed_out={result.timed_out} stdout={result.stdout[:2000]!r} "
+        f"stderr={result.stderr[:2000]!r}"
     )
 
 
@@ -283,6 +347,7 @@ def qualify_task(
         failed = [check for check in oracle_checks if not check["passed"]]
         raise OracleQualificationError(
             f"{task['id']}: oracle failed registered checks: {failed!r}"
+            + _service_diagnostic(environment, sandbox, task)
         )
     return {
         "noop_passed": False,
@@ -340,6 +405,7 @@ def qualify_environment(env_id: str) -> dict[str, Any]:
                 failed = [check for check in oracle_checks if not check["passed"]]
                 raise OracleQualificationError(
                     f"{task['id']}: oracle failed registered checks: {failed!r}"
+                    + _service_diagnostic(environment, oracle_sandbox, task)
                 )
             records.append(
                 {
