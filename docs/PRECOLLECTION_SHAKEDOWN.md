@@ -190,6 +190,15 @@ its uploaded archive omitted hidden attempt artifacts; the corrected retry
 used hidden-file preservation. After verified private download, all temporary
 Actions secrets and hosted artifacts were deleted and absence was checked.
 
+The same-day execution-date review also rechecked the first-party policy pages
+and signed-in account controls for all three vendors. It confirmed the
+registered subscription paths, recorded current privacy/training, telemetry,
+and overage state, and explicitly pinned Antigravity's newly documented
+`useG1Credits` personal-credit fallback off. The sanitized private review is
+bound by SHA-256
+`4711f042f771613ccef31b8552a4302eda8ecbb0306999b758388b7f0575b15b`.
+R-010 is therefore VERIFIED; D-004 remains separate and open below.
+
 ## 4. What remains manual
 
 Before D-004 can close, the private operational record still needs:

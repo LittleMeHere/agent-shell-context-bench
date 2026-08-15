@@ -80,6 +80,39 @@ capture residual noted in the item):
    snapshot was captured (see the register). Repeat this re-confirmation if
    collection starts materially later than 2026-07-05.
 
+### V2 collection-start re-check — 2026-08-15
+
+The live first-party source and account-setting review required by R-010/G4
+was repeated before V2 collection. No governing access-path change was found:
+
+- Anthropic's Consumer Terms still identify an effective date of 2025-10-08;
+  Claude Code's legal page still identifies OAuth as the subscription-plan
+  route for ordinary first-party Claude Code use; and the Agent SDK / `claude
+  -p` article still says the announced separate-credit change is paused and
+  subscription limits remain in use.
+- OpenAI's Services Agreement still identifies an effective date of
+  2026-01-01 for ChatGPT Business, and the current Codex authentication page
+  documents ChatGPT sign-in as the subscription route, including device auth
+  and trusted headless credential transfer.
+- Google's Generative AI Prohibited Use Policy still identifies a last-
+  modified date of 2024-12-17. The current Antigravity documentation, now at
+  `/docs/cli/overview`, `/docs/cli/using`, and `/docs/cli/credits/`, continues
+  to document the first-party headless CLI and adds an explicit
+  `useG1Credits` personal-credit fallback control.
+
+The account review confirmed the registered subscription paths, current
+privacy/training and telemetry controls, and overage state without placing
+identifiers or credentials in this public repository. In particular, OpenAI
+and Anthropic model-improvement controls were Off, `agy` telemetry was Off,
+and paid-overage/automatic-reload paths were Off. Antigravity's newly
+documented `useG1Credits` setting is explicitly pinned `false`, so plan-quota
+exhaustion stops rather than silently buying personal credits. The sanitized
+private review is bound by SHA-256
+`4711f042f771613ccef31b8552a4302eda8ecbb0306999b758388b7f0575b15b`.
+This closes R-010's execution-date policy/account-setting criterion but does
+not close D-004's separate before/after provider-meter, timing, and resource-
+envelope requirements.
+
 ## Anthropic - configs #1 and #2
 
 **Configs:** Claude Code x `claude-opus-4-8`; Claude Code x
@@ -521,6 +554,8 @@ tools, not official `agy` or the Antigravity SDK.
 - Do not use third-party OAuth bridges such as OpenClaw, opencode, or
   cockpit-tools-style wrappers.
 - Throttle to roughly 50% of documented or observed plan limits.
+- Pin `useG1Credits: false` unless a separately accepted D-004 cash envelope
+  explicitly authorizes personal-credit fallback.
 - Pin agy model labels exactly as recorded in `docs/VERSIONS.md`.
 - Verify model routing at trial start.
 - Use sandboxed VMs and canary sentinels for destructive seeded-error trials,

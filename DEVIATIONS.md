@@ -34,6 +34,37 @@ Entry format (per the existing `docs/DECISIONS.md` convention):
 
 ---
 
+## 2026-08-15 — record current policy controls and disable silent Antigravity credit fallback
+
+**Pre-registered rule:** `docs/TOS_COMPLIANCE.md` registers three first-party
+subscription access paths, requires a collection-start policy/account-setting
+re-check, and requires provider throttling and pre-registered stopping rather
+than bypassing vendor controls.
+
+**Deviation:** The execution-date re-check is recorded in the frozen
+compliance document. It found no access-path change. Current Antigravity
+documentation now exposes `useG1Credits` as the control that permits personal-
+credit fallback after plan quota; the collection setting is explicitly pinned
+`false` unless a separately accepted D-004 cash envelope authorizes it. A
+sanitized private evidence note records the current subscription, privacy,
+telemetry, and overage states and is bound publicly by SHA-256.
+
+**Reason:** Leaving a newly documented fallback at an implicit default could
+turn plan-quota exhaustion into unregistered cash spending and violate the
+accepted nonselective resource-stop rule. An explicit false pin preserves the
+registered subscription-only path while the numeric D-004 envelope remains
+open.
+
+**Effect on collected data:** none. No pilot or confirmatory data have been
+collected. The authenticated shakedown is analysis-excluded qualification
+evidence.
+
+**Implementing commit:** the commit introducing this entry; the dated policy
+evidence, fail-closed fallback control, readiness update, and this record land
+together so the deviation and implementation share one hash.
+
+---
+
 ## 2026-08-15 — add an isolated candidate V2 capability task bank
 
 **Pre-registered rule:** V1 registers five capability-task YAMLs (C01-C05)

@@ -375,9 +375,8 @@ The staged human-anchor sampler and its analysis also remain open.
 
 ### R-010 — real authenticated E5 collection is unproven
 
-**Status:** IN PROGRESS — authenticated macOS execution, artifact custody, and
-credential cleanup verified; execution-date vendor-policy and account-setting
-capture remains
+**Status:** VERIFIED — authenticated macOS execution, artifact custody,
+credential cleanup, and execution-date policy/account-setting capture pass
 **Severity:** full-matrix feasibility blocker; infrastructure
 
 The credential-free macOS qualification is complemented by private Actions
@@ -386,9 +385,11 @@ subscription routes each completed one manifest-bound C01 call on an
 ephemeral `macos-26` runner. Independent post-download validation matched
 all artifact paths, byte counts, and SHA-256 values to the three receipts.
 Temporary Actions secrets and hosted artifacts were deleted after verified
-private custody and their absence was checked. The remaining R-010 work is
-the execution-date vendor-policy and account-setting capture required below;
-the authenticated transport itself is no longer an open technical gap.
+private custody and their absence was checked. The 2026-08-15 live first-party
+policy/account review confirmed the registered access paths, recorded current
+privacy, telemetry, and overage controls, and pinned Antigravity personal-
+credit fallback off. Its sanitized private record is bound by SHA-256
+`4711f042f771613ccef31b8552a4302eda8ecbb0306999b758388b7f0575b15b`.
 
 **Acceptance criterion:**
 
@@ -807,7 +808,7 @@ is too narrow to support the intended decision.
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is implemented with hashed child tokens and record/event validation; epoch/drift rules, independent review, and authenticated cross-host child smokes remain | R-007 and R-013 through R-016 VERIFIED plus cross-host dry runs |
 | W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimand, Clopper-Pearson-MOVER candidate, and exact sparse fallback implemented; full D-005 recovery/acceptance, epoch sensitivity, and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
 | W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
-| W6 | Five-environment collection qualification | IN PROGRESS — exact zero-quota preflight and portable oracles pass in all five environments, including 36/36 on `macos-26`; all 82/82 shakedown calls pass, including three authenticated macOS calls with artifact and credential cleanup validation; execution-date policy/account-setting capture and the D-004 resource envelope remain | R-010 plus all collection-start checks VERIFIED |
+| W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments, all 82/82 shakedown calls pass including three authenticated macOS calls, and execution-date policy/account controls are recorded; the agy day-one freeze and D-004 resource envelope remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
 | W8 | Publication and redaction | OPEN | R-012 VERIFIED |
 | W9 | Paper and release | OPEN | preprint, archival release, data/code package, and deviation report published |
@@ -832,7 +833,7 @@ agent to choose that parameter silently.
 | D-004 | maximum N and per-vendor resource envelope | PARAMETER OPEN — 60/10/30 envelope accepted | Observed shakedown duration/usage plus subscription and cash limits |
 | D-005 | confirmatory model and inference library | ACCEPTED DIRECTION — Family B finite-roster primary; broad models are sensitivities | Synthetic recovery, coverage, exact interval/resampling/fallback |
 | D-006 | IRR invocation surface and budget | ACCEPTED DIRECTION — staged probability audit; no automatic 600–700-label obligation | Reproducible backends, measured cost, staged sampler and routine cap |
-| D-007 | E5 credential and execution architecture | ACCEPTED — authenticated ephemeral path qualified; keep E5 closed through final G4 review | Execution-date policy/account-setting capture |
+| D-007 | E5 credential and execution architecture | QUALIFIED — authenticated ephemeral path, custody, cleanup, and execution-date controls pass; keep E5 closed through final G4 review | Day-one agy freeze and final collection release |
 | D-008 | exact public artifact and redaction policy | ACCEPTED — publication stays closed until tested builder/audit | Sample publication build and artifact inventory |
 | D-009 | collection randomization unit, runtime roster, and temporal-drift controls | ACCEPTED — blocked rounds, four fixed 180-slot epochs, global host order, fail-closed incomplete roster, role-preserving refresh, same-model S6 | D-005 epoch-sensitivity interval, host qualification, and final matrix digest |
 | D-010 | primary H2/H4 label, disagreement, and adjudication rule | ACCEPTED DIRECTION — frozen Coder 1 primary; Coder 2/human are sampled audit only; no result-favoring replacement | Staged trigger/cap/interval, backend identities, error sensitivities |
@@ -886,12 +887,12 @@ No later gate can override an earlier open gate.
 
 ### G4 — real environment qualification
 
-- [ ] R-010 VERIFIED.
-- [ ] Exact Claude Code and Codex versions installed on collection hosts.
+- [x] R-010 VERIFIED.
+- [x] Exact Claude Code and Codex versions installed on collection hosts.
 - [ ] `agy` day-one manifest/hash/archive/re-smoke/updater block complete.
-- [ ] All model labels and account paths verified.
-- [ ] Current policy, privacy, telemetry, and overage settings recorded.
-- [ ] Per-agent C01 shakedowns pass on the actual collection paths.
+- [x] All model labels and account paths verified.
+- [x] Current policy, privacy, telemetry, and overage settings recorded.
+- [x] Per-agent C01 shakedowns pass on the actual collection paths.
 - [ ] Inter-trial delays and resource envelope locked under D-004.
 
 **The blinded pilot may begin only after G0–G4 are complete.**
@@ -1958,9 +1959,14 @@ approved methodological decision.
   files; the preservation retry explicitly included and validated them.
 - After verified private download, all temporary Actions secrets and hosted
   artifacts were deleted and absence was checked. The active shakedown count
-  is now 82/82. R-010 remains in progress only for the execution-date
-  vendor-policy/account-setting capture; D-004 separately remains open for
-  provider-meter, timing, and resource-envelope evidence.
+  is now 82/82.
+- A same-day live first-party policy and signed-in account review confirmed the
+  registered subscription paths and recorded privacy, telemetry, and overage
+  controls. Antigravity's newly documented personal-credit fallback was
+  explicitly pinned off. The sanitized private review has SHA-256
+  `4711f042f771613ccef31b8552a4302eda8ecbb0306999b758388b7f0575b15b`.
+  R-010 is VERIFIED; D-004 separately remains open for provider-meter,
+  timing, and resource-envelope evidence.
 
 ### 2026-08-15 — D-005 executable fixed-roster interval candidate
 
