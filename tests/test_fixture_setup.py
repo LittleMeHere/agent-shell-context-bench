@@ -98,6 +98,7 @@ def test_free_loopback_port_fixture_is_written_and_unoccupied(tmp_path: Path):
         },
     )
     port = int((tmp_path / "runtime" / "port.txt").read_text(encoding="utf-8"))
+    assert 10240 <= port < 32768
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", port))
 

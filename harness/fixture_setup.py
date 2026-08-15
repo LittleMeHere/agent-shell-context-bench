@@ -54,9 +54,18 @@ target = (root / sys.argv[1]).resolve()
 if target == root or root not in target.parents:
     raise SystemExit('path escapes fixture root')
 target.parent.mkdir(parents=True, exist_ok=True)
-with socket.socket() as sock:
-    sock.bind(('127.0.0.1', 0))
-    port = sock.getsockname()[1]
+low, span = 10240, 22528
+start = int(sys.argv[2]) % span
+for offset in range(span):
+    port = low + ((start + offset) % span)
+    with socket.socket() as sock:
+        try:
+            sock.bind(('127.0.0.1', port))
+        except OSError:
+            continue
+        break
+else:
+    raise SystemExit('no free loopback fixture port available')
 target.write_text(str(port) + '\n', encoding='utf-8', newline='')
 """.strip()
 
@@ -128,7 +137,13 @@ def prepare_fixture(
             _run(
                 environment,
                 sandbox,
-                ["python", "-c", _FREE_PORT_SCRIPT, step["path"]],
+                [
+                    "python",
+                    "-c",
+                    _FREE_PORT_SCRIPT,
+                    step["path"],
+                    str(sandbox.trial_index),
+                ],
             )
         elif kind == "git_init_commit":
             if set(step) != {"type", "message"} or not isinstance(step["message"], str):
