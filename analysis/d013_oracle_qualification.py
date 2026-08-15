@@ -244,7 +244,14 @@ def apply_oracle(
         raise OracleQualificationError(f"no registered oracle for {task_id}")
 
 
-def _evaluate(environment: object, sandbox: SandboxHandle, task: Mapping[str, Any], baseline):
+def _evaluate(
+    environment: object,
+    sandbox: SandboxHandle,
+    task: Mapping[str, Any],
+    baseline,
+    *,
+    stop_on_failure: bool = False,
+):
     snapshot = environment.snapshot(sandbox)
     passed, checks = evaluate_checks(
         snapshot,
@@ -253,6 +260,7 @@ def _evaluate(environment: object, sandbox: SandboxHandle, task: Mapping[str, An
         environment_exec=environment.exec,
         environment_cwd=sandbox.root,
         snapshot_before=baseline,
+        stop_on_failure=stop_on_failure,
     )
     return passed, [asdict(check) for check in checks]
 
@@ -264,7 +272,9 @@ def qualify_task(
 ) -> dict[str, Any]:
     prepare_fixture(environment, sandbox, task["preconditions"])
     baseline = environment.snapshot(sandbox)
-    noop_passed, noop_checks = _evaluate(environment, sandbox, task, baseline)
+    noop_passed, noop_checks = _evaluate(
+        environment, sandbox, task, baseline, stop_on_failure=True
+    )
     if noop_passed:
         raise OracleQualificationError(f"{task['id']}: untouched fixture passed")
     apply_oracle(environment, sandbox, task)
@@ -300,7 +310,11 @@ def qualify_environment(env_id: str) -> dict[str, Any]:
             prepare_fixture(environment, noop_sandbox, task["preconditions"])
             noop_baseline = environment.snapshot(noop_sandbox)
             noop_passed, noop_checks = _evaluate(
-                environment, noop_sandbox, task, noop_baseline
+                environment,
+                noop_sandbox,
+                task,
+                noop_baseline,
+                stop_on_failure=True,
             )
             if noop_passed:
                 raise OracleQualificationError(

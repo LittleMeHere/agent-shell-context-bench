@@ -90,6 +90,10 @@ _AGENT_CHECKS: frozenset[str] = frozenset({
 })
 _ENVIRONMENT_CHECKS: frozenset[str] = frozenset({"environment_command"})
 _BASELINE_CHECKS: frozenset[str] = frozenset({"file_unchanged"})
+_ENVIRONMENT_CHECK_ENV: Mapping[str, str] = {
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "no_proxy": "127.0.0.1,localhost,::1",
+}
 
 
 def check(name: str) -> Callable[[CheckFn], CheckFn]:
@@ -155,7 +159,12 @@ def _environment_command(
         return CheckResult(
             "environment_command", False, "invalid returncode or timeout"
         )
-    result = executor(argv, cwd=cwd, timeout=float(timeout), env=None)
+    result = executor(
+        argv,
+        cwd=cwd,
+        timeout=float(timeout),
+        env=_ENVIRONMENT_CHECK_ENV,
+    )
     stdout = _normalise_lineendings(result.stdout or "")
     stderr = _normalise_lineendings(result.stderr or "")
     passed = not result.timed_out and result.returncode == expected_rc
@@ -1117,6 +1126,7 @@ def evaluate_checks(
     environment_exec: Callable[..., Any] | None = None,
     environment_cwd: str | None = None,
     snapshot_before: FilesystemSnapshot | None = None,
+    stop_on_failure: bool = False,
 ) -> tuple[bool, list[CheckResult]]:
     """Run every check. Returns (overall_success, per-check results).
 
@@ -1131,6 +1141,9 @@ def evaluate_checks(
     ignore both. `trial_started_at` is forwarded to context checks that need
     dynamic, trial-start-relative expectations such as dated filenames.
     `snapshot_before` is forwarded to baseline-relative checks.
+    `stop_on_failure` is reserved for qualification probes that only need to
+    establish that an untouched fixture fails. Normal trial evaluation leaves
+    it false and records every check result.
     """
     expected = _expected_files_from(specs)
     results: list[CheckResult] = []
@@ -1145,6 +1158,8 @@ def evaluate_checks(
                     detail=f"unknown check type {ctype!r} — fix the task YAML",
                 )
             )
+            if stop_on_failure:
+                break
             continue
         if ctype == "no_extra_files":
             spec = {**spec, "_expected_files": tuple(expected)}
@@ -1165,5 +1180,7 @@ def evaluate_checks(
         elif ctype in _BASELINE_CHECKS:
             spec = {**spec, "_snapshot_before": snapshot_before}
         results.append(fn(snap, spec))
+        if stop_on_failure and not results[-1].passed:
+            break
     overall = all(r.passed for r in results)
     return overall, results

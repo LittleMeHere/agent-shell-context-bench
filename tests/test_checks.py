@@ -26,7 +26,7 @@ if str(_BENCH) not in sys.path:
 
 from harness.checks import evaluate_checks, requires_agent_trace
 from harness.fs import local_snapshot
-from harness.types import FileFingerprint, FilesystemSnapshot
+from harness.types import FileFingerprint, FilesystemSnapshot, ProcessResult
 
 
 def _fp(size: int, content_hash: str = "x" * 64) -> FileFingerprint:
@@ -220,6 +220,57 @@ def test_missing_type_field_fails_closed():
     passed, results = evaluate_checks(snap, specs)
     assert not passed
     assert results[0].check_type == "<missing>"
+
+
+def test_stop_on_failure_skips_later_environment_command():
+    calls = []
+
+    def executor(argv, *, cwd, timeout, env):
+        calls.append((argv, cwd, timeout, env))
+        raise AssertionError("executor must not run after a prior failure")
+
+    passed, results = evaluate_checks(
+        _snap({}),
+        [
+            {"type": "file_exists", "path": "missing.txt"},
+            {"type": "environment_command", "argv": ["python", "-V"]},
+        ],
+        environment_exec=executor,
+        environment_cwd="sandbox",
+        stop_on_failure=True,
+    )
+
+    assert not passed
+    assert len(results) == 1
+    assert calls == []
+
+
+def test_environment_command_bypasses_proxies_for_loopback():
+    captured = {}
+
+    def executor(argv, *, cwd, timeout, env):
+        captured.update(argv=argv, cwd=cwd, timeout=timeout, env=env)
+        return ProcessResult(
+            argv=tuple(argv),
+            returncode=0,
+            stdout="",
+            stderr="",
+            duration_seconds=0.0,
+            timed_out=False,
+        )
+
+    passed, results = evaluate_checks(
+        _snap({}),
+        [{"type": "environment_command", "argv": ["python", "-V"]}],
+        environment_exec=executor,
+        environment_cwd="sandbox",
+    )
+
+    assert passed, results
+    assert captured["env"] == {
+        "NO_PROXY": "127.0.0.1,localhost,::1",
+        "no_proxy": "127.0.0.1,localhost,::1",
+    }
 
 
 # -- spec mutation safety ------------------------------------------------

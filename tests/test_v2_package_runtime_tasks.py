@@ -51,11 +51,14 @@ def _passes(
     task: dict,
     env: LocalArgvEnvironment,
     baseline,
+    *,
+    stop_on_failure: bool = False,
 ) -> bool:
     passed, _ = evaluate_checks(
         local_snapshot(root), task["success_checks"], sandbox_host_root=root,
         environment_exec=env.exec, environment_cwd=str(root),
         snapshot_before=baseline,
+        stop_on_failure=stop_on_failure,
     )
     return passed
 
@@ -107,7 +110,9 @@ def test_noop_fails_and_portable_oracle_solution_passes(path: Path, tmp_path: Pa
     env = LocalArgvEnvironment()
     prepare_fixture(env, _sandbox(tmp_path), task["preconditions"])
     baseline = local_snapshot(tmp_path)
-    assert _passes(tmp_path, task, env, baseline) is False
+    assert _passes(
+        tmp_path, task, env, baseline, stop_on_failure=True
+    ) is False
     _solve(tmp_path, task["id"], env)
     assert _passes(tmp_path, task, env, baseline) is True
     extra = tmp_path / "unexpected.tmp"
