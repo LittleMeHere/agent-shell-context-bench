@@ -91,7 +91,13 @@ _AGENT_CHECKS: frozenset[str] = frozenset({
 _ENVIRONMENT_CHECKS: frozenset[str] = frozenset({"environment_command"})
 _BASELINE_CHECKS: frozenset[str] = frozenset({"file_unchanged"})
 _ENVIRONMENT_CHECK_ENV: Mapping[str, str] = {
+    "ALL_PROXY": "",
+    "HTTPS_PROXY": "",
+    "HTTP_PROXY": "",
     "NO_PROXY": "127.0.0.1,localhost,::1",
+    "all_proxy": "",
+    "https_proxy": "",
+    "http_proxy": "",
     "no_proxy": "127.0.0.1,localhost,::1",
 }
 

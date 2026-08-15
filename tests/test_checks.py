@@ -268,7 +268,13 @@ def test_environment_command_bypasses_proxies_for_loopback():
 
     assert passed, results
     assert captured["env"] == {
+        "ALL_PROXY": "",
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": "",
         "NO_PROXY": "127.0.0.1,localhost,::1",
+        "all_proxy": "",
+        "https_proxy": "",
+        "http_proxy": "",
         "no_proxy": "127.0.0.1,localhost,::1",
     }
 

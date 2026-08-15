@@ -224,7 +224,13 @@ def _service_diagnostic(
         cwd=sandbox.root,
         timeout=10,
         env={
+            "ALL_PROXY": "",
+            "HTTPS_PROXY": "",
+            "HTTP_PROXY": "",
             "NO_PROXY": "127.0.0.1,localhost,::1",
+            "all_proxy": "",
+            "https_proxy": "",
+            "http_proxy": "",
             "no_proxy": "127.0.0.1,localhost,::1",
         },
     )
