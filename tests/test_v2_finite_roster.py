@@ -5,9 +5,10 @@ import dataclasses
 import numpy as np
 import pytest
 
-from analysis.v2_analysis_dataset import AnalysisTrial
+from analysis.v2_analysis_dataset import AnalysisDatasetError, AnalysisTrial
 from analysis.v2_finite_roster import (
     bonferroni_clopper_pearson_linear_interval,
+    finite_roster_epoch_sensitivity,
     finite_roster_h1_candidate,
     mover_clopper_pearson_linear_interval,
     mover_wilson_linear_interval,
@@ -149,3 +150,49 @@ def test_candidate_is_permutation_invariant() -> None:
         list(reversed(rows)), family_domains={"C01": "A", "C02": "B"}
     )
     assert dataclasses.asdict(actual) == dataclasses.asdict(expected)
+
+
+def test_epoch_sensitivity_preserves_planned_task_composition() -> None:
+    rows = [
+        dataclasses.replace(row, collection_epoch=0) for row in _balanced_trials(3)
+    ]
+    reports = finite_roster_epoch_sensitivity(
+        rows,
+        family_domains={"C01": "A", "C02": "B"},
+    )
+    assert [report.status for report in reports] == [
+        "estimated",
+        "not_applicable_no_capability_trials",
+        "not_applicable_no_capability_trials",
+        "not_applicable_no_capability_trials",
+    ]
+    assert reports[0].result is not None
+    assert reports[0].result.risk_difference == pytest.approx(1 / 3)
+    assert reports[1].result is None
+
+
+def test_epoch_sensitivity_fails_closed_on_partial_crossing() -> None:
+    rows = [
+        dataclasses.replace(row, collection_epoch=0)
+        for row in _balanced_trials(3)
+        if not (row.env_id == "linux_native" and row.family_id == "C02")
+    ]
+    reports = finite_roster_epoch_sensitivity(
+        rows,
+        family_domains={"C01": "A", "C02": "B"},
+        expected_epochs=(0,),
+    )
+    assert reports[0].status == "not_estimable_incomplete_crossing"
+    assert reports[0].result is None
+    assert "complete crossing" in str(reports[0].reason)
+
+
+def test_epoch_sensitivity_rejects_unregistered_epoch() -> None:
+    rows = [
+        dataclasses.replace(row, collection_epoch=4) for row in _balanced_trials(3)
+    ]
+    with pytest.raises(AnalysisDatasetError, match="unexpected collection epochs"):
+        finite_roster_epoch_sensitivity(
+            rows,
+            family_domains={"C01": "A", "C02": "B"},
+        )

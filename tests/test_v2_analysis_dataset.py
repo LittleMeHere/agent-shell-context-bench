@@ -12,6 +12,7 @@ from analysis.v2_analysis_dataset import (
     derive_analysis_trial,
     finite_roster_h1_point_estimate,
 )
+from analysis.v2_finite_roster import finite_roster_epoch_sensitivity
 from harness.outcomes import construct_agy_outcome_evidence, construct_binary_outcome
 from harness.scheduler import (
     AGY_MINI_PILOT_PHASE,
@@ -198,6 +199,31 @@ def test_complete_v2_plan_builds_and_equal_weight_point_estimator_recovers(v2_pl
         estimate.configurations,
         estimate.trials,
     ) == (6, 12, 3, 2, 144)
+
+
+def test_complete_v2_plan_epoch_sensitivity_matches_frozen_composition(v2_plan) -> None:
+    records = []
+    for cell in v2_plan.cells:
+        for index in range(cell.target_valid_trials):
+            failure = (
+                cell.task_id.startswith("C")
+                and cell.env_id == "windows_powershell"
+            )
+            records.append(_record(v2_plan, cell, index, success=not failure))
+    rows = build_analysis_dataset(v2_plan, records)
+    reports = finite_roster_epoch_sensitivity(rows)
+
+    assert [report.status for report in reports] == [
+        "estimated",
+        "estimated",
+        "estimated",
+        "not_applicable_no_capability_trials",
+    ]
+    for report in reports[:3]:
+        assert report.result is not None
+        assert report.result.fallback_used
+        assert report.result.risk_difference == pytest.approx(1.0)
+    assert reports[3].capability_trials == 0
 
 
 def test_finite_roster_estimator_equal_weights_domains_and_families(v2_plan) -> None:

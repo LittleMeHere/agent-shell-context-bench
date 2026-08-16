@@ -53,6 +53,10 @@ raw across-epoch failure-rate differences are not interpretable as drift.
 
 This contract closes the epoch-boundary and incomplete-slot policy portions of
 D-009. Production scheduler constants and the independent analysis builder
-derive the epoch directly from the digest-bound execution position. The exact
-statistical interval for epoch-specific context contrasts remains part of
-D-005, and authenticated host/model qualification remains an execution gate.
+derive the epoch directly from the digest-bound execution position. The
+executable D-005 candidate now reports each planned epoch separately with the
+same Clopper-Pearson-MOVER candidate or simultaneous exact sparse fallback,
+fails closed on partial crossings or unregistered epochs, and marks epoch four
+not applicable to H1 because it deliberately contains no capability tasks.
+Final D-005 interval acceptance and authenticated host/model dry-run evidence
+remain gates before R-013 can be VERIFIED.

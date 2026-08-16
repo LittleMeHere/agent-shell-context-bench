@@ -63,6 +63,16 @@ class FiniteRosterH1Candidate:
     trials: int
 
 
+@dataclass(frozen=True)
+class FiniteRosterEpochResult:
+    epoch_index: int
+    status: str
+    capability_trials: int
+    family_count: int
+    result: FiniteRosterH1Candidate | None
+    reason: str | None
+
+
 def _validated_arrays(
     event_count: Sequence[int] | NDArray[np.int64],
     total_count: Sequence[int] | NDArray[np.int64],
@@ -403,3 +413,104 @@ def finite_roster_h1_candidate(
         minimum_cell_n=minimum_cell_n,
         trials=int(np.sum(combined_totals)),
     )
+
+
+def finite_roster_epoch_sensitivity(
+    trials: Sequence[AnalysisTrial],
+    *,
+    family_domains: Mapping[str, str] | None = None,
+    expected_epochs: Sequence[int] = (0, 1, 2, 3),
+    confidence: float = 0.95,
+    minimum_primary_cell_n: int = 3,
+) -> tuple[FiniteRosterEpochResult, ...]:
+    """Report the fixed-roster H1 contrast separately in each planned epoch.
+
+    Epochs are never pooled or reweighted across task compositions. An epoch
+    without focal capability trials is explicitly not applicable; an epoch
+    with a partial environment/configuration/family/instance crossing is
+    explicitly not estimable.
+    """
+
+    resolved_epochs = tuple(expected_epochs)
+    if (
+        not resolved_epochs
+        or any(type(epoch) is not int or epoch < 0 for epoch in resolved_epochs)
+        or len(set(resolved_epochs)) != len(resolved_epochs)
+    ):
+        raise ValueError("expected_epochs must be unique nonnegative integers")
+    accepted_domains = dict(family_domains or accepted_family_domains())
+    unknown_epoch_rows = sorted(
+        {
+            row.collection_epoch
+            for row in trials
+            if row.valid_analysis_trial
+            and row.collection_epoch is not None
+            and row.collection_epoch not in resolved_epochs
+        }
+    )
+    if unknown_epoch_rows:
+        raise AnalysisDatasetError(
+            f"analysis rows contain unexpected collection epochs: {unknown_epoch_rows}"
+        )
+
+    reports: list[FiniteRosterEpochResult] = []
+    for epoch in resolved_epochs:
+        epoch_rows = [
+            row
+            for row in trials
+            if row.valid_analysis_trial and row.collection_epoch == epoch
+        ]
+        capability_rows = [
+            row
+            for row in epoch_rows
+            if row.task_category == "capability" and row.env_id in FOCAL_ENVIRONMENTS
+        ]
+        families = sorted({row.family_id for row in capability_rows})
+        if not capability_rows:
+            reports.append(
+                FiniteRosterEpochResult(
+                    epoch_index=epoch,
+                    status="not_applicable_no_capability_trials",
+                    capability_trials=0,
+                    family_count=0,
+                    result=None,
+                    reason="planned_epoch_contains_no_focal_capability_trials",
+                )
+            )
+            continue
+        unknown_families = sorted(set(families) - set(accepted_domains))
+        if unknown_families:
+            raise AnalysisDatasetError(
+                f"epoch {epoch} contains unknown capability families: {unknown_families}"
+            )
+        epoch_domains = {family: accepted_domains[family] for family in families}
+        try:
+            result = finite_roster_h1_candidate(
+                capability_rows,
+                family_domains=epoch_domains,
+                confidence=confidence,
+                minimum_primary_cell_n=minimum_primary_cell_n,
+            )
+        except AnalysisDatasetError as exc:
+            reports.append(
+                FiniteRosterEpochResult(
+                    epoch_index=epoch,
+                    status="not_estimable_incomplete_crossing",
+                    capability_trials=len(capability_rows),
+                    family_count=len(families),
+                    result=None,
+                    reason=str(exc),
+                )
+            )
+        else:
+            reports.append(
+                FiniteRosterEpochResult(
+                    epoch_index=epoch,
+                    status="estimated",
+                    capability_trials=len(capability_rows),
+                    family_count=len(families),
+                    result=result,
+                    reason=None,
+                )
+            )
+    return tuple(reports)

@@ -85,7 +85,7 @@ The frozen files were read, not modified.
 | Post-hoc D/E label | One auditable label per analysis trial, with coder provenance and evidence type | rubric, frozen prompt, planned coder sidecars | PARTIAL — backends and manifest selection are incomplete; primary label-selection rule is unstated | R-009, R-017 |
 | Code-E evidence | Distinguish canary-confirmed from transcript-evidenced E under the registered evidence rule | filesystem `escaped_paths`; transcript | CONTRADICTORY — the rater receives only prompt, binary outcome, and transcript, while the frozen prompt omits the special evidence rule | R-018 |
 | Frozen analysis dataset | Exact included trials and joined coder labels with source digests | `analysis/v2_analysis_manifest.py`; `scripts/v2_analysis_manifest.py` | PARTIAL — exact trial bytes and valid-slot membership are frozen/reconstructed; independent anchor and coder-label join remain | R-008, R-009 |
-| A1-A4 execution | Tested estimands, models, uncertainty, fallbacks, tables, and figures | `analysis/v2_analysis_dataset.py`; `analysis/v2_finite_roster.py`; D-001/D-005 evidence modules | PARTIAL — A1 finite-roster point estimate plus Clopper-Pearson-MOVER candidate and exact sparse fallback exist; final interval acceptance, epoch sensitivity, A2-A4, and reporting remain absent | R-008 |
+| A1-A4 execution | Tested estimands, models, uncertainty, fallbacks, tables, and figures | `analysis/v2_analysis_dataset.py`; `analysis/v2_finite_roster.py`; D-001/D-005 evidence modules | PARTIAL — A1 finite-roster point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and fixed planned-epoch sensitivity exist; final interval acceptance, A2-A4, and reporting remain absent | R-008 |
 | Publication dataset | Deterministic redacted release preserving inferential evidence | policy only | ABSENT | R-012 |
 
 ## 4. Canonical raw fields and required derived variables
@@ -124,7 +124,7 @@ The frozen files were read, not modified.
 | `primary_spiral_code` | approved coder/adjudication rule joined by full trial identity and transcript digest | OPEN DECISION |
 | `is_DE` | primary code is D or E, with E evidence class separately retained | ABSENT |
 | `task_weight` | equal domain, family, instance, and configuration weighting for the accepted finite roster | IMPLEMENTED for the A1 point estimate and executable D-005 interval candidate; final acceptance remains open |
-| `collection_epoch` | accepted four-epoch rule derived from digest-bound plan position; observed runtime changes are additional reported boundaries | IMPLEMENTED in scheduler constants and independent dataset reconstruction; D-005 interval pending |
+| `collection_epoch` | accepted four-epoch rule derived from digest-bound plan position; observed runtime changes are additional reported boundaries | IMPLEMENTED in scheduler constants, independent dataset reconstruction, and fixed epoch-specific candidate intervals; final D-005 acceptance pending |
 
 The analysis builder must fail closed if any required variable is missing,
 ambiguous, foreign, duplicated, or inconsistent. It must never repair such a

@@ -324,16 +324,20 @@ schema rejection does not depend on the shared constant.
 
 ### R-008 — confirmatory analysis is only partially implemented
 
-**Status:** IN PROGRESS — frozen source roster, record reconstruction, and H1 point estimand implemented; interval and A2-A4 pending
+**Status:** IN PROGRESS — frozen source roster, record reconstruction, H1 point
+estimate, interval candidate/fallback, and planned-epoch sensitivity
+implemented; acceptance and A2-A4 pending
 **Severity:** confirmatory-data blocker; research integrity
 
 `analysis/v2_analysis_manifest.py` now freezes and verifies the exact trial-
 record byte roster, and `analysis/v2_analysis_dataset.py` fails closed on
 foreign, duplicated, incomplete, excess, or outcome-contradictory records.
 It reconstructs the accepted D-011 evidence and computes the equal-domain,
-family, instance, and configuration H1 point estimand. The D-005 interval,
-fallback, epoch sensitivity, A2-A4, coder join, FDR, and generated reporting
-remain absent; see `docs/V2_ANALYSIS_PIPELINE.md`.
+family, instance, and configuration H1 point estimand. The D-005
+Clopper-Pearson-MOVER candidate, simultaneous exact sparse fallback, and fixed
+planned-epoch sensitivity are executable. Final interval acceptance, A2-A4,
+coder join, FDR, and generated reporting remain absent; see
+`docs/V2_ANALYSIS_PIPELINE.md`.
 
 **Acceptance criterion:**
 
@@ -471,7 +475,9 @@ report exists.
 
 ### R-013 — collection order may confound cells with time and backend drift
 
-**Status:** IN PROGRESS — accepted order, epoch, cross-host, and incomplete-slot rules are production-bound; D-005 sensitivity and qualified-host evidence pending
+**Status:** IMPLEMENTED — accepted order, epoch, cross-host, incomplete-slot,
+and planned-epoch analysis rules are production-bound; independent review and
+qualified-host dry-run evidence pending
 **Severity:** pilot blocker; methodology and operations
 
 The V2 scheduler now randomizes and binds valid slots in task-blocked rounds;
@@ -504,8 +510,12 @@ The accepted contract is recorded in
 `docs/D009_EPOCH_CONTRACT.md` and uses four prospectively fixed
 180-slot epochs. Each epoch has 18 complete blocks, 36 slots per environment,
 The scheduler fixes those boundaries and the independent analysis builder
-derives epoch identity from the registered position. The D-005 interval for
-the epoch-specific sensitivity remains pending.
+derives epoch identity from the registered position. The executable D-005
+candidate now reports each planned epoch separately, uses the same exact
+sparse fallback within thin epochs, refuses incomplete crossings, rejects
+unregistered epoch identities, and explicitly marks the registered fourth
+epoch not applicable to H1 because it contains seeded-error tasks only. Final
+D-005 interval acceptance remains pending.
 
 ### R-014 — timeout-as-failure enforcement and auditability
 
@@ -820,7 +830,7 @@ is too narrow to support the intended decision.
 | W1 | V2 statistical amendment | IN PROGRESS — evidence drafts in `docs/V2_STATISTICAL_DECISION_MEMO.md` and `docs/D005_FINITE_ROSTER_IRR_MEMO.md`; trace in `docs/HYPOTHESIS_TRACEABILITY_MATRIX.md` | R-001 through R-004 and R-017 through R-020 resolved; new pre-data tag cut |
 | W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review | R-005, R-006, and R-016 VERIFIED |
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is implemented with hashed child tokens and record/event validation; epoch/drift rules, independent review, and authenticated cross-host child smokes remain | R-007 and R-013 through R-016 VERIFIED plus cross-host dry runs |
-| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimand, Clopper-Pearson-MOVER candidate, and exact sparse fallback implemented; full D-005 recovery/acceptance, epoch sensitivity, and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
+| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and planned-epoch sensitivity implemented; full D-005 recovery/acceptance and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
 | W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
 | W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
