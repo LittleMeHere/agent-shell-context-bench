@@ -299,7 +299,8 @@ and is not treated as an operational blocker.
 
 ### R-007 — local scheduler suite is red
 
-**Status:** IMPLEMENTED — local acceptance passed; public CI pending
+**Status:** VERIFIED — focused scheduler/attempt suite and public CI pass;
+stale-schema rejection remains explicit
 **Severity:** pilot blocker; implementation
 
 Before the R-007 fix, the local result was:
@@ -882,7 +883,7 @@ No later gate can override an earlier open gate.
 
 ### G3 — collection implementation green
 
-- [ ] R-007 VERIFIED.
+- [x] R-007 VERIFIED.
 - [ ] R-013 VERIFIED.
 - [ ] R-014, R-015, and R-016 VERIFIED.
 - [ ] Outcome-blind dry runs pass on every host partition.
@@ -2018,3 +2019,7 @@ approved methodological decision.
 - R-010 is VERIFIED on corrected semantic evidence. D-004 remains parameter-
   open for the human 30-50-transcript timing exercise, separate D-006 coder
   shakedown, and final numeric provider/calendar caps.
+- R-007 is VERIFIED: the scheduler/attempt-preservation slice passes 78 tests;
+  the test helper derives the current writer schema while the explicit stale-
+  schema counterexample still fails closed; draft-PR `verify` and
+  `macos-e5-qualification` checks both pass at the corrected evidence head.

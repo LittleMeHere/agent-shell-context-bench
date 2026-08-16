@@ -241,10 +241,48 @@ implemented in `scripts/collection_preflight.py`,
 `scripts/resource_shakedown_plan.py`, and
 `scripts/resource_shakedown_run.py`, with the operator sequence in
 `docs/PRECOLLECTION_SHAKEDOWN.md`. The deterministic manifest contains 70
-resource-core calls and 12 nonduplicative transport calls. This is
-implementation evidence only: no provider-usage observation, paid shakedown,
-human timing sample, AI-coder backend, or resource decision is thereby
-accepted.
+resource-core calls and 12 nonduplicative transport calls.
+
+### 8.1 Corrected paid agent-under-test evidence (2026-08-15)
+
+The current semantic audit replaces receipt-only success with four required
+conditions: valid trial, process return code zero, no recognized pre-model
+authentication envelope, and exact artifact path/byte/hash agreement. After
+correcting Windows/macOS `agy` authentication and WSL2/Linux-native Claude
+authentication, all 82/82 manifest calls pass that rule. The composition has
+410 receipt-bound artifacts and 328 immutable attempt-state artifacts with no
+integrity mismatch.
+
+Ten authenticated resource calls per configuration produced these agent-
+process wall times (seconds):
+
+| Configuration | Total | p50 | p90 | Maximum |
+|---|---:|---:|---:|---:|
+| Claude Code / Opus 4.8 | 205.063 | 16.281 | 37.110 | 43.547 |
+| Claude Code / Sonnet 4.6 | 211.311 | 18.937 | 43.140 | 43.734 |
+| Codex / GPT-5.6 Sol | 198.906 | 18.109 | 35.578 | 40.719 |
+| Codex / GPT-5.6 Terra | 142.982 | 11.921 | 21.687 | 22.531 |
+| `agy` / Sonnet 4.6 | 145.688 | 12.485 | 19.109 | 19.891 |
+| `agy` / Gemini 3.1 Pro High | 236.952 | 17.531 | 36.765 | 37.765 |
+| `agy` / Gemini 3.6 Flash Medium | 96.546 | 8.828 | 12.984 | 15.625 |
+
+The Claude block's displayed meters moved 4% to 7% for the current session,
+12% to 13% for the all-model weekly window, and remained 21% for the displayed
+model-specific weekly window. The Antigravity observation spans diagnostics
+and corrected transport calls as well as the resource block, so it is a
+conservative upper bound: Gemini-group weekly remaining moved 99.95% to
+99.74%, while Claude/GPT-group weekly remaining moved 98.82% to 97.35%.
+Five-hour Antigravity windows replenished during the observation and are not
+treated as consumption deltas. Codex exposed no comparable numeric plan meter;
+extra-credit balance and automatic reload remained zero/off.
+
+These measurements close the paid agent-under-test timing and available-meter
+part of D-004. They do not accept a numeric N or calendar cap. The 30-50-case
+blinded human timing sample and the separate D-006 coder-backend shakedown
+remain prerequisites because coder and human work cannot be costed from agent-
+under-test calls. The private sanitized review containing custody, correction,
+and cleanup evidence is bound by SHA-256
+`a8f48c67f919d9265a9ee838d0f5789b10b1d71447c36789c83857857bbb246c`.
 
 ## 9. Reproduction
 
