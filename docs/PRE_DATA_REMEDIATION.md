@@ -348,8 +348,8 @@ remain absent; see `docs/V2_ANALYSIS_PIPELINE.md`.
 ### R-009 — IRR execution path is incomplete and selects the wrong universe
 
 **Status:** IN PROGRESS — manifest-bound selection/provenance and two pinned
-subscription-CLI backend candidates implemented; paid qualification, exact
-assignment, and staged audit pending
+subscription-CLI backend candidates implemented and paid-qualified; exact
+assignment and staged audit pending
 **Severity:** H2/H4 blocker; implementation and budget
 
 `scripts/irr_code.py` now consumes only the complete digest-verified V2
@@ -365,10 +365,11 @@ rewrite. Candidate Claude Code/Sonnet and Codex/Terra paths now use exact CLI
 version checks, strict output schemas, isolated temporary working directories,
 no fallback, and tool-use rejection. Codex copies OAuth material only into an
 automatically deleted temporary home and verifies the served model from its
-isolated session record. Five-stratum private paid qualification is prepared
-but not run pending explicit authorization to transmit analysis-excluded
-shakedown transcripts to the two providers. Exact coder assignment/acceptance,
-cost evidence, and the staged human-anchor sampler/analysis remain open.
+isolated session record. Five matched analysis-excluded calls per backend span
+all five workload strata: both paths returned 5/5 parseable labels, exact
+served-model matches, zero refusals, and zero prohibited tool calls, while
+agreeing on all five labels. Exact coder assignment/acceptance and the staged
+human-anchor sampler/analysis remain open.
 
 **Acceptance criterion:**
 
@@ -2036,6 +2037,7 @@ approved methodological decision.
   loading and active coding time separately, and is packet-bound by digest.
 - R-009 now has different-lineage Claude Code/Sonnet and Codex/Terra backend
   candidates with exact CLI/model identity, isolated execution, strict JSON,
-  usage receipts, zero retry/fallback, and fail-closed tool-use checks. Paid
-  five-stratum qualification remains unrun pending explicit private-transcript
-  disclosure authorization; no shakedown transcript was transmitted.
+  usage receipts, zero retry/fallback, and fail-closed tool-use checks. Their
+  paid five-stratum qualification returned 10/10 parseable, non-refused,
+  exact-model receipts, no tool use, and 5/5 cross-coder agreement. Temporary
+  credential/work directories were absent after both runs.

@@ -306,6 +306,36 @@ D-004 remains open until the researcher completes this worksheet and its
 active p50/p90, evidence-loading distribution, and uncertain-case rate are
 recorded.
 
+### 8.3 Paid D-006 coder-backend shakedown
+
+Five matched, analysis-excluded cases per backend cover the five workload
+strata. Each call used strict JSON, no retry or fallback, and the exact pinned
+served model. Both backends returned 5/5 parseable labels, with no refusal,
+model substitution, or prohibited tool use; they agreed on all five A-F
+labels. This is transport/cost evidence, not a five-case accuracy estimate.
+
+| Candidate backend | Calls | Total seconds | p50 | p90 | Usage observation |
+|---|---:|---:|---:|---:|---|
+| Claude Code 2.1.231 / Sonnet 4.6 | 5 | 80.482 | 15.304 | 19.742 | 10,676 cache-create + 15,341 cache-read + 13 uncached input tokens; 3,428 output tokens; displayed API-equivalent cost USD 0.127795 |
+| Codex CLI 0.147.0 / GPT-5.6 Terra | 5 | 38.397 | 7.445 | 8.981 | 79,706 input tokens, of which 11,008 cached; 525 output + 198 reasoning tokens; no numeric plan-cost meter |
+
+The private Claude and Codex receipts have shakedown digests
+`a2f4af13214feb9b77e10b89412b5e1da63d0cea5de81f564f6358c41bc1aa81`
+and
+`c22a367c730ca084bd2f75b81db9be5d5ef73d93aac3f19a1f3a0aa85613a6f2`,
+respectively. Their file SHA-256 values are
+`6094864fa8afaf836e935aafe490f229b5584186bf90193dda97d5fff5aa785c`
+and
+`8bfc7803194180fe8dab4c4bb6898bdfaae248a285e019f73e6a8b184445cde0`.
+Temporary Codex OAuth homes and Claude working directories were checked after
+the runs; zero remained.
+
+These measurements close D-004's separate coder-call costing requirement.
+They do not justify multiplying either five-call mean across an unfrozen
+full-population coding roster. D-006 must first freeze the primary/secondary
+assignment and probability-sampled routine cap; D-004 still requires the
+human timing result and final numeric provider/calendar envelope.
+
 ## 9. Reproduction
 
 Core tests:

@@ -1,10 +1,13 @@
 # V2 analysis-source, H1 reconstruction, and coder-input boundary
 
-**Status:** IMPLEMENTED CANDIDATE — interval/A2-A4, coder backends, and external anchoring remain open
+**Status:** IMPLEMENTED CANDIDATE — H1 interval and paid coder-backend
+qualification implemented; acceptance, A2-A4, and external anchoring remain
+open
 **Date:** 2026-08-15
 **Code:** `analysis/v2_analysis_dataset.py`,
 `analysis/v2_analysis_manifest.py`, `scripts/v2_analysis_manifest.py`,
-`scripts/irr_code.py`
+`scripts/irr_code.py`, `scripts/irr_cli_backends.py`,
+`scripts/coder_backend_shakedown.py`
 
 ## Implemented boundary
 
@@ -66,8 +69,8 @@ Every exclusive coder artifact binds:
 - cell, configuration, trial, valid-slot, execution-position, epoch, attempt,
   task, family, instance, and phrasing identity;
 - transcript, blinded coder-input, frozen-prompt, and raw-response hashes; and
-- logical coder, frozen model pin, observed model id, request id, status, code,
-  and rationale.
+- logical coder, frozen model/backend pin, independently observed model id,
+  request id, status, code, rationale, and backend usage/timing receipt.
 
 The output root must be external to this public repository and separate from
 the immutable collection root. A run-level binding prevents reuse for another
@@ -76,8 +79,14 @@ labels whose complete provenance and self-digest validate, then produces a
 deterministic label-set completion digest. Refusal, malformed output, backend
 failure, and model substitution are immutable missing-label states: the driver
 makes no automatic retry and has no fallback coder. Dry-run output is marked
-invalid. Real API execution is disabled until exact different-lineage backend
-identities and SDK paths are accepted and frozen.
+invalid. Real subscription-CLI execution requires explicit exact model and CLI
+version pins. The Claude path disables tools/session persistence and verifies
+the requested model in the provider receipt. The Codex path uses a temporary
+OAuth home and read-only isolated workspace, rejects tool events, and verifies
+the served model from the isolated session record before deleting that home.
+Neither backend retries or falls back. Five paid analysis-excluded calls per
+backend span all five workload strata and passed model, parse, refusal, and
+tool-use gates; exact primary/secondary assignment remains a pre-data choice.
 
 This boundary intentionally sends only the V1-compatible task prompt, binary
 outcome, and transcript, with no environment id. It hashes the exact packet
@@ -87,10 +96,12 @@ coder join remain pre-data decisions.
 
 ## Still open
 
-This implementation does not select or implement the D-005 primary interval,
-fallback, epoch sensitivity, missing-slot authority, A2-A4 models, coder
-backends, staged human-audit sampler/threshold/cap, coder join, FDR families,
-final tables/figures, or V2 confirmatory plan. It closes the record-
-reconstruction/H1 point-estimand gap and the R-009 selection/provenance gap; it
-does not make the remaining statistical or measurement decisions by
-implication.
+The executable D-005 candidate now includes the finite-roster H1 point
+estimate, Clopper-Pearson-MOVER interval, boundary-safe companion RR envelope,
+five-point decision classification, and simultaneous exact sparse fallback.
+It remains unaccepted pending the full dependence/attrition/epoch recovery
+envelope and independent review. Epoch sensitivity, A2-A4 models, exact coder
+assignment, staged human-audit sampler/threshold/cap, coder join, FDR families,
+final tables/figures, and the V2 confirmatory plan remain open. The implemented
+boundaries do not decide those remaining statistical or measurement choices
+by implication.

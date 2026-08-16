@@ -184,6 +184,8 @@ class CodexCliBackend(RaterBackend):
         auth_path: Path | None = None,
         timeout_seconds: int = 240,
     ) -> None:
+        if os.name == "nt" and executable == "codex":
+            executable = shutil.which("codex.cmd") or executable
         observed_cli = _version(executable)
         if observed_cli != cli_version:
             raise ValueError(
