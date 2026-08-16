@@ -325,8 +325,9 @@ schema rejection does not depend on the shared constant.
 ### R-008 — confirmatory analysis is only partially implemented
 
 **Status:** IN PROGRESS — frozen source roster, record reconstruction, H1 point
-estimate, interval candidate/fallback, and planned-epoch sensitivity
-implemented; acceptance and A2-A4 pending
+estimate, interval candidate/fallback, planned-epoch sensitivity, and a
+32-cell dependence/drift recovery envelope implemented; acceptance and A2-A4
+pending
 **Severity:** confirmatory-data blocker; research integrity
 
 `analysis/v2_analysis_manifest.py` now freezes and verifies the exact trial-
@@ -335,8 +336,12 @@ foreign, duplicated, incomplete, excess, or outcome-contradictory records.
 It reconstructs the accepted D-011 evidence and computes the equal-domain,
 family, instance, and configuration H1 point estimand. The D-005
 Clopper-Pearson-MOVER candidate, simultaneous exact sparse fallback, and fixed
-planned-epoch sensitivity are executable. Final interval acceptance, A2-A4,
-coder join, FDR, and generated reporting remain absent; see
+planned-epoch sensitivity are executable. The prospective N=24 recovery grid
+passes all 32 outcome-by-dependence/drift cells, with minimum coverage 95.52%,
+maximum wrong threshold declarations 0.70%, and maximum absolute point bias
+0.063 percentage points; see `docs/D005_H1_RECOVERY_ENVELOPE.md`. Final
+interval acceptance, broad-model sensitivity disposition, A2-A4, coder join,
+FDR, and generated reporting remain absent; see
 `docs/V2_ANALYSIS_PIPELINE.md`.
 
 **Acceptance criterion:**
@@ -2155,3 +2160,23 @@ approved methodological decision.
 - R-013 remains IMPLEMENTED pending final D-005 acceptance, the final frozen
   matrix/plan digests, and authenticated dry-run evidence for that exact plan.
   No methodology choice, runtime freeze, or benchmark collection occurred.
+
+### 2026-08-15 — D-005 H1 dependence, drift, and attrition recovery envelope
+
+- Added a prospective 32-cell recovery grid crossing four H1 outcome
+  structures with independent trials, common and differential balanced drift,
+  shared and context-specific domain/configuration states, positive and
+  adverse negative matched-slot dependence, and a combined operational
+  stress.
+- At N=24 under the exact split-N fixed roster, the Clopper-Pearson-MOVER
+  candidate passed every prospective screen: minimum coverage 95.52%, maximum
+  wrong five-point threshold declarations 0.70%, and maximum absolute point
+  bias 0.063 percentage points over 5,000 replicates per cell.
+- Attrition remains fail-closed: invalid attempts retry the same valid slot;
+  an exhausted cap yields an incomplete roster and no A1 decision. Analytic
+  availability probes show why the final D-004 retry cap must use measured
+  invalid rates rather than being selected for convenience.
+- D-005 remains unaccepted pending independent implementation review, the
+  broad-model sensitivity disposition, exact N, and researcher acceptance.
+  No benchmark outcomes, private artifacts, task bytes, or frozen V1
+  methodology were accessed or changed.

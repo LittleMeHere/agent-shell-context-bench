@@ -455,7 +455,11 @@ permutation invariance, exact singleton/boundary fallback, hierarchical
 weight recovery, and a deterministic regression that preserves both the
 Wilson falsification and the Clopper-Pearson-MOVER repair.
 
-D-005 is not yet accepted. Before freeze, the candidate still requires the
-full differential-error/attrition/epoch scenario envelope, Family A and
-multiway sensitivity comparison on the same draws, a second implementation
-review, and researcher acceptance of the exact interval and fallback.
+D-005 is not yet accepted. The subsequent prospective H1 recovery grid in
+`docs/D005_H1_RECOVERY_ENVELOPE.md` passes all 32 tested dependence, balanced
+drift, latent-state, and matched-slot cells; D-009 continues to treat cap-
+exhausted attrition as no decision rather than complete-case analysis. Before
+freeze, the candidate still requires the broad-model sensitivity disposition,
+a second implementation review, and researcher acceptance of the exact
+interval and fallback. H2 differential measurement error remains in the
+separate D-010 evidence chain.

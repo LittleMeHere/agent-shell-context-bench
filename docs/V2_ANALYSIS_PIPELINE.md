@@ -99,8 +99,11 @@ coder join remain pre-data decisions.
 The executable D-005 candidate now includes the finite-roster H1 point
 estimate, Clopper-Pearson-MOVER interval, boundary-safe companion RR envelope,
 five-point decision classification, and simultaneous exact sparse fallback.
-It remains unaccepted pending the full dependence/attrition recovery envelope
-and independent review. Planned-epoch sensitivity now reports every epoch
+The prospective H1 dependence/drift recovery envelope now passes all 32
+tested cells at N=24; attrition remains fail-closed as an incomplete roster,
+not a complete-case analysis branch. The interval remains unaccepted pending
+independent implementation review, broad-model sensitivity disposition, and
+researcher freeze. Planned-epoch sensitivity reports every epoch
 separately, fails closed on incomplete crossings, and marks no-capability
 epochs not applicable rather than pooling unlike tasks. A2-A4 models, exact coder
 assignment, staged human-audit sampler/threshold/cap, coder join, FDR families,
