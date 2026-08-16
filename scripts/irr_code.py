@@ -23,9 +23,9 @@ Integrity guarantees built in:
     immutable missing-label states. There is no automatic retry or fallback
     coder that could rewrite the accepted frozen-Coder-1 primary label.
 
-The actual model API call is intentionally a PINNED STUB (see RaterBackend).
-Like the Claude Code adapter, exact model ids + SDK are pinned at experiment
-start, not guessed here. `--dry-run` exercises all plumbing with no API.
+Real subscription-CLI backends are implemented in `irr_cli_backends.py`. The
+exact backend version and served model must be supplied and are bound into
+every output; `--dry-run` remains available for no-call plumbing.
 
 Usage:
   python scripts/irr_code.py --emit-frozen-prompt        # one-time, then commit
@@ -64,8 +64,8 @@ from harness.scheduler import CONFIRMATORY_PHASE, load_plan  # noqa: E402
 
 _FROZEN_PROMPT = _BENCH_ROOT / "scripts" / "irr_prompt.frozen.md"
 _VALID_CODES = {c.value for c in SpiralCode}
-CODER_LABEL_SCHEMA_VERSION = "1.0.0"
-CODER_RUN_SCHEMA_VERSION = "1.0.0"
+CODER_LABEL_SCHEMA_VERSION = "1.1.0"
+CODER_RUN_SCHEMA_VERSION = "1.1.0"
 _BINDING_NAME = ".coder-run-binding.json"
 _LOCK_NAME = ".coder-run.lock"
 _COMPLETE_NAME = "coder-run-complete.json"
@@ -143,6 +143,7 @@ class RaterResponse:
     observed_model_id: str
     refused: bool = False
     request_id: str | None = None
+    backend_metadata: Mapping[str, object] | None = None
 
 
 class RaterBackend(ABC):
@@ -414,6 +415,11 @@ def _make_label_record(
             response.observed_model_id if response is not None else None
         ),
         "request_id": response.request_id if response is not None else None,
+        "backend_metadata": (
+            dict(response.backend_metadata)
+            if response is not None and response.backend_metadata is not None
+            else None
+        ),
         "prompt_sha256": prompt_hash,
         "status": status,
         "code": code,
@@ -442,9 +448,9 @@ def _validate_label_record(
     expected_fields = {
         "schema_version", "purpose", "analysis_manifest_digest", "source",
         "transcript_sha256", "coder_input_sha256", "coder_id", "model_pin",
-        "observed_model_id", "request_id", "prompt_sha256", "status", "code",
-        "rationale", "raw_response", "raw_response_sha256", "error", "dry_run",
-        "coded_at", "label_digest",
+        "observed_model_id", "request_id", "backend_metadata", "prompt_sha256",
+        "status", "code", "rationale", "raw_response", "raw_response_sha256",
+        "error", "dry_run", "coded_at", "label_digest",
     }
     if set(raw) != expected_fields:
         raise ValueError("coder label has unknown or missing fields")
@@ -815,6 +821,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="externally anchored V2 analysis manifest")
     ap.add_argument("--out", type=Path,
                     help="external private coder-output root")
+    ap.add_argument("--backend", choices=["claude-cli", "codex-cli"],
+                    help="pinned real coder backend")
+    ap.add_argument("--model-id",
+                    help="exact model id requested from the real backend")
+    ap.add_argument("--backend-version",
+                    help="exact CLI --version output to bind")
+    ap.add_argument("--codex-auth", type=Path,
+                    help="optional private Codex auth.json source")
     ap.add_argument("--dry-run", action="store_true",
                     help="exercise plumbing with no API call")
     args = ap.parse_args(argv)
@@ -841,10 +855,28 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         backend: RaterBackend = DryRunBackend(args.coder)
     else:
-        raise SystemExit(
-            "real coder backends are not wired or frozen; resolve the R-009 "
-            "model/backend decision before creating any real labels"
-        )
+        if not args.backend or not args.model_id or not args.backend_version:
+            ap.error(
+                "real coding requires --backend, --model-id, and "
+                "--backend-version"
+            )
+        from scripts.irr_cli_backends import ClaudeCliBackend, CodexCliBackend
+
+        if args.backend == "claude-cli":
+            if args.codex_auth is not None:
+                ap.error("--codex-auth applies only to --backend codex-cli")
+            backend = ClaudeCliBackend(
+                args.coder,
+                model_id=args.model_id,
+                cli_version=args.backend_version,
+            )
+        else:
+            backend = CodexCliBackend(
+                args.coder,
+                model_id=args.model_id,
+                cli_version=args.backend_version,
+                auth_path=args.codex_auth,
+            )
 
     n = run_coder(
         backend,

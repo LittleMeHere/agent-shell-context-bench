@@ -373,8 +373,8 @@ def test_real_coding_refuses_nonconfirmatory_plan(
         )
 
 
-def test_cli_refuses_real_labels_until_backends_are_frozen(tmp_path: Path) -> None:
-    with pytest.raises(SystemExit, match="backends are not wired or frozen"):
+def test_cli_requires_explicit_real_backend_pins(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
         irr.main(
             [
                 "--coder", "coder1",

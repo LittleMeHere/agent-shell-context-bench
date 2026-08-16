@@ -347,20 +347,28 @@ remain absent; see `docs/V2_ANALYSIS_PIPELINE.md`.
 
 ### R-009 — IRR execution path is incomplete and selects the wrong universe
 
-**Status:** IN PROGRESS — manifest-bound selection/provenance and immutable missing-label handling implemented; backends and staged audit pending
+**Status:** IN PROGRESS — manifest-bound selection/provenance and two pinned
+subscription-CLI backend candidates implemented; paid qualification, exact
+assignment, and staged audit pending
 **Severity:** H2/H4 blocker; implementation and budget
 
 `scripts/irr_code.py` now consumes only the complete digest-verified V2
 analysis-manifest snapshot, selects its valid analysis population, and
 requires confirmatory phase for real coding. Each exclusive label artifact
 binds the plan/manifest, full trial and attempt identity, exact source bytes,
-transcript, blinded coder input, frozen prompt, model pin, observed model, and
-request identity. Exact reruns validate and resume existing artifacts;
+transcript, blinded coder input, frozen prompt, model/backend pin, independently
+observed served model, request identity, and backend usage/timing receipt. Exact
+reruns validate and resume existing artifacts;
 refusal, malformed output, backend error, and model substitution remain
 auditable missing-label states with zero automatic retries and no fallback
-rewrite. The command refuses real coding because the two exact different-
-lineage backends have not yet been selected, qualified, costed, and wired.
-The staged human-anchor sampler and its analysis also remain open.
+rewrite. Candidate Claude Code/Sonnet and Codex/Terra paths now use exact CLI
+version checks, strict output schemas, isolated temporary working directories,
+no fallback, and tool-use rejection. Codex copies OAuth material only into an
+automatically deleted temporary home and verifies the served model from its
+isolated session record. Five-stratum private paid qualification is prepared
+but not run pending explicit authorization to transmit analysis-excluded
+shakedown transcripts to the two providers. Exact coder assignment/acceptance,
+cost evidence, and the staged human-anchor sampler/analysis remain open.
 
 **Acceptance criterion:**
 
@@ -2023,3 +2031,11 @@ approved methodological decision.
   the test helper derives the current writer schema while the explicit stale-
   schema counterexample still fails closed; draft-PR `verify` and
   `macos-e5-qualification` checks both pass at the corrected evidence head.
+- A private 35-case D-004 timing worksheet now covers every seven-
+  configuration by five-workload-stratum crossing once, records evidence-
+  loading and active coding time separately, and is packet-bound by digest.
+- R-009 now has different-lineage Claude Code/Sonnet and Codex/Terra backend
+  candidates with exact CLI/model identity, isolated execution, strict JSON,
+  usage receipts, zero retry/fallback, and fail-closed tool-use checks. Paid
+  five-stratum qualification remains unrun pending explicit private-transcript
+  disclosure authorization; no shakedown transcript was transmitted.
