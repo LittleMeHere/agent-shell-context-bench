@@ -519,7 +519,9 @@ D-005 interval acceptance remains pending.
 
 ### R-014 — timeout-as-failure enforcement and auditability
 
-**Status:** IMPLEMENTED — collection and independent analysis-record reconstruction pass locally; external review pending
+**Status:** IMPLEMENTED — collection and independently derived analysis-record
+reconstruction pass 35 focused adversarial tests locally; external reviewer
+acceptance remains pending
 **Severity:** pilot blocker; implementation and construct validity
 
 Every frozen task predicate and the SAP state that a valid timed-out or
@@ -1119,6 +1121,22 @@ approved methodological decision.
 - R-014 remains IMPLEMENTED, not VERIFIED, because the frozen analysis builder
   must still reject contradictory legacy records independently under W4.
 - No frozen V1 methodology file was changed and no benchmark trial was run.
+
+### 2026-08-15 — R-014 analysis-side adversarial acceptance evidence
+
+- Re-read the registered timeout invariant in `HYPOTHESIS.md` and all 50 task
+  timeout policies, then traced the independently derived rule through the
+  runner, writer, and frozen analysis-record reconstruction paths.
+- Added analysis-boundary counterexamples proving that canonical timed-out and
+  otherwise incomplete records remain failures even when their checks pass,
+  while a forged timeout decision reason is rejected.
+- Focused evidence: 35 tests passed across `tests/test_outcomes.py` and
+  `tests/test_v2_analysis_dataset.py`.
+- This closes the previously missing local analysis-side acceptance evidence,
+  but does not substitute for the external reviewer required before R-014 can
+  move from IMPLEMENTED to VERIFIED.
+- No methodology file or benchmark task was changed, and no benchmark trial
+  was run.
 
 ### 2026-07-28 — R-007 local scheduler-suite repair
 

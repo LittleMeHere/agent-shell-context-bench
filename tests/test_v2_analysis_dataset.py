@@ -128,6 +128,38 @@ def test_analysis_reconstruction_rejects_timeout_that_claims_success(v2_plan) ->
         derive_analysis_trial(raw)
 
 
+@pytest.mark.parametrize(
+    ("timed_out", "decision_reason"),
+    [(True, "timed_out"), (False, "incomplete")],
+)
+def test_analysis_reconstruction_preserves_passing_checks_but_forces_failure(
+    v2_plan, timed_out, decision_reason
+) -> None:
+    raw = _record(v2_plan, v2_plan.cells[0], 0)
+    raw["agent"]["completed"] = False
+    raw["agent"]["process"] = {"timed_out": timed_out, "returncode": None}
+    raw["outcome"].update(
+        {"success": False, "checks_passed": True, "decision_reason": decision_reason}
+    )
+
+    row = derive_analysis_trial(raw)
+
+    assert row.binary_success_final is False
+    assert row.failed is True
+
+
+def test_analysis_reconstruction_rejects_forged_timeout_decision_reason(v2_plan) -> None:
+    raw = _record(v2_plan, v2_plan.cells[0], 0)
+    raw["agent"]["completed"] = False
+    raw["agent"]["process"] = {"timed_out": True, "returncode": None}
+    raw["outcome"].update(
+        {"success": False, "checks_passed": True, "decision_reason": "incomplete"}
+    )
+
+    with pytest.raises(AnalysisDatasetError, match="decision_reason contradicts"):
+        derive_analysis_trial(raw)
+
+
 def test_agy_d011_is_reconstructed_from_raw_cwd_evidence() -> None:
     plan = build_plan(AGY_MINI_PILOT_PHASE, agy_cli_version="0.2.6")
     cell = plan.cells[0]
