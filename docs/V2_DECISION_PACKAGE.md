@@ -45,7 +45,7 @@ amendment and tag pass their gates.
 | D-001 | Option D: finite-roster task-weighted risk difference, `delta_RD = 0.05`; report RR and both marginal rates as companions | Matches the stated prioritize/do-not-prioritize use and makes a precise negative result informative | Direction is ready; final interval depends on D-005 and population on D-013 |
 | D-002 | Option C: H2 is exploratory; report conditional D/E rates, RR/RD intervals, denominators, and coder sensitivities without a support/reject threshold | At base N=24, optimistic support for a true 3x effect is only about 64–67% with perfect labels and about 49% with a 98%-accurate reference | Ready as a scope decision; measurement implementation remains |
 | D-003 | Method 3: choose N from prospective simulations and the resource cap; use the pilot for instrument, nuisance-model, invalid-rate, and operational validation, not outcome-driven resizing | Avoids a fragile sealed adaptive-sizing service and keeps the null interpretable | Moderate-confidence recommendation; exact N still open |
-| D-004 | Preserve the private 60% planned / 10% retry / 30% untouched envelope per provider; accept a numeric `N_max`, attempt cap, calendar window, and nonselective stop rule only after the paid shakedown | Subscription calls are not homogeneous quota units | 82/82 current calls complete, including authenticated macOS transport; final provider-meter, timing, and usage-envelope review remains |
+| D-004 | Preserve the private 60% planned / 10% retry / 30% untouched envelope per provider; accept a numeric `N_max`, attempt cap, calendar window, and nonselective stop rule only after the paid shakedown | Subscription calls are not homogeneous quota units | Corrected semantic 82/82 audit and agent-under-test timing/available meters complete; human timing, coder shakedown, and final numeric provider/calendar caps remain |
 | D-005 | Family B finite-roster fixed-block analysis as primary; Family A GLMM and multiway task/configuration inference only as sensitivity analyses | Tasks/configurations are purposively selected, and seven configurations cannot identify a broad configuration superpopulation | Direction ready; primary estimator/bootstrap and fallback still need implementation and recovery tests |
 | D-006 | Redesign coder allocation jointly with exploratory H2/H4: one frozen primary coder on the analysis population, an independent probability sample for the second coder, and a probability-sampled human audit; no outcome-favoring adjudication | Two full-sample coders plus near-census human review is disproportionate to exploratory claims | Direction and bounded envelope accepted; exact backends, sampler/gate/cap, and timed human evidence remain |
 | D-007 | Keep E5 closed until each real subscription CLI authenticates and completes an analysis-excluded C01 on `macos-26` with credential cleanup | A credential-free workflow cannot qualify real subscription routing | Qualified: exact runtimes, live conformance, zero-quota preflight, 36/36 portable oracles, all three authenticated macOS calls, receipt validation, credential cleanup, and execution-date policy/account controls pass; final release still waits on the remaining G1-G4 gates |
@@ -118,8 +118,9 @@ requires a fresh pilot for the changed families.
 
 ### Accepted directions whose exact parameters still require evidence
 
-- exact `N_max`, calendar/vendor caps, and inter-trial delay: finish the three
-  macOS calls and review the complete paid shakedown evidence;
+- exact `N_max`, calendar/vendor caps, and inter-trial delay: complete the
+  blinded human timing sample and separate coder shakedown, then apply the
+  accepted 60/10/30 envelope to the corrected paid evidence;
 - final D-005 estimator, interval, and fallback: implementation recovery and
   coverage tests on the selected D-013 schedule;
 - D-006/D-010 exact different-lineage backends, evidence packet/post-processing
@@ -159,8 +160,9 @@ requires a fresh pilot for the changed families.
    the reduced D-010 probability sampler, gate, cap, and analysis join.
 6. Complete real-run custody verification for R-005 and independent review of
    the implemented R-006 sizing-lock binding and R-016 plan binding.
-7. **Five-host qualification and 82/82 calls complete:** finish the D-004
-   provider-meter, timing, and usage-envelope review.
+7. **Five-host qualification, semantic 82/82 audit, and agent-under-test
+   resource review complete:** finish the D-004 human timing sample, D-006
+   coder shakedown, and final numeric provider/calendar caps.
 8. Freeze the final runtime digest, V2 amendment, pilot plan, and analysis
    version; then—and only then—start pilot data collection.
 

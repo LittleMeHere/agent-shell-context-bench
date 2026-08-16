@@ -115,9 +115,11 @@ dedicated strict-host-key IAP/SSH transport.
 The analysis-excluded shakedown roster was regenerated against this matrix:
 82 calls, manifest digest
 `ee6f15cf6b677d24bb2612b4202468ffb2ae41086d68e6f2c8389b895020e023`.
-All 82 coordinates and task hashes passed the executor dry run. Seventy
-resource-core calls and nine non-macOS transport calls are now recorded; the
-three macOS transport calls remain.
+All 82 coordinates and task hashes passed the executor dry run. The corrected
+semantic composition now has 82/82 accepted calls: 70 resource-core and 12
+transport calls. Acceptance requires process return code zero and rejects
+known pre-model authentication envelopes; structural receipt presence alone
+is not qualification evidence.
 
 `analysis/d013_oracle_qualification.py` now provides one cross-environment
 oracle path rather than relying on scattered local test helpers. The exact
@@ -142,9 +144,10 @@ remains readable, but a schema-1.2 V2 plan is rejected because it lacks this
 binding.
 
 These results qualify runtime presence and portable executable outcomes in
-all five environments. All 82/82 resource-shakedown calls are complete,
-including authenticated Claude Code, Codex, and `agy` transport calls on
-`macos-26` with receipt validation and credential cleanup. Fresh-human
-solvability, transcript adjudication, Q3 difficulty, the D-004 manual
-resource-envelope review, and final matrix/plan freeze remain. The matrix
+all five environments. All 82/82 resource-shakedown calls pass corrected
+semantic review, including authenticated Claude Code, Codex, and `agy`
+transport calls on `macos-26`, corrected WSL2/Linux-native authentication
+paths, receipt validation, and credential cleanup. Fresh-human solvability,
+transcript adjudication, Q3 difficulty, the D-004 human timing/final cap, the
+D-006 coder shakedown, and final matrix/plan freeze remain. The matrix
 therefore remains `candidate`.

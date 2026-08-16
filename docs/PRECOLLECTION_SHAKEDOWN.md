@@ -1,8 +1,8 @@
 # Precollection qualification and resource shakedown
 
-**Status:** IN PROGRESS — 82/82 current-manifest calls recorded; authenticated
-macOS transport, artifact custody, and credential cleanup pass; D-004 manual
-resource-envelope review remains
+**Status:** IN PROGRESS — 82/82 current-manifest calls pass semantic
+authentication, process, validity, and artifact-integrity review; D-004 human
+timing, D-006 coder costing, final caps, and the day-one `agy` freeze remain
 **Work items:** D-004, D-007, D-009, R-010, G4
 **Analysis status:** every artifact described here is excluded from pilot and
 confirmatory inference
@@ -167,49 +167,57 @@ manifested retry is required, and record it as retry-tail evidence.
 
 As of 2026-08-15, current candidate manifest
 `ee6f15cf6b677d24bb2612b4202468ffb2ae41086d68e6f2c8389b895020e023`
-has 82/82 private, analysis-excluded receipts: all 70 resource-core calls and
-all 12 transport calls. The first macOS execution attempt failed before model
-invocation because the shakedown child lacked the schedule token required by
-R-016; that receipt is preserved, the manifest-bound token path is covered by
-regression tests, and the fresh retry completed every attempted slice.
+has 82/82 private, analysis-excluded calls with a newest accepted receipt. The
+semantic audit requires a valid trial, no harness error, process return code
+zero, no known pre-model authentication envelope, and exact receipt-bound
+artifact paths, byte counts, and SHA-256 values. It selects 70 corrected
+resource-core calls and 12 transport calls, covering 410 artifacts including
+328 immutable attempt-state records.
 
 The credential-free `macos-26` qualification is separately complete: exact
-runtime presence, live adapter conformance, collection preflight, and all
-36 current-bank oracle completions passed in GitHub Actions run
-`31913265675`. The authenticated subscription-CLI preservation retry then
-passed in private Actions run `31915184579`: Claude Code, Codex, and `agy`
-each completed its manifest-bound C01 call with return code zero and five
-receipt-bound artifacts. Independent post-download validation matched every
-artifact path, byte count, and SHA-256 against its receipt. The three receipt
-SHA-256 values are
-`ff66fe46deae988a3267593984ebb7d19b3187172210a2d804b71d7b12c4e175`,
-`505a2cd62441c847574805dc84c525688963f856518a0d0cf793e95e04935451`,
-and `7be436fd467bfa1c3cd512464185a77efb3ca87bb75f71b93a7abc7d8ddfc3e6`.
-The first successful model-call run is retained as retry-tail evidence because
-its uploaded archive omitted hidden attempt artifacts; the corrected retry
-used hidden-file preservation. After verified private download, all temporary
-Actions secrets and hosted artifacts were deleted and absence was checked.
+runtime presence, live adapter conformance, collection preflight, and all 36
+current-bank oracle completions passed in GitHub Actions run `31913265675`.
+Later semantic review found that the first 82-receipt composition had counted
+four pre-model authentication failures as task failures: the Windows and
+macOS `agy` paths and the WSL2/Linux-native Claude transports. The raw records
+remain preserved as diagnostic retry-tail evidence and are not accepted
+qualification records.
+
+Public commits `d8d97e8790ce38a1b5debecc08f3958f6f807aeb` and
+`27bf86f95ec2043dbdce0a29b523afba9c641fe7` make the exact observed `agy` and
+Claude authentication envelopes fail closed. Corrected private Actions runs
+`31919535320` (30 Windows `agy` resource calls) and `31919774650` (Claude,
+Codex, and `agy` on `macos-26`) passed explicit rejection of invalid records,
+nonzero CLI exits, and interactive authentication fallback. Manifest-bound
+WSL2 `agy` and WSL2/Linux-native Claude corrections also returned zero and
+passed artifact validation. This corrected composition is the semantic 82/82
+claim.
 
 The same-day execution-date review also rechecked the first-party policy pages
 and signed-in account controls for all three vendors. It confirmed the
 registered subscription paths, recorded current privacy/training, telemetry,
-and overage state, and explicitly pinned Antigravity's newly documented
-`useG1Credits` personal-credit fallback off. The sanitized private review is
-bound by SHA-256
-`4711f042f771613ccef31b8552a4302eda8ecbb0306999b758388b7f0575b15b`.
-R-010 is therefore VERIFIED; D-004 remains separate and open below.
+and overage state, and explicitly pinned Antigravity's `useG1Credits`
+personal-credit fallback off. Agent-under-test timing, available provider
+meters, integrity totals, correction history, and cleanup are in the corrected
+sanitized private review bound by SHA-256
+`a8f48c67f919d9265a9ee838d0f5789b10b1d71447c36789c83857857bbb246c`.
+Hosted artifact and temporary Actions-secret inventories are zero. R-010 is
+therefore VERIFIED on semantic evidence; D-004 remains separate and open below.
 
 ## 4. What remains manual
 
 Before D-004 can close, the private operational record still needs:
 
-- provider usage-meter observations immediately before and after each block;
-- any rate-limit, routing, or model-substitution message;
-- active-versus-wait wall time and invalid-attempt tails;
-- a 30-50-transcript human timing exercise after these non-analysis
-  transcripts exist; and
-- evidence that the proposed provider block fits its accepted window with the
-  retry reserve intact.
+- a 30-50-transcript human timing exercise using the preserved non-analysis
+  transcripts, including active p50/p90, evidence-loading time, and uncertain-
+  case frequency; and
+- the final numeric provider/calendar caps showing that each proposed block
+  fits the 60% planned window with 10% retry reserve and 30% untouched.
+
+Agent-under-test wall time, invalid-attempt/authentication tails, available
+provider-meter observations, routing/substitution review, and credential
+cleanup are complete. Five-hour windows that replenished during measurement
+are recorded as non-comparable rather than converted into false usage deltas.
 
 The AI-coder shakedown is separate because D-006 has not selected two
 reproducible backends. Do not substitute an agent-under-test call for a coder
