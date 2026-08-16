@@ -1,7 +1,7 @@
 # D-004/D-005 joint resource-feasibility memo
 
-**Status:** EVIDENCE DRAFT — no N, resource cap, model, audit budget, coder
-backend, task bank, or hypothesis scope is approved
+**Status:** EVIDENCE UPDATED — V2 direction is accepted; exact N, resource
+caps, audit parameters, and coder assignment remain open
 **Created:** 2026-08-06
 **Decisions informed:** D-002, D-004, D-005, D-006, D-010, and D-013
 **Code:** `analysis/d004_resource_feasibility.py`,
@@ -364,4 +364,5 @@ python -m analysis.d010_enriched_audit --replicates 500 --seed 27660806 --base-c
 
 No benchmark trial ran and no frozen V1 methodology, task, rubric prompt,
 scheduler, collection rule, label rule, N, audit budget, or resource cap
-changed. D-002, D-004, D-005, D-006, D-010, and D-013 remain OPEN.
+changed. The accepted V2 direction remains unchanged; its evidence-dependent
+D-004, D-005, D-006, and D-010 parameters remain open.

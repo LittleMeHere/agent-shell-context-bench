@@ -2054,8 +2054,8 @@ approved methodological decision.
   zero. Refreshed WSL credentials were removed/restored as appropriate, and
   copied Claude/Codex files were removed from the dedicated Linux VM.
 - R-010 is VERIFIED on corrected semantic evidence. D-004 remains parameter-
-  open for the human 30-50-transcript timing exercise, separate D-006 coder
-  shakedown, and final numeric provider/calendar caps.
+  open for the human 30-50-transcript timing exercise and final numeric
+  provider/calendar caps; the separate D-006 coder shakedown is complete.
 - R-007 is VERIFIED: the scheduler/attempt-preservation slice passes 78 tests;
   the test helper derives the current writer schema while the explicit stale-
   schema counterexample still fails closed; draft-PR `verify` and
