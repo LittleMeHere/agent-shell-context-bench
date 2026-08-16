@@ -476,8 +476,9 @@ report exists.
 ### R-013 — collection order may confound cells with time and backend drift
 
 **Status:** IMPLEMENTED — accepted order, epoch, cross-host, incomplete-slot,
-and planned-epoch analysis rules are production-bound; independent review and
-qualified-host dry-run evidence pending
+and planned-epoch analysis rules pass independent review; all five current-
+candidate no-call host partitions pass, while final D-005/matrix/plan freeze
+and authenticated exact-plan dry-run evidence remain
 **Severity:** pilot blocker; methodology and operations
 
 The V2 scheduler now randomizes and binds valid slots in task-blocked rounds;
@@ -515,7 +516,8 @@ candidate now reports each planned epoch separately, uses the same exact
 sparse fallback within thin epochs, refuses incomplete crossings, rejects
 unregistered epoch identities, and explicitly marks the registered fourth
 epoch not applicable to H1 because it contains seeded-error tasks only. Final
-D-005 interval acceptance remains pending.
+D-005 interval acceptance remains pending. Review evidence is recorded in
+`docs/R013_SCHEDULER_EPOCH_REVIEW.md`.
 
 ### R-014 — timeout-as-failure enforcement and auditability
 
@@ -2137,3 +2139,19 @@ approved methodological decision.
 - R-021 is VERIFIED; broader fresh-human, transcript, difficulty, and final
   family-admission evidence remains R-022. No frozen YAML was changed and no
   benchmark trial ran.
+
+### 2026-08-15 — R-013 independent scheduler and no-call partition review
+
+- Independently reviewed the accepted valid-slot unit, task-blocked global
+  order, four fixed epochs, host subsequences, runtime-boundary policy,
+  incomplete-roster rule, and planned-epoch analysis behavior.
+- The 92-test scheduler/analysis slice rejects missing/duplicate/forged slots,
+  partial crossings, and unregistered epochs while preserving exact balance.
+- A temporary outside-repository frozen projection of the current candidate
+  matrix generated the expected 540-cell/720-slot pilot plan. Side-effect-free
+  status for each of the five host partitions selected 108 cells and 144
+  planned positions; together they reproduce the global roster and created no
+  output root or model call.
+- R-013 remains IMPLEMENTED pending final D-005 acceptance, the final frozen
+  matrix/plan digests, and authenticated dry-run evidence for that exact plan.
+  No methodology choice, runtime freeze, or benchmark collection occurred.
