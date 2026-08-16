@@ -753,7 +753,9 @@ per task, so a pooled effect does not identify a general causal effect of
 
 ### R-021 — prose predicates and executable checks have no equivalence gate
 
-**Status:** IMPLEMENTED — canonical executable authority and fail-closed linter pass locally; independent task-level review pending
+**Status:** VERIFIED — all 50 tasks have one digest-bound executable H1
+authority; every historical clause/check is dispositioned and the independent
+task-level construct review plus adversarial suite pass
 **Severity:** pilot blocker; construct validity
 
 Each task YAML contains both a prose-like `binary_success_predicate` and the
@@ -762,20 +764,22 @@ but no machine-enforced clause-to-check mapping proves that the executable
 checks implement every H1 clause while excluding H2-only signals. Comments and
 manual review currently carry that burden, making silent drift possible.
 
-V2 now removes that duplicate semantic authority. Every task's
-`binary_success_predicate` must exactly declare that the ordered
-`success_checks` are the complete H1 predicate, aggregated by logical AND,
-with timeout/incomplete overridden to failure by the common outcome rule and
-manual H2/H4 rubric coding explicitly excluded from H1. The task-bank linter
-reads the live check registry and rejects unknown outcome-changing checks,
-predicate-schema additions or substitutions, inconsistent timeout/manual-
-rubric roles, missing exact-scope control, and unasserted initial inputs.
+V2 now removes that duplicate semantic authority. The 36 new instance YAMLs
+declare inline that ordered `success_checks` are the complete H1 predicate,
+aggregated by logical AND, with timeout/incomplete overridden by the common
+outcome rule and manual H2/H4 coding excluded. The 14 frozen historical YAMLs
+cannot be silently rewritten, so a digest-bound external overlay maps every
+legacy clause and executable check to that same authority or an explicit
+non-H1 disposition. The global authority linter reads the live check registry
+and rejects task/predicate/check drift, unmapped or extra clauses/checks,
+unknown check types, and inconsistent timeout/manual-rubric roles. The V2 bank
+linter additionally enforces exact scope and initial-input assertions.
 Every untouched fixture and all 36 registered oracle completions pass the one
 canonical check path locally and on the four currently qualified real
 environments. The 217-check executable Q2 matrix now covers all 36 independent
-valid alternates and every accepted H1-visible counter-policy. Remaining Q2
-work is transcript-level adjudication plus independent task-level construct
-review, not prose/executable predicate drift.
+valid alternates and every accepted H1-visible counter-policy. The independent
+predicate review is recorded in `docs/R021_TASK_PREDICATE_REVIEW.md`.
+Remaining transcript-level adjudication belongs to R-022, not predicate drift.
 
 **Acceptance criterion:**
 
@@ -2113,3 +2117,23 @@ approved methodological decision.
   provenance suite passes 124 tests.
 - R-016 is VERIFIED. The final V2 plan/runtime freeze and outcome-blind
   partition dry run remain R-013/D-009/G3 work; no benchmark trial ran.
+
+### 2026-08-15 — R-021 global predicate authority review and repair
+
+- Independent review falsified the prior all-task claim: the canonical inline
+  linter covered 36 new V2 instances, but five historical capabilities and all
+  nine V2-retained seeded-error YAMLs still carried their frozen prose
+  predicates without a V2 authority overlay.
+- Added a closed, digest-bound overlay for the 14 frozen YAMLs rather than
+  editing pre-registered task bytes. Every top-level legacy clause maps to
+  exact executable check indices, the common outcome rule, H2/H4-only
+  evidence, historical metadata, or an explicitly vacuous H1 clause.
+- The global validator now covers 50 tasks and 337 executable checks. It
+  rejects unmapped clauses/checks, frozen-byte/predicate/check drift, unknown
+  check types, invalid dispositions, and inline timeout/manual-role drift.
+- The task-level review records what every V2 family/instance and historical
+  task predicate measures and excludes. Missing T01-T04 positive/no-op pairs
+  were added. The focused predicate/Q2/doc suite passes 196 tests.
+- R-021 is VERIFIED; broader fresh-human, transcript, difficulty, and final
+  family-admission evidence remains R-022. No frozen YAML was changed and no
+  benchmark trial ran.

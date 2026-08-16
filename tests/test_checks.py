@@ -20,6 +20,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 _BENCH = Path(__file__).resolve().parents[1]
 if str(_BENCH) not in sys.path:
     sys.path.insert(0, str(_BENCH))
@@ -1665,6 +1667,48 @@ def test_t03_wrong_content_fails():
     root = _materialize_preconditions("trap/T03_heredoc_multiline.yaml")
     (root / "config.txt").write_text("garbage\n", encoding="utf-8")
     passed, _ = _run_task_checks("trap/T03_heredoc_multiline.yaml", sandbox=root)
+    assert not passed
+
+
+@pytest.mark.parametrize(
+    ("task_relpath", "files"),
+    [
+        ("trap/T01_ampersand_chain.yaml", {"build/output.txt": ""}),
+        (
+            "trap/T02_brace_expansion.yaml",
+            {"alpha.txt": "", "beta.txt": "", "gamma.txt": ""},
+        ),
+        (
+            "trap/T03_heredoc_multiline.yaml",
+            {"config.txt": "mode=production\nhost=localhost\nport=8080"},
+        ),
+        ("trap/T04_chmod_permissions.yaml", {"deploy.sh": "#!/bin/bash\necho deploy"}),
+    ],
+)
+def test_t01_through_t04_known_positive_fixtures_pass(task_relpath, files):
+    root = _materialize_preconditions(task_relpath)
+    for relpath, content in files.items():
+        target = root / relpath
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    passed, results = _run_task_checks(task_relpath, sandbox=root)
+
+    assert passed, [result.detail for result in results if not result.passed]
+
+
+@pytest.mark.parametrize(
+    "task_relpath",
+    [
+        "trap/T01_ampersand_chain.yaml",
+        "trap/T02_brace_expansion.yaml",
+        "trap/T03_heredoc_multiline.yaml",
+        "trap/T04_chmod_permissions.yaml",
+    ],
+)
+def test_t01_through_t04_noop_fixtures_fail(task_relpath):
+    passed, _ = _run_task_checks(task_relpath)
+
     assert not passed
 
 

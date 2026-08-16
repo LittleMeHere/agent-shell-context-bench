@@ -271,6 +271,19 @@ def test_active_v2_task_bank_digest_matches_current_task_bytes():
         )
 
 
+def test_all_registered_tasks_have_one_executable_predicate_authority():
+    from analysis.task_predicate_authority import validate_predicate_authority
+
+    evidence = validate_predicate_authority(
+        tasks_root=REPO / "tasks",
+        overlay_path=REPO / "config" / "v2-legacy-predicate-authority.json",
+    )
+    assert evidence.task_count == 50
+    assert evidence.inline_canonical_tasks == 36
+    assert evidence.legacy_overlay_tasks == 14
+    assert evidence.authority_digest in read("docs/R021_TASK_PREDICATE_REVIEW.md")
+
+
 def test_active_v2_shakedown_status_is_consistent():
     for rel in V2_SHAKEDOWN_DOCS:
         text = read(rel)

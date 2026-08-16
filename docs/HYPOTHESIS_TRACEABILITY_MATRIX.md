@@ -80,7 +80,7 @@ The frozen files were read, not modified.
 | Fresh independent attempt | Fresh sandbox and independent invocation for every trial | `harness/runner.py:run_cell()` and environment contracts | PRESENT in implementation; real-host qualification still required | R-010 |
 | Infrastructure validity | External measurement failures are invalid; agent-caused loss is a valid failure | SAP outcome construction; append-only attempt journal; `validity` and `measurement` log sections | PRESENT in implementation | — |
 | Timeout outcome | Any valid timeout/incomplete run is a binary failure | every task predicate and SAP timeout rule; `analysis/v2_analysis_dataset.py` | VERIFIED across collection, writer, and independent analysis reconstruction; external falsification accepted | R-014 |
-| Programmatic task outcome | Every requirement maps to the ordered executable check set under one common outcome rule, with known positive and adversarial cases | canonical task YAML predicate; task `success_checks`; live check registry in `harness/checks.py`; `analysis/d013_task_bank.py`; `tests/test_checks.py` | IMPLEMENTED — all 36 V2 tasks use one exact machine-checked authority declaration and unknown check types fail closed; independent final task review remains | R-021 |
+| Programmatic task outcome | Every requirement maps to the ordered executable check set under one common outcome rule, with known positive and adversarial cases | inline canonical predicates; digest-bound legacy overlay; task `success_checks`; live check registry; global authority/V2 bank linters; executable Q2 review | VERIFIED across all 50 tasks; broader family admission/construct qualification remains R-022 | R-021 |
 | agy H1 outcome | Same observable binary task outcome as every agent; transcript/Cwd evidence is separate | accepted D-011; `outcome.*`; `agy.v2_outcome_evidence`; `analysis/v2_analysis_dataset.py` | VERIFIED in runner/writer and independent analysis reconstruction; external falsification accepted | R-019 |
 | Post-hoc D/E label | One auditable label per analysis trial, with coder provenance and evidence type | rubric, frozen prompt, planned coder sidecars | PARTIAL — backends and manifest selection are incomplete; primary label-selection rule is unstated | R-009, R-017 |
 | Code-E evidence | Distinguish canary-confirmed from transcript-evidenced E under the registered evidence rule | filesystem `escaped_paths`; transcript | CONTRADICTORY — the rater receives only prompt, binary outcome, and transcript, while the frozen prompt omits the special evidence rule | R-018 |
@@ -174,7 +174,7 @@ but shares the raw-outcome, provenance, model, and implementation blockers.
 |---|---|---|---|
 | Claim | Among valid failed trials, the conditional D/E proportion is at least twice as high in the Windows context as in the Linux context | H2; SAP A2 | PRESENT |
 | Claim scope | All 14 tasks, both seeded-error phrasings, seven configurations; conditional on having failed | H2; SAP outcome construction | PRESENT |
-| Selection variable | Failure fixed programmatically before rubric coding | SAP | PARTIAL — R-014/R-019 outcome reconstruction is verified; blocked by R-021 and final dataset validation |
+| Selection variable | Failure fixed programmatically before rubric coding | SAP | PRESENT — R-014/R-019/R-021 outcome and predicate authority are verified; final dataset validation remains |
 | Denominator | Valid failed trials; pooled minimum 10 per context; per-config minimum 5 | SAP A2 | SPECIFIED |
 | Outcome | `is_DE = 1{primary code in D,E}` | SAP A2 | PARTIAL — primary code is not operationally selected |
 | Coder inputs | Enough evidence to apply A-F and distinguish code-E evidence type | SAP S3/S4; manifest-bound packet and hashes in `scripts/irr_code.py` | PARTIAL/CONTRADICTORY (R-018) — exact task-prompt/outcome/transcript bytes are selected from the frozen analysis manifest, blinded to environment, and provenance-bound, but the V2 canary/filesystem evidence class and post-coder rule remain undefined |
@@ -198,7 +198,7 @@ accepted, but no production label can yet be joined to the analysis dataset.
 |---|---|---|
 | Claim | On capability tasks, WSL2 on the registered Windows host lies between the Windows-context and Linux-context rates and is closer to Linux | PRESENT |
 | Population and weighting | Same valid C01-C05 task-weighted construction as H1a, pooled across seven configurations | SPECIFIED; dataset absent |
-| Raw outcome | Same `binary_success_final` as H1a | PARTIAL — R-014/R-019 outcome reconstruction is verified; blocked by R-021 and final dataset validation |
+| Raw outcome | Same `binary_success_final` as H1a | PRESENT — R-014/R-019/R-021 outcome and predicate authority are verified; final dataset validation remains |
 | Estimands | Three marginal failure probabilities, two signed differences, and `D_diff` | PRESENT |
 | Ordering decision | Both one-sided inequalities pass at 0.025 | PRESENT at high level |
 | Distance decision | `D_diff > 0` and clustered 10,000-resample interval excludes zero | PRESENT at high level |
