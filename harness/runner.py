@@ -369,7 +369,6 @@ def run_cell(
                                 ),
                             )
                         ):
-                            result.invalid = True
                             trace_error = (
                                 "agy brain transcript evidence is "
                                 f"{agy_outcome.brain_status}; registered H1 "

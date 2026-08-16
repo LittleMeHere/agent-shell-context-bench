@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import json
 import posixpath
+import re
 from dataclasses import dataclass, field
 
 from .adapters import agy as agy_mod
@@ -63,6 +64,11 @@ _FRAMING_BRAIN_EVENT_TYPES = {
 }
 _RECOGNIZED_BRAIN_EVENT_TYPES = (
     _TRACE_BRAIN_EVENT_TYPES | _FRAMING_BRAIN_EVENT_TYPES
+)
+_AUTH_FAILURE = re.compile(
+    r"\bauthentication required\b.*\b(?:authentication timed out|"
+    r"authentication failed or timed out)\b",
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -170,6 +176,7 @@ class AgyTrialRuntime:
         transcript cannot be located (agy did not run, or the env could not
         reach the home), `result` is left as the honest GAP-(1) degrade.
         """
+        self._mark_authentication_failure_invalid(result)
         brain_after = self._env.home_listdir(agy_mod.BRAIN_REL_ROOT)
         new_dirs = sorted(d for d in brain_after if d not in ctx.brain_before)
         text = self._read_brain_transcript(new_dirs) if len(new_dirs) == 1 else None
@@ -219,6 +226,27 @@ class AgyTrialRuntime:
             cwd_tags=cwd_tags,
             compliance=self._compliance(cwd_tags),
             scratch_escape=self._check_scratch_canary(ctx),
+        )
+
+    @staticmethod
+    def _mark_authentication_failure_invalid(result: AgentRunResult) -> None:
+        """Classify agy's interactive OAuth fallback as infrastructure failure.
+
+        A nonzero agent exit is ordinarily valid study behavior.  The pinned
+        CLI's exact sign-in fallback is different: it means no model was
+        invoked, so treating the resulting empty sandbox as an agent outcome
+        would contaminate every denominator.  Require both a nonzero process
+        exit and the paired authentication-required/timeout envelope to avoid
+        classifying a model response that merely discusses authentication.
+        Raw stdout/stderr remain preserved in the trial record.
+        """
+        process = result.process
+        evidence = "\n".join((process.stdout or "", process.stderr or ""))
+        if process.returncode in (None, 0) or _AUTH_FAILURE.search(evidence) is None:
+            return
+        reason = "agy authentication failed before model invocation"
+        result.harness_error = (
+            f"{result.harness_error}; {reason}" if result.harness_error else reason
         )
 
     # --- internals -------------------------------------------------------

@@ -119,7 +119,13 @@ def _adapter() -> AgyAdapter:
     return AgyAdapter("gemini-3.1-pro-high")
 
 
-def _result(commands=None, transcript: str = "prose stdout") -> AgentRunResult:
+def _result(
+    commands=None,
+    transcript: str = "prose stdout",
+    *,
+    returncode: int | None = 0,
+    stderr: str = "",
+) -> AgentRunResult:
     return AgentRunResult(
         agent_id="agy",
         model_id="gemini-3.1-pro-high",
@@ -128,7 +134,10 @@ def _result(commands=None, transcript: str = "prose stdout") -> AgentRunResult:
         commands=list(commands) if commands else [],
         process=ProcessResult(
             argv=("agy", "--print", "..."),
-            returncode=0, stdout=transcript, stderr="", duration_seconds=1.0,
+            returncode=returncode,
+            stdout=transcript,
+            stderr=stderr,
+            duration_seconds=1.0,
         ),
         wall_time_seconds=1.0,
         completed=True,
@@ -280,6 +289,40 @@ def test_after_trial_missing_brain_degrades_honestly():
     assert outcome.brain_candidate_count == 0
     assert outcome.cwd_tags == [] and outcome.compliance["commands"] == 0
     assert result.commands == [] and result.raw_transcript == "only prose"
+
+
+def test_after_trial_marks_interactive_oauth_timeout_invalid():
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    result = _result(
+        transcript="",
+        returncode=1,
+        stderr=(
+            "Authentication required. Please visit the URL to log in:\n"
+            "Waiting for authentication (timeout 60s)...\n"
+            "Error: authentication failed or timed out\n"
+        ),
+    )
+
+    outcome = rt.after_trial(ctx, result, _sandbox())
+
+    assert outcome.brain_status == "missing"
+    assert result.invalid is True
+    assert result.harness_error == "agy authentication failed before model invocation"
+    assert "Authentication required" in result.process.stderr
+
+
+def test_after_trial_keeps_unrelated_nonzero_agent_exit_valid():
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    result = _result(transcript="ordinary agent failure", returncode=1)
+
+    rt.after_trial(ctx, result, _sandbox())
+
+    assert result.invalid is False
+    assert result.harness_error is None
 
 
 def test_after_trial_ignores_preexisting_brain_dirs():
