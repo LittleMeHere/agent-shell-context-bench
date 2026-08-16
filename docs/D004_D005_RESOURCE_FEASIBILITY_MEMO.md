@@ -284,12 +284,34 @@ under-test calls. The private sanitized review containing custody, correction,
 and cleanup evidence is bound by SHA-256
 `a8f48c67f919d9265a9ee838d0f5789b10b1d71447c36789c83857857bbb246c`.
 
+### 8.2 Blinded human-timing packet prepared
+
+`scripts/human_timing_packet.py` now constructs the required costing exercise
+from the corrected, analysis-excluded resource records. It requires two clean
+replicates in every seven-configuration by five-workload-stratum cell, selects
+one deterministic replicate per crossing, randomizes the 35-case presentation
+order, and excludes explicit agent/model/environment/configuration metadata
+from the worksheet. The private browser worksheet records evidence-loading
+milliseconds, active coding milliseconds, A-F code, uncertainty, and a short
+rationale. It refuses public-repository output, invalid trials, nonzero exits,
+timeouts, incomplete crossing rosters, and overwrite of an existing packet.
+
+The prepared private packet has packet digest
+`57e64a486dfeed8d7514840200a4cede8574927d962dc177b48fb484dd53bf3d`;
+its browser worksheet is bound by SHA-256
+`24762da051116dd7850f951853b900447b2cc41f5c3f072bcdab04138048fab9`.
+The 35-case size is an operational timing design inside the required 30-50
+range, not an acceptance of the still-open production human-anchor sampler.
+D-004 remains open until the researcher completes this worksheet and its
+active p50/p90, evidence-loading distribution, and uncertain-case rate are
+recorded.
+
 ## 9. Reproduction
 
 Core tests:
 
 ```powershell
-python -m pytest tests/test_d004_resource_feasibility.py tests/test_d005_finite_roster_irr.py tests/test_d010_enriched_audit.py tests/test_collection_preflight.py tests/test_resource_shakedown_plan.py tests/test_resource_shakedown_run.py -q
+python -m pytest tests/test_d004_resource_feasibility.py tests/test_d005_finite_roster_irr.py tests/test_d010_enriched_audit.py tests/test_collection_preflight.py tests/test_resource_shakedown_plan.py tests/test_resource_shakedown_run.py tests/test_human_timing_packet.py -q
 ```
 
 Resource identities:
