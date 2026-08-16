@@ -16,6 +16,7 @@ Run: python -m pytest tests/ -q   (or: python tests/test_codex_conformance.py)
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -24,7 +25,10 @@ if str(_BENCH) not in sys.path:
     sys.path.insert(0, str(_BENCH))
 
 from harness.adapters.base import AgentAdapter
-from harness.adapters.codex import CodexAdapter
+from harness.adapters.codex import (
+    CodexAdapter,
+    _bundled_windows_codex_executable,
+)
 from harness.types import SandboxHandle
 from tests.conformance import assert_agent_adapter_conforms
 
@@ -32,7 +36,33 @@ from tests.conformance import assert_agent_adapter_conforms
 def test_codex_agent_conforms():
     obs = assert_agent_adapter_conforms(CodexAdapter("gpt-5.4-mini"))
     assert obs["agent_id"] == "codex"
-    assert obs["default_cli_path"] == "codex"
+    assert obs["default_cli_path"]
+    if os.name != "nt":
+        assert obs["default_cli_path"] == "codex"
+
+
+def test_codex_finds_native_executable_bundled_with_windows_npm_shim(
+    tmp_path: Path,
+):
+    shim = tmp_path / "codex.cmd"
+    shim.write_text("@echo off\n", encoding="utf-8")
+    native = (
+        tmp_path
+        / "node_modules"
+        / "@openai"
+        / "codex"
+        / "node_modules"
+        / "@openai"
+        / "codex-win32-x64"
+        / "vendor"
+        / "x86_64-pc-windows-msvc"
+        / "bin"
+        / "codex.exe"
+    )
+    native.parent.mkdir(parents=True)
+    native.write_bytes(b"pinned native binary")
+
+    assert _bundled_windows_codex_executable(str(shim)) == str(native.resolve())
 
 
 def test_codex_does_not_override_run():
@@ -51,7 +81,9 @@ def test_codex_build_invocation_pins_documented_flags():
         task_id="conformance", trial_index=0, env_id="conformance_env",
         root="/sandbox/root", host_root=Path("."),
     )
-    argv = CodexAdapter("gpt-5.5").build_invocation("do the task", sandbox)
+    argv = CodexAdapter("gpt-5.5", cli_path="codex").build_invocation(
+        "do the task", sandbox
+    )
 
     assert argv[0] == "codex", "argv[0] must be the resolved cli_path"
     assert argv[1] == "exec", "headless subcommand must be `exec`"
