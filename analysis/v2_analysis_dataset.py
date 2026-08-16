@@ -107,6 +107,7 @@ def _validate_agy(
     raw: Mapping[str, object],
     *,
     expected_outcome: object,
+    agent_induced_measurement_loss: bool,
 ) -> tuple[bool, str]:
     status = raw.get("brain_parse_status")
     if status not in {"present", "missing", "parse_error", "ambiguous"}:
@@ -160,9 +161,7 @@ def _validate_agy(
         timed_out=(expected_outcome.decision_reason == "timed_out"),
         brain_status=status,
         cwd_tags=tags if status == "present" else None,
-        agent_induced_measurement_loss=(
-            expected_outcome.decision_reason == "agent_induced_measurement_loss"
-        ),
+        agent_induced_measurement_loss=agent_induced_measurement_loss,
     )
     if evidence != reconstructed.as_log_dict():
         raise AnalysisDatasetError("agy D-011 evidence contradicts raw H1/Cwd evidence")
@@ -274,6 +273,7 @@ def derive_analysis_trial(record: Mapping[str, object]) -> AnalysisTrial:
         transcript_eligible, cwd_status = _validate_agy(
             _mapping(record.get("agy"), "agy"),
             expected_outcome=reconstructed,
+            agent_induced_measurement_loss=measurement_loss,
         )
     elif "agy" in record:
         raise AnalysisDatasetError("non-agy record contains agy evidence")

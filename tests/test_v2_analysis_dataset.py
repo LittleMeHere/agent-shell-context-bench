@@ -201,6 +201,56 @@ def test_agy_d011_is_reconstructed_from_raw_cwd_evidence() -> None:
         derive_analysis_trial(forged)
 
 
+def test_agy_incomplete_measurement_loss_preserves_both_evidence_channels() -> None:
+    plan = build_plan(AGY_MINI_PILOT_PHASE, agy_cli_version="0.2.6")
+    cell = plan.cells[0]
+    raw = _record(plan, cell, 0)
+    raw["agent"]["completed"] = False
+    raw["agent"]["process"] = {"timed_out": False, "returncode": None}
+    raw["measurement"] = {"status": "agent_induced_measurement_loss"}
+    raw["outcome"] = {
+        "success": False,
+        "checks_passed": None,
+        "decision_reason": "incomplete",
+        "checks": [],
+    }
+    evidence = construct_agy_outcome_evidence(
+        checks_passed=None,
+        completed=False,
+        timed_out=False,
+        brain_status="present",
+        cwd_tags=["cwd_in_sandbox"],
+        agent_induced_measurement_loss=True,
+    )
+    raw["agy"] = {
+        "brain_transcript_located": True,
+        "brain_conversation_candidates": 1,
+        "brain_parse_status": "present",
+        "brain_valid_event_count": 2,
+        "brain_malformed_line_count": 0,
+        "brain_shell_call_count": 1,
+        "brain_outcome_event_count": 1,
+        "cwd_compliance": {
+            "commands": 1,
+            "cwd_in_sandbox": 1,
+            "cwd_in_agy_scratch": 0,
+            "cwd_elsewhere": 0,
+            "sandbox_compliance_rate": 1.0,
+        },
+        "cwd_tags": [
+            {"index": 0, "cwd": "/work/sandbox", "tag": "cwd_in_sandbox"}
+        ],
+        "v2_outcome_evidence": evidence.as_log_dict(),
+    }
+
+    row = derive_analysis_trial(raw)
+
+    assert row.binary_success_final is False
+    assert row.failed is True
+    assert row.transcript_analysis_eligible is True
+    assert row.agy_cwd_status == "all_in_sandbox"
+
+
 def test_complete_v2_plan_builds_and_equal_weight_point_estimator_recovers(v2_plan) -> None:
     records = []
     for cell in v2_plan.cells:

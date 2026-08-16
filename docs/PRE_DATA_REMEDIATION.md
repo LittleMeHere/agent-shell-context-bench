@@ -519,9 +519,9 @@ D-005 interval acceptance remains pending.
 
 ### R-014 — timeout-as-failure enforcement and auditability
 
-**Status:** IMPLEMENTED — collection and independently derived analysis-record
-reconstruction pass 35 focused adversarial tests locally; external reviewer
-acceptance remains pending
+**Status:** VERIFIED — external falsification accepted the collection/writer/
+analysis invariant; its reachable combined incomplete-plus-measurement-loss
+counterexample was repaired and the 468-test outcome slice passes
 **Severity:** pilot blocker; implementation and construct validity
 
 Every frozen task predicate and the SAP state that a valid timed-out or
@@ -685,7 +685,9 @@ provenance without resolving R-018.
 
 ### R-019 — agy's H1 outcome depends on an undefined “task-completing” action
 
-**Status:** IMPLEMENTED — D-011 runner/writer and independent analysis-builder reconstruction pass locally; external review pending
+**Status:** VERIFIED — external falsification accepted the shared H1/evidence-
+channel invariant; its reachable analysis exception was repaired and the
+468-test outcome slice passes
 **Severity:** H1/H3 blocker; methodology and implementation
 
 The SAP requires agy success checks to pass and “at least the task-completing
@@ -709,9 +711,8 @@ the agy evidence section and H1 cannot be independently recreated; the writer
 also rejects contradictory nested/top-level H1 evidence. The frozen V2
 analysis builder now reconstructs the common outcome from raw completion,
 measurement, and check evidence; reconstructs Cwd status/counts from raw tags;
-and rejects forged nested or top-level D-011 fields. R-019 remains
-IMPLEMENTED rather than VERIFIED pending an independent review of that new
-analysis boundary.
+and rejects forged nested or top-level D-011 fields. The external review and
+repair are recorded in `docs/R014_R019_EXTERNAL_FALSIFICATION_REVIEW.md`.
 
 **Acceptance criterion:**
 
@@ -1137,6 +1138,26 @@ approved methodological decision.
   move from IMPLEMENTED to VERIFIED.
 - No methodology file or benchmark task was changed, and no benchmark trial
   was run.
+
+### 2026-08-15 — R-014/R-019 external falsification and repair
+
+- A tools-disabled Claude Sonnet 4.6 reviewer received only serialized public
+  methodology, production reconstruction paths, and the focused-test summary.
+  A first malformed packet returned `insufficient` and is excluded; the
+  corrected packet returned `accept` for both R-014 and R-019 after attempting
+  five concrete forged-record counterexamples.
+- The reviewer found a reachable analysis exception when agy evidence combined
+  an incomplete process with post-invocation agent-induced measurement loss.
+  The binary reason correctly remained `incomplete`, but the analysis-side agy
+  reconstruction had inferred the separate measurement flag from that reason.
+- The reconstruction now consumes the independently derived measurement
+  status. A new adversarial test preserves both evidence channels and the one
+  shared H1 failure without changing registered outcome precedence.
+- Focused acceptance evidence passes 468 tests. The packet custody, reviewer
+  counterexamples, defect, repair, and remaining uncertainty are recorded in
+  `docs/R014_R019_EXTERNAL_FALSIFICATION_REVIEW.md`.
+- R-014 and R-019 are VERIFIED. No frozen methodology or benchmark task was
+  changed, and no benchmark trial ran.
 
 ### 2026-07-28 — R-007 local scheduler-suite repair
 
