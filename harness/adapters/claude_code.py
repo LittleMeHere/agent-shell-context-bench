@@ -193,6 +193,43 @@ class ClaudeCodeAdapter(AgentAdapter):
 
         return "\n".join(transcript_lines), commands
 
+    def pre_model_infrastructure_error(
+        self, process: ProcessResult
+    ) -> str | None:
+        """Reject Claude Code's structured OAuth failure before inference.
+
+        The pinned CLI emits stream-JSON even when its OAuth session cannot be
+        refreshed. In that envelope the process exits nonzero, the result is
+        an API error, and an event explicitly identifies authentication
+        failure. Treating it as an ordinary completed run would contaminate
+        the task-failure denominator.
+        """
+        if process.returncode in (None, 0):
+            return None
+        for raw_line in process.stdout.splitlines():
+            try:
+                event = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            if event.get("error") == "authentication_failed":
+                return "Claude Code authentication failed before model invocation"
+            if (
+                event.get("type") == "system"
+                and event.get("subtype") == "api_retry"
+                and event.get("error") == "authentication_failed"
+            ):
+                return "Claude Code authentication failed before model invocation"
+            if (
+                event.get("type") == "result"
+                and event.get("is_error") is True
+                and event.get("terminal_reason") == "api_error"
+                and event.get("api_error_status") == 401
+            ):
+                return "Claude Code authentication failed before model invocation"
+        return None
+
     @staticmethod
     def _render_event(event: dict) -> str:
         etype = event.get("type", "?")

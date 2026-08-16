@@ -76,6 +76,19 @@ class AgentAdapter(ABC):
         """Version string of the CLI as installed in `environment`, captured
         per run for the reproducibility log."""
 
+    def pre_model_infrastructure_error(
+        self, process: ProcessResult
+    ) -> str | None:
+        """Return a fail-closed reason when no model invocation occurred.
+
+        A nonzero CLI exit is ordinarily valid agent behavior. Authentication
+        failures are different: they occur before the model can act and would
+        otherwise turn an infrastructure outage into a false task failure.
+        Concrete adapters may recognize only their CLI's exact, evidenced
+        envelope. The default deliberately recognizes nothing.
+        """
+        return None
+
     def run(
         self,
         prompt: str,
@@ -137,6 +150,14 @@ class AgentAdapter(ABC):
         except Exception:  # noqa: BLE001 - parser bug must not destroy raw data
             harness_error = "parse_transcript failed:\n" + traceback.format_exc()
             transcript = process.stdout
+
+        infrastructure_error = self.pre_model_infrastructure_error(process)
+        if infrastructure_error:
+            harness_error = (
+                f"{harness_error}; {infrastructure_error}"
+                if harness_error
+                else infrastructure_error
+            )
 
         return AgentRunResult(
             agent_id=self.agent_id,

@@ -26,6 +26,7 @@ Run: python -m pytest tests/ -q   (or: python tests/test_claude_code_parser.py)
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -45,6 +46,62 @@ def _parse(stdout: str):
         duration_seconds=1.0,
     )
     return ClaudeCodeAdapter("claude-sonnet-4-6").parse_transcript(pr)
+
+
+def _process(stdout: str, *, returncode: int = 1) -> ProcessResult:
+    return ProcessResult(
+        argv=("claude",),
+        returncode=returncode,
+        stdout=stdout,
+        stderr="",
+        duration_seconds=0.1,
+    )
+
+
+def test_authentication_failure_is_pre_model_infrastructure_error():
+    event = {
+        "type": "result",
+        "is_error": True,
+        "terminal_reason": "api_error",
+        "api_error_status": 401,
+        "error": "authentication_failed",
+        "result": "Failed to authenticate",
+    }
+    reason = ClaudeCodeAdapter(
+        "claude-sonnet-4-6"
+    ).pre_model_infrastructure_error(_process(json.dumps(event)))
+
+    assert reason == "Claude Code authentication failed before model invocation"
+
+
+def test_authentication_words_in_successful_process_do_not_invalidate():
+    event = {
+        "type": "result",
+        "is_error": False,
+        "result": "Reviewed authentication handling",
+    }
+    reason = ClaudeCodeAdapter(
+        "claude-sonnet-4-6"
+    ).pre_model_infrastructure_error(
+        _process(json.dumps(event), returncode=0)
+    )
+
+    assert reason is None
+
+
+def test_non_authentication_cli_failure_remains_agent_data():
+    event = {
+        "type": "result",
+        "is_error": True,
+        "terminal_reason": "api_error",
+        "api_error_status": 500,
+        "error": "server_error",
+    }
+    reason = ClaudeCodeAdapter(
+        "claude-sonnet-4-6"
+    ).pre_model_infrastructure_error(_process(json.dumps(event)))
+
+    assert reason is None
 
 
 def test_real_fixture_extracts_nonzero_commands():
