@@ -603,7 +603,9 @@ automatic retry rather than being guessed into either validity class.
 
 ### R-016 — trial-record binding to the scheduler plan
 
-**Status:** IMPLEMENTED — independent review and cross-host child dry-runs remain
+**Status:** VERIFIED — independent plan/child/scanner/analysis review passes;
+82 accepted analysis-excluded calls across five host partitions independently
+reconstruct every trial and attempt schedule binding
 **Severity:** pilot blocker; provenance
 
 Scheduled child invocations now receive a base64url JSON schedule token whose
@@ -831,8 +833,8 @@ is too narrow to support the intended decision.
 | ID | Workstream | Current state | Exit condition |
 |---|---|---|---|
 | W1 | V2 statistical amendment | IN PROGRESS — evidence drafts in `docs/V2_STATISTICAL_DECISION_MEMO.md` and `docs/D005_FINITE_ROSTER_IRR_MEMO.md`; trace in `docs/HYPOTHESIS_TRACEABILITY_MATRIX.md` | R-001 through R-004 and R-017 through R-020 resolved; new pre-data tag cut |
-| W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review | R-005, R-006, and R-016 VERIFIED |
-| W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is implemented with hashed child tokens and record/event validation; epoch/drift rules, independent review, and authenticated cross-host child smokes remain | R-007 and R-013 through R-016 VERIFIED plus cross-host dry runs |
+| W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review; R-016 plan binding is verified | R-005 and R-006 VERIFIED |
+| W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is verified across five host partitions; final V2 plan/runtime freeze and its outcome-blind partition dry run remain with R-013/D-009 | R-007 and R-013 through R-016 VERIFIED plus final-plan cross-host dry runs |
 | W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and planned-epoch sensitivity implemented; full D-005 recovery/acceptance and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
 | W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
 | W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
@@ -907,7 +909,7 @@ No later gate can override an earlier open gate.
 
 - [x] R-007 VERIFIED.
 - [ ] R-013 VERIFIED.
-- [ ] R-014, R-015, and R-016 VERIFIED.
+- [x] R-014, R-015, and R-016 VERIFIED.
 - [ ] Outcome-blind dry runs pass on every host partition.
 - [ ] Plan/output/phase/schema/version failures fail closed.
 - [ ] Accepted V2 scheduler and shakedown artifacts bind the frozen runtime-matrix digest.
@@ -2090,3 +2092,24 @@ approved methodological decision.
   paid five-stratum qualification returned 10/10 parseable, non-refused,
   exact-model receipts, no tool use, and 5/5 cross-coder agreement. Temporary
   credential/work directories were absent after both runs.
+
+### 2026-08-15 — R-016 independent binding and cross-host verification
+
+- Independently traced the plan identity through scheduler token creation,
+  child pre-adapter validation, append-only attempt events, writer, scanner,
+  and analysis reconstruction. The scanner and analysis paths compare against
+  the plan-owned identity, so a self-consistent but foreign re-hashed token is
+  not trusted.
+- Added `scripts/r016_receipt_audit.py`, which reconstructs the expected
+  schedule from the immutable analysis-excluded manifest and checks the exact
+  artifact inventory, all four attempt identities, final trial identity, and
+  terminal path/hash link without emitting private paths or model output.
+- The accepted 82-call composition independently resolves 410 artifacts and
+  328 attempt events across Windows PowerShell, pwsh 7, WSL2, Linux native,
+  and macOS. Its receipt-composition digest is
+  `92519494dabb68efda1ef89607880bf4234f2095b5a2cd9ba8dfcb48869a9f23`.
+- The auditor rejects a schedule-phase corruption even after the enclosing
+  receipt's byte/hash declaration is recomputed. The complete focused
+  provenance suite passes 124 tests.
+- R-016 is VERIFIED. The final V2 plan/runtime freeze and outcome-blind
+  partition dry run remain R-013/D-009/G3 work; no benchmark trial ran.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -8,6 +10,7 @@ import pytest
 
 from harness.logging.writer import SCHEMA_VERSION as TRIAL_SCHEMA_VERSION
 from harness.schedule_identity import ScheduleIdentity
+from scripts.r016_receipt_audit import ReceiptAuditError, audit_receipt, expected_schedule
 from scripts.resource_shakedown_plan import build_shakedown_plan, load_plan, write_plan
 from scripts.resource_shakedown_run import (
     BOUND_MANIFEST,
@@ -134,3 +137,103 @@ def test_fake_execution_binds_outputs_and_writes_receipt(tmp_path: Path) -> None
             cwd=tmp_path,
             executor=fake_executor,
         )
+
+
+def _write_r016_receipt(tmp_path: Path, plan, call) -> Path:
+    call_root = tmp_path / "calls" / call.call_id
+    base = call_root / call.env_id / call.agent_id / call.model_id / call.task_id
+    if call.phrasing != "default":
+        base /= call.phrasing
+    base.mkdir(parents=True)
+    schedule = expected_schedule(plan, call).as_dict()
+    attempt_id = "a" * 32
+    trial_path = base / "trial_0__2026-08-15T00-00-00Z.json"
+    trial = {
+        "schema_version": TRIAL_SCHEMA_VERSION,
+        "schedule": schedule,
+        "validity": {"valid": True, "harness_error": None},
+        "trial": {
+            "task_id": call.task_id,
+            "agent_id": call.agent_id,
+            "model_id": call.model_id,
+            "env_id": call.env_id,
+            "phrasing": call.phrasing,
+            "trial_index": call.replicate - 1,
+        },
+    }
+    trial_path.write_text(json.dumps(trial), encoding="utf-8")
+    trial_rel = trial_path.relative_to(call_root).as_posix()
+    trial_sha = hashlib.sha256(trial_path.read_bytes()).hexdigest()
+    attempts = base / ".attempts"
+    attempts.mkdir()
+    events = ["allocated", "launch_committed", "invocation_observed", "trial_recorded"]
+    for sequence, event in enumerate(events):
+        row = {
+            "schema_version": "1.3.0",
+            "sequence": sequence,
+            "event": event,
+            "schedule": schedule,
+            "attempt": {"attempt_id": attempt_id},
+        }
+        if event == "trial_recorded":
+            row["result"] = {
+                "trial_record": trial_rel,
+                "trial_record_sha256": trial_sha,
+                "valid": True,
+            }
+        (attempts / f"attempt__0{sequence}_{event}.json").write_text(
+            json.dumps(row), encoding="utf-8"
+        )
+    artifacts = []
+    for path in sorted(call_root.rglob("*.json")):
+        artifacts.append(
+            {
+                "path": path.relative_to(call_root).as_posix(),
+                "bytes": path.stat().st_size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+        )
+    receipt = {
+        "schema_version": "1.0.0",
+        "analysis_excluded": True,
+        "manifest_digest": plan.digest,
+        "returncode": 0,
+        "call": dataclasses.asdict(call),
+        "artifacts": artifacts,
+    }
+    receipt_path = call_root / "receipt.json"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    return receipt_path
+
+
+def test_r016_receipt_audit_reconstructs_and_falsifies_schedule(tmp_path: Path) -> None:
+    plan = _plan()
+    call = plan.calls[0]
+    receipt_path = _write_r016_receipt(tmp_path, plan, call)
+
+    summary = audit_receipt(receipt_path, plan=plan, call=call)
+
+    assert summary["call_id"] == call.call_id
+    assert summary["artifacts"] == 5
+    assert summary["attempts"] == 4
+
+    trial_path = next(
+        path
+        for path in receipt_path.parent.rglob("trial_*.json")
+        if ".attempts" not in path.parts
+    )
+    raw = json.loads(trial_path.read_text(encoding="utf-8"))
+    raw["schedule"]["phase"] = "confirmatory"
+    trial_path.write_text(json.dumps(raw), encoding="utf-8")
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    row = next(
+        item
+        for item in receipt["artifacts"]
+        if item["path"] == trial_path.relative_to(receipt_path.parent).as_posix()
+    )
+    row["bytes"] = trial_path.stat().st_size
+    row["sha256"] = hashlib.sha256(trial_path.read_bytes()).hexdigest()
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(ReceiptAuditError, match="trial schedule identity is invalid"):
+        audit_receipt(receipt_path, plan=plan, call=call)

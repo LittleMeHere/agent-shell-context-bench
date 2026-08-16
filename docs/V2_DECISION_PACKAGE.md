@@ -159,8 +159,8 @@ requires a fresh pilot for the changed families.
    D-001/D-003/D-013 operating-characteristic grid.
 5. Accept the coder evidence packet, qualify two backends, and freeze/implement
    the reduced D-010 probability sampler, gate, cap, and analysis join.
-6. Complete real-run custody verification for R-005 and independent review of
-   the implemented R-006 sizing-lock binding and R-016 plan binding.
+6. Complete real-run custody verification for R-005; R-006 sizing-lock and
+   R-016 plan-binding review are complete.
 7. **Five-host qualification, semantic 82/82 audit, and agent-under-test
    resource review complete:** finish the D-004 human timing sample, D-006
    coder shakedown, and final numeric provider/calendar caps.
