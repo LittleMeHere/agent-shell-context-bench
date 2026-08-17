@@ -246,6 +246,7 @@ def bonferroni_clopper_pearson_linear_interval(
 def _finite_roster_cells(
     trials: Sequence[AnalysisTrial],
     family_domains: Mapping[str, str],
+    expected_configurations: Sequence[str],
 ) -> tuple[
     dict[str, NDArray[np.int64]],
     dict[str, NDArray[np.int64]],
@@ -264,8 +265,11 @@ def _finite_roster_cells(
     if unknown:
         raise AnalysisDatasetError(f"unknown capability families: {unknown}")
 
+    configurations = tuple(expected_configurations)
+    if not configurations or len(set(configurations)) != len(configurations):
+        raise ValueError("expected_configurations must be nonempty and unique")
     observed_configurations = {row.config_id for row in focal}
-    registered_configurations = set(REGISTERED_CONFIG_IDS)
+    registered_configurations = set(configurations)
     if observed_configurations != registered_configurations:
         missing = sorted(registered_configurations - observed_configurations)
         extra = sorted(observed_configurations - registered_configurations)
@@ -273,7 +277,6 @@ def _finite_roster_cells(
             "focal configuration roster differs from the registered roster: "
             f"missing={missing}, extra={extra}"
         )
-    configurations = list(REGISTERED_CONFIG_IDS)
     domains = sorted(set(family_domains.values()))
     families_by_domain = {
         domain: sorted(
@@ -342,13 +345,16 @@ def finite_roster_h1_candidate(
     family_domains: Mapping[str, str] | None = None,
     confidence: float = 0.95,
     minimum_primary_cell_n: int = 3,
+    expected_configurations: Sequence[str] = REGISTERED_CONFIG_IDS,
 ) -> FiniteRosterH1Candidate:
     """Evaluate the executable D-005 candidate and deterministic fallback."""
 
     if minimum_primary_cell_n < 1:
         raise ValueError("minimum_primary_cell_n must be positive")
     events, totals, weights = _finite_roster_cells(
-        trials, dict(family_domains or accepted_family_domains())
+        trials,
+        dict(family_domains or accepted_family_domains()),
+        expected_configurations,
     )
     windows_events = events["windows_powershell"]
     linux_events = events["linux_native"]
@@ -427,6 +433,7 @@ def finite_roster_h1_candidate(
 def finite_roster_epoch_sensitivity(
     trials: Sequence[AnalysisTrial],
     *,
+    expected_configurations: Sequence[str],
     family_domains: Mapping[str, str] | None = None,
     expected_epochs: Sequence[int] = (0, 1, 2, 3),
     confidence: float = 0.95,
@@ -499,6 +506,7 @@ def finite_roster_epoch_sensitivity(
                 family_domains=epoch_domains,
                 confidence=confidence,
                 minimum_primary_cell_n=minimum_primary_cell_n,
+                expected_configurations=expected_configurations,
             )
         except AnalysisDatasetError as exc:
             reports.append(

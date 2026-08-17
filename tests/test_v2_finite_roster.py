@@ -5,6 +5,7 @@ import dataclasses
 import numpy as np
 import pytest
 
+from analysis.d013_task_bank_design import REGISTERED_CONFIG_IDS
 from analysis.v2_analysis_dataset import AnalysisDatasetError, AnalysisTrial
 from analysis.v2_finite_roster import (
     bonferroni_clopper_pearson_linear_interval,
@@ -186,6 +187,7 @@ def test_epoch_sensitivity_preserves_planned_task_composition() -> None:
     ]
     reports = finite_roster_epoch_sensitivity(
         rows,
+        expected_configurations=REGISTERED_CONFIG_IDS,
         family_domains={"C01": "A", "C02": "B"},
     )
     assert [report.status for report in reports] == [
@@ -207,6 +209,7 @@ def test_epoch_sensitivity_fails_closed_on_partial_crossing() -> None:
     ]
     reports = finite_roster_epoch_sensitivity(
         rows,
+        expected_configurations=REGISTERED_CONFIG_IDS,
         family_domains={"C01": "A", "C02": "B"},
         expected_epochs=(0,),
     )
@@ -222,5 +225,6 @@ def test_epoch_sensitivity_rejects_unregistered_epoch() -> None:
     with pytest.raises(AnalysisDatasetError, match="unexpected collection epochs"):
         finite_roster_epoch_sensitivity(
             rows,
+            expected_configurations=REGISTERED_CONFIG_IDS,
             family_domains={"C01": "A", "C02": "B"},
         )

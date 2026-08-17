@@ -293,7 +293,10 @@ def test_complete_v2_plan_epoch_sensitivity_matches_frozen_composition(v2_plan) 
             )
             records.append(_record(v2_plan, cell, index, success=not failure))
     rows = build_analysis_dataset(v2_plan, records)
-    reports = finite_roster_epoch_sensitivity(rows)
+    reports = finite_roster_epoch_sensitivity(
+        rows,
+        expected_configurations=("CFG1", "CFG2"),
+    )
 
     assert [report.status for report in reports] == [
         "estimated",
