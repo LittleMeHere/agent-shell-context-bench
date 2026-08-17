@@ -72,11 +72,12 @@ def _trial(
     instance: str,
     index: int,
     failed: bool,
+    config: str = "CFG1",
 ) -> AnalysisTrial:
     return AnalysisTrial(
         plan_digest="a" * 64,
         cell_id=f"{env}:{family}:{instance}:{index}",
-        config_id="CFG1",
+        config_id=config,
         env_id=env,
         agent_id="codex",
         model_id="model",
@@ -100,20 +101,22 @@ def _balanced_trials(repetitions: int) -> list[AnalysisTrial]:
     rows = []
     index = 0
     for env in ("windows_powershell", "linux_native"):
-        for family in ("C01", "C02"):
-            for instance in ("I01", "I02"):
-                for repetition in range(repetitions):
-                    failed = env == "windows_powershell" and repetition == 0
-                    rows.append(
-                        _trial(
-                            env=env,
-                            family=family,
-                            instance=instance,
-                            index=index,
-                            failed=failed,
+        for config in tuple(f"CFG{number}" for number in range(1, 8)):
+            for family in ("C01", "C02"):
+                for instance in ("I01", "I02"):
+                    for repetition in range(repetitions):
+                        failed = env == "windows_powershell" and repetition == 0
+                        rows.append(
+                            _trial(
+                                env=env,
+                                family=family,
+                                instance=instance,
+                                index=index,
+                                failed=failed,
+                                config=config,
+                            )
                         )
-                    )
-                    index += 1
+                        index += 1
     return rows
 
 
@@ -127,7 +130,32 @@ def test_h1_candidate_uses_mover_at_three_per_leaf() -> None:
     assert result.interval_method == "mover_clopper_pearson_fixed_roster_candidate"
     assert not result.fallback_used
     assert result.minimum_cell_n == 3
-    assert result.cells_per_context == 4
+    assert result.cells_per_context == 28
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra"])
+def test_h1_candidate_rejects_configuration_roster_drift(mutation: str) -> None:
+    rows = _balanced_trials(3)
+    if mutation == "missing":
+        rows = [row for row in rows if row.config_id != "CFG2"]
+        pattern = "missing=\\['CFG2'\\], extra=\\[\\]"
+    else:
+        rows.extend(
+            dataclasses.replace(
+                row,
+                config_id="CFG8",
+                cell_id=f"{row.cell_id}:CFG8",
+                attempt_id=f"8{row.attempt_id[1:]}",
+            )
+            for row in rows
+            if row.config_id == "CFG1"
+        )
+        pattern = "missing=\\[\\], extra=\\['CFG8'\\]"
+    with pytest.raises(AnalysisDatasetError, match=pattern):
+        finite_roster_h1_candidate(
+            rows,
+            family_domains={"C01": "A", "C02": "B"},
+        )
 
 
 def test_h1_candidate_fails_safe_to_exact_envelope_for_singletons() -> None:

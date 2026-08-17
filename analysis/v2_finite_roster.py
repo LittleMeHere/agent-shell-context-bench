@@ -7,8 +7,7 @@ candidate is a Clopper-Pearson-MOVER interval for a linear combination of
 independent binomial proportions.  The narrower Wilson-MOVER implementation
 is retained only as a falsified comparator. If any leaf has fewer than the
 prospectively required three observations, analysis falls back to a simultaneous
-Clopper-Pearson/Bonferroni envelope and therefore becomes safely
-inconclusive rather than silently pooling sparse cells.
+Clopper-Pearson/Bonferroni envelope rather than silently pooling sparse cells.
 """
 
 from __future__ import annotations
@@ -24,6 +23,7 @@ from numpy.typing import NDArray
 from scipy.stats import beta
 
 from analysis.d013_ceiling_operating_characteristics import DECISION_RD
+from analysis.d013_task_bank_design import REGISTERED_CONFIG_IDS
 from analysis.v2_analysis_dataset import (
     FOCAL_ENVIRONMENTS,
     AnalysisDatasetError,
@@ -264,7 +264,16 @@ def _finite_roster_cells(
     if unknown:
         raise AnalysisDatasetError(f"unknown capability families: {unknown}")
 
-    configurations = sorted({row.config_id for row in focal})
+    observed_configurations = {row.config_id for row in focal}
+    registered_configurations = set(REGISTERED_CONFIG_IDS)
+    if observed_configurations != registered_configurations:
+        missing = sorted(registered_configurations - observed_configurations)
+        extra = sorted(observed_configurations - registered_configurations)
+        raise AnalysisDatasetError(
+            "focal configuration roster differs from the registered roster: "
+            f"missing={missing}, extra={extra}"
+        )
+    configurations = list(REGISTERED_CONFIG_IDS)
     domains = sorted(set(family_domains.values()))
     families_by_domain = {
         domain: sorted(
