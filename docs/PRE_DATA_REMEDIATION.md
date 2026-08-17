@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE — collection is blocked
 **Created:** 2026-07-28
-**Last updated:** 2026-08-15
+**Last updated:** 2026-08-16
 **Applies to:** `agent-shell-context-bench` V1 follow-through through a
 published paper
 
@@ -325,9 +325,9 @@ schema rejection does not depend on the shared constant.
 ### R-008 — confirmatory analysis is only partially implemented
 
 **Status:** IN PROGRESS — frozen source roster, record reconstruction, H1 point
-estimate, interval candidate/fallback, planned-epoch sensitivity, and a
-32-cell dependence/drift recovery envelope implemented; acceptance and A2-A4
-pending
+estimate, interval candidate/fallback, planned-epoch sensitivity, exact
+configuration-roster enforcement, and a 32-cell dependence/drift recovery
+envelope implemented; acceptance and A2-A4 pending
 **Severity:** confirmatory-data blocker; research integrity
 
 `analysis/v2_analysis_manifest.py` now freezes and verifies the exact trial-
@@ -339,8 +339,13 @@ Clopper-Pearson-MOVER candidate, simultaneous exact sparse fallback, and fixed
 planned-epoch sensitivity are executable. The prospective N=24 recovery grid
 passes all 32 outcome-by-dependence/drift cells, with minimum coverage 95.52%,
 maximum wrong threshold declarations 0.70%, and maximum absolute point bias
-0.063 percentage points; see `docs/D005_H1_RECOVERY_ENVELOPE.md`. Final
-interval acceptance, broad-model sensitivity disposition, A2-A4, coder join,
+0.063 percentage points; see `docs/D005_H1_RECOVERY_ENVELOPE.md`. Independent
+review accepted the interval mechanics but found that a missing or extra
+whole configuration could change the estimand. The estimator now requires the
+exact CFG1-CFG7 roster and regression-tests both counterexamples; independent
+re-acceptance remains pending. See
+`docs/D005_INDEPENDENT_IMPLEMENTATION_REVIEW.md`. Final interval acceptance,
+broad-model sensitivity disposition, A2-A4, coder join,
 FDR, and generated reporting remain absent; see
 `docs/V2_ANALYSIS_PIPELINE.md`.
 
@@ -357,8 +362,8 @@ FDR, and generated reporting remain absent; see
 ### R-009 — IRR execution path is incomplete and selects the wrong universe
 
 **Status:** IN PROGRESS — manifest-bound selection/provenance and two pinned
-subscription-CLI backend candidates implemented and paid-qualified; exact
-assignment and staged audit pending
+subscription-CLI backends implemented, paid-qualified, and assigned; staged
+audit pending
 **Severity:** H2/H4 blocker; implementation and budget
 
 `scripts/irr_code.py` now consumes only the complete digest-verified V2
@@ -377,8 +382,10 @@ automatically deleted temporary home and verifies the served model from its
 isolated session record. Five matched analysis-excluded calls per backend span
 all five workload strata: both paths returned 5/5 parseable labels, exact
 served-model matches, zero refusals, and zero prohibited tool calls, while
-agreeing on all five labels. Exact coder assignment/acceptance and the staged
-human-anchor sampler/analysis remain open.
+agreeing on all five labels. The pre-data assignment fixes Codex CLI 0.147.0 /
+GPT-5.6 Terra as population-wide Coder 1 and Claude Code 2.1.231 / Sonnet 4.6
+as probability-sampled Coder 2; see `docs/D006_CODER_ASSIGNMENT.md`. The
+staged human-anchor sampler/analysis remains open.
 
 **Acceptance criterion:**
 
@@ -427,7 +434,8 @@ SHA-256
 
 ### R-011 — readiness documentation contains stale contradictions
 
-**Status:** IN PROGRESS — active V2 digest/version/count linter added; frozen-methodology reconciliation remains
+**Status:** IN PROGRESS — active V2 digest/version/count linter and amendment
+freeze candidate added; final frozen-methodology reconciliation remains
 **Severity:** coordination risk
 
 The audit found:
@@ -453,8 +461,9 @@ completed V1 smokes from the separate current V2 gates. The consistency suite
 derives the current runtime-matrix and task-bank
 digests from executable artifacts and checks their active documentation, plus
 the 82-call shakedown digest and 82/82 receipt count. R-011 remains open until
-the V2 amendment reconciles frozen V1 wording (including the four-group/five-
-environment conflict) and a final active-document review passes.
+the `docs/V2_AMENDMENT.md` freeze candidate resolves every bracketed open item,
+receives final review, reconciles frozen V1 wording (including the four-group/
+five-environment conflict), and a final active-document review passes.
 
 ### R-012 — publication redaction is policy, not yet a tested pipeline
 
@@ -642,7 +651,8 @@ when visible directories and trial fields have been made to match.
 
 ### R-017 — the primary H2/H4 label is undefined across multiple raters
 
-**Status:** IN PROGRESS — D-010 primary/no-rewrite rule enforced in coder artifacts; exact backends, staged audit, and analysis join pending
+**Status:** IN PROGRESS — D-010 primary/no-rewrite rule and exact backend
+assignment fixed; staged audit and analysis join pending
 **Severity:** H2/H4 blocker; methodology
 
 The SAP names Coder 1 “primary” and requires two AI coders plus a human anchor,
@@ -847,7 +857,7 @@ is too narrow to support the intended decision.
 | W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review; R-016 plan binding is verified | R-005 and R-006 VERIFIED |
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is verified across five host partitions; final V2 plan/runtime freeze and its outcome-blind partition dry run remain with R-013/D-009 | R-007 and R-013 through R-016 VERIFIED plus final-plan cross-host dry runs |
 | W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and planned-epoch sensitivity implemented; full D-005 recovery/acceptance and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
-| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes frozen Coder 1 as primary with no adjudication rewrite; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. Exact backends, evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
+| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes Codex/Terra as frozen Coder 1 with no adjudication rewrite and Claude/Sonnet as probability-sampled Coder 2; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. The evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
 | W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
 | W8 | Publication and redaction | OPEN | R-012 VERIFIED |
@@ -872,11 +882,11 @@ agent to choose that parameter silently.
 | D-003 | hierarchical power model and nuisance-parameter re-estimation | ACCEPTED — prospective fixed N; pilot validates instrument/nuisance envelope only | Exact N after D-005/D-013 and resource evidence |
 | D-004 | maximum N and per-vendor resource envelope | PARAMETER OPEN — 60/10/30 envelope accepted; authenticated agent-under-test timing/meter evidence complete | Human timing sample, coder shakedown, and final numeric provider/calendar caps |
 | D-005 | confirmatory model and inference library | ACCEPTED DIRECTION — Family B finite-roster primary; broad models are sensitivities | Synthetic recovery, coverage, exact interval/resampling/fallback |
-| D-006 | IRR invocation surface and budget | ACCEPTED DIRECTION — staged probability audit; no automatic 600–700-label obligation | Reproducible backends, measured cost, staged sampler and routine cap |
+| D-006 | IRR invocation surface and budget | ACCEPTED DIRECTION — Codex/Terra primary, Claude/Sonnet secondary, staged probability audit, and no automatic 600–700-label obligation | Timed staged sampler, thresholds, and routine cap |
 | D-007 | E5 credential and execution architecture | QUALIFIED — authenticated ephemeral path, custody, cleanup, and execution-date controls pass; keep E5 closed through final G4 review | Day-one agy freeze and final collection release |
 | D-008 | exact public artifact and redaction policy | ACCEPTED — publication stays closed until tested builder/audit | Sample publication build and artifact inventory |
 | D-009 | collection randomization unit, runtime roster, and temporal-drift controls | ACCEPTED — blocked rounds, four fixed 180-slot epochs, global host order, fail-closed incomplete roster, role-preserving refresh, same-model S6 | D-005 epoch-sensitivity interval, host qualification, and final matrix digest |
-| D-010 | primary H2/H4 label, disagreement, and adjudication rule | ACCEPTED DIRECTION — frozen Coder 1 primary; Coder 2/human are sampled audit only; no result-favoring replacement | Staged trigger/cap/interval, backend identities, error sensitivities |
+| D-010 | primary H2/H4 label, disagreement, and adjudication rule | ACCEPTED — frozen Codex/Terra Coder 1 primary; Claude/Sonnet Coder 2 and human are sampled audit only; no result-favoring replacement | Staged trigger/cap/interval and error sensitivities |
 | D-011 | deterministic agy H1/A1d Cwd outcome construction | ACCEPTED — runner implemented and independently challenged | Analysis-builder wiring and dataset reconstruction |
 | D-012 | H4 exact-prompt-set versus generic phrasing claim | ACCEPTED — exact prompt-set exploratory contrast only | Coding/analysis and reporting-template enforcement |
 | D-013 | H1a capability-task population, coverage, and ceiling-response rule | ACCEPTED — 12-family design slate, six domains, split N, symmetric pilot gate | Pass remaining Q1-Q4 evidence and freeze final simulations/artifacts |
@@ -2180,3 +2190,23 @@ approved methodological decision.
   broad-model sensitivity disposition, exact N, and researcher acceptance.
   No benchmark outcomes, private artifacts, task bytes, or frozen V1
   methodology were accessed or changed.
+
+### 2026-08-16 — non-timing closeout, D-005 counterexample repair, and V2 wording
+
+- An isolated read-only implementation review accepted the signed-coefficient
+  CP-MOVER, exact-cell fallback, and RR-envelope mechanics but rejected the H1
+  candidate because a missing or extra whole configuration changed the
+  inferred roster. The estimator now requires exact CFG1-CFG7 membership and
+  regression-tests both named counterexamples. The focused interval/recovery
+  slice passes 19 tests. Independent re-acceptance remains open.
+- Added `docs/V2_AMENDMENT.md`, a non-operative freeze candidate that presents
+  the V1-to-V2 replacement wording directly and keeps every unresolved value
+  bracketed. It does not edit or silently supersede the frozen V1 files.
+- Fixed the paid-qualified coder roles using only pre-data evidence: Codex CLI
+  0.147.0 / GPT-5.6 Terra is population-wide Coder 1; Claude Code 2.1.231 /
+  Sonnet 4.6 is probability-sampled Coder 2. Missing/substituted labels and the
+  no-rewrite rule are unchanged. The human timing result still controls the
+  staged human-audit sizes, triggers, and routine cap.
+- No pilot or confirmatory outcomes were accessed or collected. Remaining
+  bracketed amendment items and G1-G4 checkboxes remain authoritative; this
+  entry is not a global collection-ready claim.

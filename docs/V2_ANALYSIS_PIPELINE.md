@@ -1,9 +1,9 @@
 # V2 analysis-source, H1 reconstruction, and coder-input boundary
 
 **Status:** IMPLEMENTED CANDIDATE — H1 interval and paid coder-backend
-qualification implemented; acceptance, A2-A4, and external anchoring remain
-open
-**Date:** 2026-08-15
+qualification/assignment implemented; acceptance, A2-A4, and external
+anchoring remain open
+**Date:** 2026-08-16
 **Code:** `analysis/v2_analysis_dataset.py`,
 `analysis/v2_analysis_manifest.py`, `scripts/v2_analysis_manifest.py`,
 `scripts/irr_code.py`, `scripts/irr_cli_backends.py`,
@@ -86,7 +86,9 @@ OAuth home and read-only isolated workspace, rejects tool events, and verifies
 the served model from the isolated session record before deleting that home.
 Neither backend retries or falls back. Five paid analysis-excluded calls per
 backend span all five workload strata and passed model, parse, refusal, and
-tool-use gates; exact primary/secondary assignment remains a pre-data choice.
+tool-use gates. Codex CLI 0.147.0 / GPT-5.6 Terra is frozen as population-wide
+Coder 1; Claude Code 2.1.231 / Sonnet 4.6 is frozen as probability-sampled
+Coder 2. The rationale is recorded in `docs/D006_CODER_ASSIGNMENT.md`.
 
 This boundary intentionally sends only the V1-compatible task prompt, binary
 outcome, and transcript, with no environment id. It hashes the exact packet
@@ -102,11 +104,12 @@ five-point decision classification, and simultaneous exact sparse fallback.
 The prospective H1 dependence/drift recovery envelope now passes all 32
 tested cells at N=24; attrition remains fail-closed as an incomplete roster,
 not a complete-case analysis branch. The interval remains unaccepted pending
-independent implementation review, broad-model sensitivity disposition, and
-researcher freeze. Planned-epoch sensitivity reports every epoch
+independent re-acceptance after repair of the whole-configuration-roster
+counterexample, broad-model sensitivity disposition, and researcher freeze.
+Planned-epoch sensitivity reports every epoch
 separately, fails closed on incomplete crossings, and marks no-capability
-epochs not applicable rather than pooling unlike tasks. A2-A4 models, exact coder
-assignment, staged human-audit sampler/threshold/cap, coder join, FDR families,
+epochs not applicable rather than pooling unlike tasks. A2-A4 models, staged
+human-audit sampler/threshold/cap, coder join, FDR families,
 final tables/figures, and the V2 confirmatory plan remain open. The implemented
 boundaries do not decide those remaining statistical or measurement choices
 by implication.
