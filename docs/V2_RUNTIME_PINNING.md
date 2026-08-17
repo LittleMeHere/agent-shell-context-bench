@@ -148,6 +148,7 @@ all five environments. All 82/82 resource-shakedown calls pass corrected
 semantic review, including authenticated Claude Code, Codex, and `agy`
 transport calls on `macos-26`, corrected WSL2/Linux-native authentication
 paths, receipt validation, and credential cleanup. Fresh-human solvability,
-transcript adjudication, Q3 difficulty, the D-004 human timing/final cap, the
-D-006 coder shakedown, and final matrix/plan freeze remain. The matrix
-therefore remains `candidate`.
+transcript adjudication, Q3 difficulty, the final D-004 provider/calendar cap,
+D-006 staged-audit parameters/evidence contract, and final matrix/plan freeze
+remain. Agent, coder, and 35-case human timing evidence is complete. The
+matrix therefore remains `candidate`.

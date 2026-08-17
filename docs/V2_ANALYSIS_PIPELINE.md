@@ -91,10 +91,12 @@ Coder 1; Claude Code 2.1.231 / Sonnet 4.6 is frozen as probability-sampled
 Coder 2. The rationale is recorded in `docs/D006_CODER_ASSIGNMENT.md`.
 
 This boundary intentionally sends only the V1-compatible task prompt, binary
-outcome, and transcript, with no environment id. It hashes the exact packet
-but does not claim to resolve R-018: the V2 canary/filesystem evidence packet,
-capability-failure rule, code-E evidence class, and any deterministic post-
-coder join remain pre-data decisions.
+outcome, and transcript, with no explicit environment id. It hashes the exact
+packet but does not claim identity blindness: paths, shell syntax, and vendor
+event wrappers can reveal agent/environment identity. It also does not resolve
+R-018: the V2 canary/filesystem evidence packet, capability-failure rule,
+code-E evidence class, wrapper normalization, and any deterministic post-coder
+join remain pre-data decisions.
 
 ## Still open
 

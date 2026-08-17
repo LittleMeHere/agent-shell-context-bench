@@ -277,14 +277,14 @@ treated as consumption deltas. Codex exposed no comparable numeric plan meter;
 extra-credit balance and automatic reload remained zero/off.
 
 These measurements close the paid agent-under-test timing and available-meter
-part of D-004. They do not accept a numeric N or calendar cap. The 30-50-case
-blinded human timing sample and the separate D-006 coder-backend shakedown
-remain prerequisites because coder and human work cannot be costed from agent-
-under-test calls. The private sanitized review containing custody, correction,
+part of D-004. They do not accept a numeric N or calendar cap. The separate
+human-timing and D-006 coder-backend measurements below complete the remaining
+cost observations; final numeric provider/calendar caps remain open. The
+private sanitized review containing custody, correction,
 and cleanup evidence is bound by SHA-256
 `a8f48c67f919d9265a9ee838d0f5789b10b1d71447c36789c83857857bbb246c`.
 
-### 8.2 Blinded human-timing packet prepared
+### 8.2 Label-masked human timing completed
 
 `scripts/human_timing_packet.py` now constructs the required costing exercise
 from the corrected, analysis-excluded resource records. It requires two clean
@@ -300,11 +300,35 @@ The prepared private packet has packet digest
 `57e64a486dfeed8d7514840200a4cede8574927d962dc177b48fb484dd53bf3d`;
 its browser worksheet is bound by SHA-256
 `24762da051116dd7850f951853b900447b2cc41f5c3f072bcdab04138048fab9`.
-The 35-case size is an operational timing design inside the required 30-50
-range, not an acceptance of the still-open production human-anchor sampler.
-D-004 remains open until the researcher completes this worksheet and its
-active p50/p90, evidence-loading distribution, and uncertain-case rate are
-recorded.
+The researcher completed all 35 cases after passing a separate 12/12 synthetic
+A-F calibration. The result artifact has SHA-256
+`b00496042572d6a5a685a1104c03f4759de5d5d446708bb76e5d78598a416490`.
+
+| Metric | Evidence loading | Active coding | Combined |
+|---|---:|---:|---:|
+| Total | 13.92 min | 19.86 min | 33.78 min |
+| p50 | 16.23 sec | 17.93 sec | 46.20 sec |
+| p90 | 50.58 sec | 62.75 sec | 118.73 sec |
+
+Three cases (8.6%) were marked uncertain; combined time ranged from 16.62 to
+219.92 seconds. A strong learning curve was visible: combined p50/p90 fell
+from 73.35/169.82 seconds in the first ten cases to 29.20/40.77 seconds in the
+last ten. The full-sample values remain authoritative and are not replaced by
+the faster tail.
+
+The exercise also falsified its literal blinding claim. Explicit labels were
+withheld, but paths, shell syntax, and vendor event wrappers made identities
+apparent. Ten cases were dominated by apparent prompt truncation, permission
+blocking, or no valid task attempt, and the observed codes were A=24, B=1,
+F=10, C/D/E=0. The sample therefore measures ordinary-case workflow and a
+lower-bound learning curve; it does not validate production identity blinding,
+hard C/D/E timing, or measurement accuracy.
+
+For resource planning, retain five minutes per human label plus 10% operational
+overhead. This is above the observed p90 and maximum combined time and leaves
+margin for harder evidence joins. It implies about 13.75 hours for 150 labels
+and 18.33 hours for 200. D-004's human-timing prerequisite is complete; final
+numeric provider/calendar caps remain open.
 
 ### 8.3 Paid D-006 coder-backend shakedown
 
@@ -334,7 +358,7 @@ These measurements close D-004's separate coder-call costing requirement.
 They do not justify multiplying either five-call mean across an unfrozen
 full-population coding roster. D-006 must first freeze the primary/secondary
 assignment and probability-sampled routine cap; D-004 still requires the
-human timing result and final numeric provider/calendar envelope.
+final numeric provider/calendar envelope.
 
 ## 9. Reproduction
 

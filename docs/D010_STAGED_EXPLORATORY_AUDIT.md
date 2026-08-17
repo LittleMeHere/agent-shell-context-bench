@@ -1,7 +1,7 @@
 # D-010 staged exploratory human-audit design
 
-**Status:** ACCEPTED DESIGN DIRECTION — exact focal sample size and gates must
-pass simulation and timed shakedown before freeze
+**Status:** ACCEPTED DESIGN DIRECTION — human timing complete; exact focal
+sample size, evidence contract, and gates must pass prospective freeze
 **Accepted constraint:** routine human review must not imply a 600–700-label
 commitment; any expansion beyond the frozen routine cap requires a separate
 researcher go/no-go decision
@@ -10,7 +10,7 @@ researcher go/no-go decision
 
 ## 1. Decision
 
-Use a fixed small blinded anchor followed, only when a pre-specified
+Use a fixed small label-masked anchor followed, only when a pre-specified
 measurement-informativeness gate passes, by one bounded focal audit. There is
 no automatic third stage and no near-census rescue of an unusable AI judge.
 
@@ -20,7 +20,7 @@ The routine candidate envelope is:
 |---|---:|---|
 | Omnibus anchor | 50 | Always drawn; probability sample for workflow, overall A–F agreement, refusal/malformed behavior, and gross shared-error detection |
 | Focal audit | 100–150 additional | At most one fixed context-stratified SRS of valid failed trials when the frozen gate passes |
-| Routine maximum | 150–200 total | Exact value selected prospectively from simulation and timed review |
+| Routine maximum | 150–200 total | Exact value selected prospectively from simulation using the completed timed review |
 | Larger audit | none automatically | Requires a separate explicit decision and is preferably a dedicated follow-up study |
 
 At five active minutes per label plus 10% operational overhead, 150 total
@@ -47,12 +47,17 @@ A small or null audited result cannot be described as evidence that spiral
 asymmetry is absent. That negative claim was the reason the 600–700-label
 region appeared necessary.
 
-## 3. Blinding and sampling
+## 3. Label masking and sampling
 
-The human rater is blinded to environment names, the Windows/Linux contrast,
-configuration identity where it is not evidentially necessary, AI labels,
-and hypothesis-favoring aggregate results. The rater receives the frozen
-task/evidence packet needed to apply the A–F contract.
+The human rater is not shown explicit environment, configuration, agent/model,
+AI-label, Windows/Linux-contrast, or hypothesis-favoring aggregate fields. This
+is **label masking**, not a claim that identity is unknowable: evidential shell
+syntax can reveal environment, and raw vendor wrappers can reveal the agent.
+The production renderer must normalize non-evidential vendor wrappers, but it
+must not redact command evidence merely to create artificial blindness.
+Identity inferability and any rater recognition are reported as limitations.
+The rater receives the frozen task/evidence packet needed to apply the A–F
+contract.
 
 Every sampled record has a known nonzero inclusion probability. The anchor
 is stratified prospectively by programmatic outcome and task/domain so it is

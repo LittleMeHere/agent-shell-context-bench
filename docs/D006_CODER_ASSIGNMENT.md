@@ -30,7 +30,9 @@ at 80.482 seconds (p50 15.304, p90 19.742). Claude remains the independent
 different-lineage audit source. The choice uses only pre-data operational
 evidence and cannot be changed after outcomes to favor a hypothesis.
 
-This assignment does not freeze the human-anchor/focal-audit sizes, expansion
-gate, or routine cap. Those still depend on the registered human timing
-exercise and prospective simulation.
-
+The 35-case human timing exercise subsequently completed, with combined
+p50/p90 of 46.20/118.73 seconds and a strong learning curve. Its identity
+masking and hard-case representation failed, so five minutes per label plus
+10% overhead remains the conservative planning value. The exact expansion
+gate and routine cap still require prospective freeze; they are not selected
+from the observed timing tail.

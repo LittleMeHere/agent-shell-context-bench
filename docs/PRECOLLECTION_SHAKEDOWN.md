@@ -206,22 +206,27 @@ therefore VERIFIED on semantic evidence; D-004 remains separate and open below.
 
 ## 4. What remains manual
 
-Before D-004 can close, the private operational record still needs:
+Before D-004 can close, the private operational record still needs the final
+numeric provider/calendar caps showing that each proposed block fits the 60%
+planned window with 10% retry reserve and 30% untouched.
 
-- a 30-50-transcript human timing exercise using the preserved non-analysis
-  transcripts, including active p50/p90, evidence-loading time, and uncertain-
-  case frequency; and
-- the final numeric provider/calendar caps showing that each proposed block
-  fits the 60% planned window with 10% retry reserve and 30% untouched.
+The 35-case, analysis-excluded human timing exercise completed on 2026-08-17.
+Combined p50/p90 were 46.20/118.73 seconds, three cases were uncertain, and
+the full range was 16.62-219.92 seconds. The exercise was explicit-label-
+masked rather than identity-blind: paths, syntax, and event wrappers made
+identities inferable, and its A=24/B=1/F=10 mix contained no hard C/D/E case.
+Resource planning therefore retains the conservative five-minutes-per-label
+value plus 10% overhead rather than extrapolating the faster observed mean.
 
 Agent-under-test wall time, invalid-attempt/authentication tails, available
 provider-meter observations, routing/substitution review, and credential
 cleanup are complete. Five-hour windows that replenished during measurement
 are recorded as non-comparable rather than converted into false usage deltas.
 
-The AI-coder shakedown is separate because D-006 has not selected two
-reproducible backends. Do not substitute an agent-under-test call for a coder
-cost measurement.
+The separate AI-coder shakedown is complete for the frozen Codex/Terra primary
+and Claude/Sonnet secondary candidates. Do not substitute an agent-under-test
+call for a coder cost measurement; the remaining D-006 work is the production
+evidence contract and exact staged sampler/gate/cap.
 
 The current candidate selection and exact freeze rule are in
 `docs/V2_RUNTIME_PINNING.md`. Candidate status is suitable for this

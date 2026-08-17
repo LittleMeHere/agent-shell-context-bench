@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE — collection is blocked
 **Created:** 2026-07-28
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-17
 **Applies to:** `agent-shell-context-bench` V1 follow-through through a
 published paper
 
@@ -689,9 +689,19 @@ deliberately preserves and hashes this V1-compatible packet rather than
 silently choosing an R-018 evidence contract; it therefore improves
 provenance without resolving R-018.
 
+A 35-case analysis-excluded human timing exercise completed on 2026-08-17
+also falsified the packet's literal blinding claim. Explicit identity fields
+were omitted, but transcript paths, shell syntax, and vendor-specific event
+wrappers made agent/environment identity inferable to the rater. Ten sampled
+cases were dominated by apparent prompt truncation, permission blocking, or
+no valid task attempt, while no C/D/E case appeared. This closes the D-004
+timing measurement only. R-018 still requires a production evidence renderer
+that masks explicit labels, normalizes non-evidential wrappers, preserves
+evidential commands, and reports residual identity inferability.
+
 **Acceptance criterion:**
 
-- A V2 decision defines which evidence the blinded coder receives and which
+- A V2 decision defines which evidence the label-masked coder receives and which
   deterministic post-coder rules join canary/filesystem evidence.
 - The frozen prompt or an equally frozen post-processing specification
   contains the capability-failure and code-E policies.
@@ -858,8 +868,8 @@ is too narrow to support the intended decision.
 | W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review; R-016 plan binding is verified | R-005 and R-006 VERIFIED |
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is verified across five host partitions; final V2 plan/runtime freeze and its outcome-blind partition dry run remain with R-013/D-009 | R-007 and R-013 through R-016 VERIFIED plus final-plan cross-host dry runs |
 | W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and planned-epoch sensitivity implemented; full D-005 recovery/acceptance and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
-| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes Codex/Terra as frozen Coder 1 with no adjudication rewrite and Claude/Sonnet as probability-sampled Coder 2; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. The evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
-| W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
+| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes Codex/Terra as frozen Coder 1 with no adjudication rewrite and Claude/Sonnet as probability-sampled Coder 2; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. The 35-case human timing exercise is complete, but it exposed identity inferability and weak hard-case representation. The production evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
+| W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; agent, coder, and human timing evidence is complete; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
 | W8 | Publication and redaction | OPEN | R-012 VERIFIED |
 | W9 | Paper and release | OPEN | preprint, archival release, data/code package, and deviation report published |
@@ -881,9 +891,9 @@ agent to choose that parameter silently.
 | D-001 | H1a support/reject/inconclusive rule | ACCEPTED — five-point finite-roster RD classification | Final D-005 interval recovery and coverage |
 | D-002 | H2 threshold rule and whether it is separately powered | ACCEPTED — exploratory, no threshold support/reject claim | Measurement implementation and audited uncertainty |
 | D-003 | hierarchical power model and nuisance-parameter re-estimation | ACCEPTED — prospective fixed N; pilot validates instrument/nuisance envelope only | Exact N after D-005/D-013 and resource evidence |
-| D-004 | maximum N and per-vendor resource envelope | PARAMETER OPEN — 60/10/30 envelope accepted; authenticated agent-under-test timing/meter evidence complete | Human timing sample, coder shakedown, and final numeric provider/calendar caps |
+| D-004 | maximum N and per-vendor resource envelope | PARAMETER OPEN — 60/10/30 envelope accepted; authenticated agent, coder, and 35-case human timing/cost evidence complete | Final numeric provider/calendar caps |
 | D-005 | confirmatory model and inference library | ACCEPTED DIRECTION — Family B finite-roster primary; broad models are sensitivities | Synthetic recovery, coverage, exact interval/resampling/fallback |
-| D-006 | IRR invocation surface and budget | ACCEPTED DIRECTION — Codex/Terra primary, Claude/Sonnet secondary, staged probability audit, and no automatic 600–700-label obligation | Timed staged sampler, thresholds, and routine cap |
+| D-006 | IRR invocation surface and budget | ACCEPTED DIRECTION — Codex/Terra primary, Claude/Sonnet secondary, staged probability audit, completed human timing, and no automatic 600–700-label obligation | Production evidence contract, staged sampler thresholds, and routine cap |
 | D-007 | E5 credential and execution architecture | QUALIFIED — authenticated ephemeral path, custody, cleanup, and execution-date controls pass; keep E5 closed through final G4 review | Day-one agy freeze and final collection release |
 | D-008 | exact public artifact and redaction policy | ACCEPTED — publication stays closed until tested builder/audit | Sample publication build and artifact inventory |
 | D-009 | collection randomization unit, runtime roster, and temporal-drift controls | ACCEPTED — blocked rounds, four fixed 180-slot epochs, global host order, fail-closed incomplete roster, role-preserving refresh, same-model S6 | D-005 epoch-sensitivity interval, host qualification, and final matrix digest |
@@ -2211,3 +2221,26 @@ approved methodological decision.
 - No pilot or confirmatory outcomes were accessed or collected. Remaining
   bracketed amendment items and G1-G4 checkboxes remain authoritative; this
   entry is not a global collection-ready claim.
+
+### 2026-08-17 — D-004 human timing and masking correction
+
+- The researcher passed a separate 12/12 synthetic A-F calibration and
+  completed all 35 analysis-excluded timing cases. Combined evidence-loading
+  plus coding time totaled 33.78 minutes; p50/p90 were 46.20/118.73 seconds,
+  the range was 16.62-219.92 seconds, and 3/35 cases were marked uncertain.
+- Combined p50/p90 fell from 73.35/169.82 seconds in the first ten cases to
+  29.20/40.77 seconds in the last ten. The full-sample distribution remains
+  the timing evidence; the faster tail does not replace it.
+- The observed code mix was A=24, B=1, F=10, and C/D/E=0. The rater reported
+  that paths, shell syntax, and vendor wrappers made identities apparent and
+  that prompt completeness/transcript quality was frequently problematic.
+  The exercise therefore does not validate identity blinding, hard-case
+  timing, or the production R-018 evidence contract.
+- The immutable private result has SHA-256
+  `b00496042572d6a5a685a1104c03f4759de5d5d446708bb76e5d78598a416490`.
+  Public planning retains five minutes per human label plus 10% operational
+  overhead: approximately 13.75 hours for 150 labels and 18.33 hours for 200.
+- D-004's human-timing prerequisite is complete. Final numeric provider/
+  calendar caps remain open, as do the D-006 staged sampler/gate/cap and the
+  R-018 production evidence/masking contract. No pilot or confirmatory data
+  were collected.

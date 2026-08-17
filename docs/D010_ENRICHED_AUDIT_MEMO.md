@@ -309,7 +309,7 @@ than SRS under shared bias. Neither is selected.
    instance, configuration, and paired-slot dependence.
 3. Cost candidate B values jointly with the separate anchor, dual coding,
    adjudication, missing/refusal branches, and actual human time.
-4. Use blinded golden cases and the pilot to estimate human class-specific
+4. Use label-masked golden cases and the pilot to estimate human class-specific
    error and dependence. Keep a pre-specified imperfect-reference sensitivity.
 5. Pre-specify what level of effect-scale bias, finite-reference coverage,
    shared-error detection, and joint support is adequate for confirmatory H2.
