@@ -55,7 +55,9 @@ def test_selects_one_blinded_case_per_crossing(tmp_path: Path) -> None:
     assert selected == select_balanced_cases(candidates, seed=41)
 
 
-def test_builds_private_packet_without_identity_labels(tmp_path: Path) -> None:
+def test_builds_private_label_masked_packet_without_explicit_identity_fields(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "source"
     output = tmp_path / "private-output"
     _roster(source)
@@ -70,6 +72,8 @@ def test_builds_private_packet_without_identity_labels(tmp_path: Path) -> None:
     assert '"env_id"' not in public_cases
     assert '"agent_id"' not in public_cases
     assert '"model_id"' not in public_cases
+    assert "label-masked human timing exercise" in html_text
+    assert "may still make identities inferable" in html_text
     assert "evidence_loading_ms" in html_text
     assert "active_coding_ms" in html_text
 

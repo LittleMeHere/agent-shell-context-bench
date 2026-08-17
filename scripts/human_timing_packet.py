@@ -1,4 +1,4 @@
-"""Build a blinded, analysis-excluded human timing packet.
+"""Build an explicit-label-masked, analysis-excluded human timing packet.
 
 This utility is for D-004 resource costing only. It accepts completed resource-
 shakedown trial records, selects one case from every configuration/workload
@@ -195,7 +195,7 @@ def _render_html(packet: Mapping[str, object], frozen_prompt: str) -> str:
     return f"""<!doctype html>
 <html lang=\"en\"><head><meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">
-<title>D-004 blinded human timing exercise</title>
+<title>D-004 label-masked human timing exercise</title>
 <style>
 body{{font:16px/1.45 system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#18202a}}
 button,select,textarea,input{{font:inherit}} button{{padding:.55rem .9rem;margin:.25rem}}
@@ -204,8 +204,8 @@ pre{{white-space:pre-wrap;background:#f4f6f8;padding:1rem;border-radius:.5rem;ma
 .hidden{{display:none}} .status{{font-weight:650}} textarea{{width:100%;min-height:5rem}}
 @media(max-width:760px){{.grid{{grid-template-columns:1fr}}}}
 </style></head><body>
-<h1>D-004 blinded human timing exercise</h1>
-<p>This packet contains 35 non-analysis cases. Environment, agent, model, and configuration labels are withheld. Do not investigate their identities.</p>
+<h1>D-004 label-masked human timing exercise</h1>
+<p>This packet contains 35 non-analysis cases. Explicit environment, agent, model, and configuration fields are withheld. Commands, paths, and event wrappers may still make identities inferable; do not investigate or cross-reference them.</p>
 <details><summary>Frozen A-F rubric</summary><pre>{rubric}</pre></details>
 <p class=\"status\" id=\"status\"></p>
 <div id=\"ready\" class=\"card\"><p>Open the case, inspect the evidence, then click <em>Evidence ready</em>. Active coding time starts only after that click.</p><button id=\"open\">Open next case</button></div>
@@ -287,7 +287,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, required=True)
     args = parser.parse_args(argv)
     packet = build_packet(source_roots=args.source_root, output_dir=args.out, seed=args.seed)
-    print(f"wrote {packet['case_count']} blinded cases; digest={packet['packet_digest']}")
+    print(
+        f"wrote {packet['case_count']} label-masked cases; "
+        f"digest={packet['packet_digest']}"
+    )
     return 0
 
 
