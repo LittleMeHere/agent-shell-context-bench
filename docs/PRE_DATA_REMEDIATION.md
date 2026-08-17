@@ -342,7 +342,8 @@ maximum wrong threshold declarations 0.70%, and maximum absolute point bias
 0.063 percentage points; see `docs/D005_H1_RECOVERY_ENVELOPE.md`. Independent
 review accepted the interval mechanics but found that a missing or extra
 whole configuration could change the estimand. The estimator now requires the
-exact CFG1-CFG7 roster and regression-tests both counterexamples; independent
+explicit phase-registered roster (CFG1-CFG7 confirmatory; CFG1-CFG2 pilot)
+and regression-tests both counterexamples; independent
 re-acceptance remains pending. See
 `docs/D005_INDEPENDENT_IMPLEMENTATION_REVIEW.md`. Final interval acceptance,
 broad-model sensitivity disposition, A2-A4, coder join,
@@ -2196,8 +2197,8 @@ approved methodological decision.
 - An isolated read-only implementation review accepted the signed-coefficient
   CP-MOVER, exact-cell fallback, and RR-envelope mechanics but rejected the H1
   candidate because a missing or extra whole configuration changed the
-  inferred roster. The estimator now requires exact CFG1-CFG7 membership and
-  regression-tests both named counterexamples. The focused interval/recovery
+  inferred roster. The estimator now requires the explicit phase-registered
+  configuration roster and regression-tests both named counterexamples. The focused interval/recovery
   slice passes 19 tests. Independent re-acceptance remains open.
 - Added `docs/V2_AMENDMENT.md`, a non-operative freeze candidate that presents
   the V1-to-V2 replacement wording directly and keeps every unresolved value

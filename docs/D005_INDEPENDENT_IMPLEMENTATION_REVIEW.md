@@ -22,10 +22,12 @@ claim.
 
 ## Repair
 
-The estimator now requires the exact registered `CFG1`-`CFG7` roster before
-constructing any leaf or weight. Missing and extra whole configurations are
-reported explicitly and raise `AnalysisDatasetError`. The ordinary complete-
-crossing check remains in force within that fixed roster.
+The estimator now requires an explicit fixed configuration roster before
+constructing any leaf or weight. The confirmatory default is the exact
+registered `CFG1`-`CFG7` roster; the V2 pilot epoch sensitivity must explicitly
+pass its registered `CFG1`-`CFG2` pilot roster. Missing and extra whole
+configurations are reported and raise `AnalysisDatasetError`. The ordinary
+complete-crossing check remains in force within that fixed roster.
 
 Focused evidence:
 
@@ -39,4 +41,3 @@ The new regression test executes both counterexamples named by the reviewer.
 The original review was not converted into an acceptance after the repair;
 the exact interval remains a freeze candidate until independent re-acceptance
 and researcher freeze are recorded.
-
