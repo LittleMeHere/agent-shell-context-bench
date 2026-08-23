@@ -1,6 +1,7 @@
 # D-005 H1 dependence, drift, and attrition recovery envelope
 
-**Status:** PROSPECTIVE EVIDENCE — does not accept an interval, N, or cap
+**Status:** PLAN-BOUND IMPLEMENTATION INDEPENDENTLY ACCEPTED; N=36 target
+accepted subject to provider cap
 **Created:** 2026-08-15
 **Code:** `analysis/d005_h1_recovery_envelope.py`
 **Tests:** `tests/test_d005_h1_recovery_envelope.py`
@@ -19,9 +20,29 @@ Across all 32 cells:
 - maximum absolute point-estimate bias was 0.063 percentage points; and
 - all intervals remained estimable.
 
-This materially strengthens the Family-B candidate. It does not itself
-accept D-005: a second implementation review, the broad-model sensitivity
-disposition, exact N, and researcher acceptance remain pre-data requirements.
+The estimator is now bound directly to a fully validated schedule plan. An
+independent adversarial re-review accepted its configuration, instance, leaf,
+count, plan-digest, and count-preserving identity-swap boundaries after the
+repair. Exact N, the broad-model sensitivity disposition, and researcher
+methodology acceptance remain pre-data requirements.
+
+## N=36 precision extension (2026-08-22)
+
+The same full 32-cell, 5,000-replicate envelope was rerun prospectively with
+15 repetitions per family/configuration, corresponding to base N=36. All 32
+coverage/bias/wrong-declaration screens passed. For the diffuse null,
+bounded-small classifications ranged from 84.76% to 93.92%; for the diffuse
+10-point gap, decision-relevant classifications ranged from 80.82% to 93.06%.
+At the five-point boundary, 96.92% to 99.82% remained inconclusive, as a
+calibrated interval should.
+
+The opposing-domain null is deliberately harder: bounded-small decisions
+ranged from 72.86% to 86.60%. Thus N=36 supports an 80% decisiveness target
+for the registered diffuse clear-null/strong-effect envelope, but not a claim
+that every heterogeneous null will be decisive. It raises the full
+confirmatory matrix from 19,320 to 28,980 agent trials (+50%), including
+12,420 `agy` trials, so it is a freeze candidate only if the final provider
+and calendar cap can support it.
 
 ## Prospective screen
 
@@ -114,6 +135,7 @@ The D-004 cap must be frozen from authenticated measurements and the accepted
 ```powershell
 python -m pytest tests/test_d005_h1_recovery_envelope.py -q
 python -m analysis.d005_h1_recovery_envelope --replicates 5000 --seed 20260815
+python -m analysis.d005_h1_recovery_envelope --replicates 5000 --seed 20260822 --repetitions-per-family-config 15
 ```
 
 No benchmark outcomes, private artifacts, task bytes, or frozen V1

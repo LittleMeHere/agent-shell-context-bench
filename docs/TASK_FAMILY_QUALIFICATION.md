@@ -1,6 +1,6 @@
 # D-013 candidate task-family qualification protocol
 
-**Status:** ACCEPTED FRAME — 36-INSTANCE CANDIDATE BANK AUTHORED; NO FAMILY ADMITTED
+**Status:** PARTIAL — FIVE-HOST ORACLES AND EXECUTABLE Q2 PASS; HUMAN/Q3/Q4 REMAIN
 **Created:** 2026-08-01
 **Decision:** D-013
 **Finding:** R-022
@@ -152,7 +152,7 @@ solutions fail. A difficult but defective grader is not a hard task.
 Required record:
 
 - human completion time and structural difficulty notes;
-- aggregate, context-blinded development-agent success and invalid-attempt
+- aggregate, context-label-masked development-agent success and invalid-attempt
   counts;
 - transcript-supported failure mechanisms;
 - blinded simulations of the candidate ceiling/floor rule;
@@ -165,9 +165,16 @@ remain if they represent the construct; hard tasks may remain if their
 difficulty is intrinsic and fair. Selection based only on producing failures
 would convert the bank into an adversarial stress test.
 
-The numerical pass band, number of development attempts, allowed development
-models, and ceiling/floor thresholds remain open D-013 decisions. Until they
-are accepted, every family remains `PARTIAL` on Q3.
+The accepted pilot rule requires at least five failures and five successes,
+with each outcome represented in at least two families. Fewer than five
+failures is `CEILING`; fewer than five successes is `FLOOR`; an outcome found
+in only one family is `CONCENTRATED`. Those three branches stop confirmatory
+collection. Any outcome-relevant task repair requires a V2 amendment, a new
+task-bank digest, and a fresh pilot. Concentration within one domain while at
+least two families contribute is a reported diagnostic, not an automatic
+stop. The allowed development models, fixed attempt count, and transcript
+adjudication batch remain to be frozen; no family is selected or rejected
+solely for being easy or for producing C/D/E labels.
 
 ### Q4 — freeze, assignment, and auditability
 
@@ -246,18 +253,18 @@ claim that three instances establish external validity.
 
 | Family | Domain | Q0 | Q1 | Q2 | Q3 | Q4 | Principal remaining gap |
 |---|---|---|---|---|---|---|---|
-| C01 | A | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and alternate-construction review |
-| C02 | B | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and quoting/encoding alternates |
-| C03 | C | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | semantic alternate-renames and human criterion review |
-| C04 | A | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | hidden-file/hash portability and alternate inventories |
-| C05 | B | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | merge-semantics alternate-solution audit |
-| C06 | C | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and shortcut matrix |
-| C07 | D | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and ours/theirs counter-policies |
-| C08 | D | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and reset counter-policies |
-| C09 | E | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and test-tamper matrix |
-| C10 | E | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS, fresh-human, and valid-alternate audit |
-| C11 | F | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS plus fresh-human port/process completion |
-| C12 | F | PARTIAL | PARTIAL | PARTIAL | NOT ASSESSED | PARTIAL | macOS plus fresh-human environment/secret review |
+| C01 | A | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript criterion review |
+| C02 | B | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript quoting/encoding review |
+| C03 | C | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | transcript alternate-renames and human criterion review |
+| C04 | A | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | transcript hidden-file/hash and human review |
+| C05 | B | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | transcript merge-semantics and human review |
+| C06 | C | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript shortcut review |
+| C07 | D | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript conflict review |
+| C08 | D | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript reset review |
+| C09 | E | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript test-tamper review |
+| C10 | E | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human and transcript alternate review |
+| C11 | F | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human port/process and transcript review |
+| C12 | F | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | fresh-human environment/secret and transcript review |
 
 The rows remain unadmitted because local executable evidence is not a complete
 Q0-Q4 package. The current structural bank digest is recorded in
@@ -267,15 +274,17 @@ The current bank digest
 `528b70694d29e22cf54fc487f2df64b016251f5a318c9691df0d57ece2f3c47b`
 has cleared a meaningful part of Q1/Q2: every untouched fixture failed and
 every registered oracle passed for all 36 instances on native Windows
-PowerShell 5.1, Windows pwsh 7.6.4, WSL2 Ubuntu 24.04.4, and fresh GCP Ubuntu
-24.04.4 (144 portable oracle completions, zero model calls). The combined
-analysis-excluded evidence artifact has SHA-256
+PowerShell 5.1, Windows pwsh 7.6.4, WSL2 Ubuntu 24.04.4, fresh GCP Ubuntu
+24.04.4, and the qualified macOS ARM64 runner (180 portable oracle
+completions, zero model calls). The combined four-host artifact below and the
+later macOS qualification record together establish the five-host result. The
+four-host analysis-excluded evidence artifact has SHA-256
 `dfe021ef67f4f8ac4b79b796a7a90ab4b2548e7a35c5f795ff28bfac7fa85436`.
 The executable Q2 audit passes 217 checks: 36 independently authored valid
 alternates pass, every accepted H1-visible counter-policy fails, and H2/H4-
-only surfaces remain excluded from H1. macOS evidence for these exact task
-bytes, fresh-human solvability, and transcript-level development-attempt
-adjudication remain open, so no row is promoted to `PASS`.
+only surfaces remain excluded from H1. Fresh-human solvability and
+transcript-level development-attempt adjudication remain open, so no row is
+promoted to `PASS`.
 
 ### Provisional affordance map
 
@@ -334,10 +343,10 @@ schema, agents must not invent default values for missing evidence or convert
 
 This protocol makes the next work explicit:
 
-1. record five-host portable completions and fresh-human review;
-2. complete the named counter-policy and alternate-valid-solution matrix;
-3. freeze the minimum human and development-agent QA envelope;
-4. run context-blinded Q3 calibration and the symmetric pilot gate;
+1. complete and record fresh-human review;
+2. adjudicate the complete fixed development-attempt transcript batch;
+3. freeze the development-model and attempt-count QA envelope;
+4. qualify the plan-bound production implementation of the symmetric pilot gate;
 5. finish D-005 interval/epoch recovery and independently review the
    production-bound H1 builder; and
 6. freeze final instance/plan/analysis digests before paid collection.

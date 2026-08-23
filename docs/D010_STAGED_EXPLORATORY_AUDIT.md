@@ -1,7 +1,7 @@
 # D-010 staged exploratory human-audit design
 
-**Status:** ACCEPTED DESIGN DIRECTION — human timing complete; exact focal
-sample size, evidence contract, and gates must pass prospective freeze
+**Status:** EXACT PARAMETERS ACCEPTED PRE-DATA — production integration and
+golden qualification remain
 **Accepted constraint:** routine human review must not imply a 600–700-label
 commitment; any expansion beyond the frozen routine cap requires a separate
 researcher go/no-go decision
@@ -19,8 +19,8 @@ The routine candidate envelope is:
 | Component | Candidate labels | Role |
 |---|---:|---|
 | Omnibus anchor | 50 | Always drawn; probability sample for workflow, overall A–F agreement, refusal/malformed behavior, and gross shared-error detection |
-| Focal audit | 100–150 additional | At most one fixed context-stratified SRS of valid failed trials when the frozen gate passes |
-| Routine maximum | 150–200 total | Exact value selected prospectively from simulation using the completed timed review |
+| Focal audit | 150 additional | One fixed context-stratified SRS of valid failed trials when the frozen gate passes; census if fewer than 150 exist after scarcity minima pass |
+| Routine maximum | 200 total | Fixed cap; no automatic third stage |
 | Larger audit | none automatically | Requires a separate explicit decision and is preferably a dedicated follow-up study |
 
 At five active minutes per label plus 10% operational overhead, 150 total
@@ -101,9 +101,15 @@ The frozen gate has three outcomes:
    sample can materially improve exploratory precision. Draw exactly the
    predeclared sample and stop at the routine cap.
 
-The numerical thresholds and sequential-valid uncertainty method remain to
-be selected from prospective simulation. They must be frozen before outcome
-access. There is no result-contingent escalation after the bounded audit.
+The accepted freeze rule uses `STOP-INVALID` precedence when the evidence
+contract/golden set fails, primary-Coder completeness is below 95% overall or
+90% in a registered stratum, or the design-weighted AI/AI or minimum human/AI
+κ is below 0.60. Otherwise it uses `STOP-SPARSE` when pooled focal failures
+are below 10 or either focal context has fewer than five. Every other case is
+`RUN-BOUNDED-AUDIT`. Zero AI-reported D/E is not a stop rule: the focal audit
+is specifically retained to detect shared misses. These values are encoded
+in `config/v2-human-audit.candidate.json` and were explicitly accepted by the
+researcher on 2026-08-22 before pilot or confirmatory outcome access.
 
 ## 5. Primary and sensitivity labels
 

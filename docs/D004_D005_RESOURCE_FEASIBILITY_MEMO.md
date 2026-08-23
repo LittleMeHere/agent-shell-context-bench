@@ -1,7 +1,7 @@
 # D-004/D-005 joint resource-feasibility memo
 
-**Status:** EVIDENCE UPDATED — V2 direction is accepted; exact N, resource
-caps, audit parameters, and coder assignment remain open
+**Status:** EVIDENCE UPDATED — N=36 target and staged audit accepted;
+provider/calendar caps remain open
 **Created:** 2026-08-06
 **Decisions informed:** D-002, D-004, D-005, D-006, D-010, and D-013
 **Code:** `analysis/d004_resource_feasibility.py`,
@@ -67,10 +67,16 @@ retain `base_N`.
 | 6 | 1,260 | 3,780 | 5,040 | 2,160 | 10,080 | 15,120 |
 | 12 | 2,100 | 7,560 | 9,660 | 4,140 | 19,320 | 28,980 |
 | 24 | 4,200 | 15,120 | 19,320 | 8,280 | 38,640 | 57,960 |
+| 36 | 6,300 | 22,680 | 28,980 | 12,420 | 57,960 | 86,940 |
 
 The `agy` column contains CFG5-CFG7 because those three configurations use the
-same subscription execution surface. AI-coder provider assignment is open
-under D-006 and is intentionally not charged to an arbitrary provider here.
+same subscription execution surface. The two-full-sample-coder columns are a
+historical upper-bound comparator, not the current D-006 design: Coder 1 is
+population-wide, while Coder 2 and human review use the fixed probability
+sample. N=36 is the first fully rerun candidate clearing 80% across the tested
+diffuse clear-null/strong-effect envelope. The researcher accepted it as the
+target on 2026-08-22, conditional only on confirming that its 50% increase
+over N=24 fits the prospective provider/calendar cap.
 
 Calls are not quota units. Agent and rubric calls differ in input length,
 output length, tool use, wall time, and vendor accounting. D-004 still needs

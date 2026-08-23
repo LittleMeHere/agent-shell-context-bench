@@ -1,7 +1,8 @@
 # D-005 independent implementation review and repair
 
-**Status:** BLOCKING COUNTEREXAMPLE REPAIRED; independent re-acceptance pending
-**Date:** 2026-08-16
+**Status:** INDEPENDENTLY RE-ACCEPTED — N=36 target accepted subject to cap;
+methodology freeze remains open
+**Date:** 2026-08-22
 **Scope:** `analysis/v2_finite_roster.py`, its focused tests, and the
 prospective D-005 recovery envelope
 
@@ -22,22 +23,26 @@ claim.
 
 ## Repair
 
-The estimator now requires an explicit fixed configuration roster before
-constructing any leaf or weight. The confirmatory default is the exact
-registered `CFG1`-`CFG7` roster; the V2 pilot epoch sensitivity must explicitly
-pass its registered `CFG1`-`CFG2` pilot roster. Missing and extra whole
-configurations are reported and raise `AnalysisDatasetError`. The ordinary
-complete-crossing check remains in force within that fixed roster.
+Both the candidate interval and the standalone point estimator now require
+the fully validated `SchedulePlan` itself before constructing any leaf or
+weight. They derive the configuration, family, instance, target-count, and
+cell-membership roster from that plan, verify every row's plan digest and cell
+identity, and invoke the same digest, exact phase-roster, task-hash,
+Cartesian-product, runtime, and blocked-order checks as `load_plan()`.
+Missing/extra configurations, instances, observations, a count-preserving
+instance swap, a row/plan digest mismatch, and a recomputed forged replacement
+digest all reject.
 
 Focused evidence:
 
 ```text
 python -m pytest tests/test_v2_finite_roster.py \
+  tests/test_v2_analysis_dataset.py tests/test_scheduler.py \
   tests/test_d005_h1_recovery_envelope.py -q
-19 passed
+99 passed
 ```
 
-The new regression test executes both counterexamples named by the reviewer.
-The original review was not converted into an acceptance after the repair;
-the exact interval remains a freeze candidate until independent re-acceptance
-and researcher freeze are recorded.
+The final isolated re-review accepted the implementation boundary and the
+previously reviewed CP-MOVER/fallback mechanics. It explicitly leaves exact
+N, the selected-N recovery grid, broad-model sensitivity disposition, and
+researcher methodology freeze as separate decisions.

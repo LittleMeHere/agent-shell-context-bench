@@ -1,6 +1,6 @@
 # D-013 ceiling, construct-mismatch, and H2 simulation memo
 
-**Status:** EVIDENCE BASIS — G2 ceiling gate and D-013C direction accepted 2026-08-09; N/analysis remain open
+**Status:** ACCEPTED DIRECTION — G2 branch implemented; final N/Q1-Q4 freeze open
 **Created:** 2026-08-01
 **Decisions informed:** D-001 through D-005 and D-013
 **Findings:** R-001, R-002, R-003, R-022
@@ -11,8 +11,8 @@
 
 The simulation supports three conclusions.
 
-1. A five-event/two-family blinded pilot rule is the leading ceiling/floor
-   candidate among the three tested rules. A one-event rule is too permissive,
+1. A five-event/two-family label-masked pilot rule is the accepted ceiling/floor
+   rule among the three tested rules. A one-event rule is too permissive,
    while making cross-domain spread a hard gate can reject genuine
    domain-concentrated signal. Domain spread should be a diagnostic branch,
    not automatic evidence that the instrument is invalid.
@@ -29,9 +29,9 @@ The simulation supports three conclusions.
    error, and model convergence, a true 3x D/E ratio has only about 16%, 36%,
    and 66% reference support at base N=6, 12, and 24 in the split-N design.
 
-These findings narrow the viable options but do not approve D-013. The
-synthetic rates are sensitivity scenarios, not predictions of benchmark
-outcomes.
+These findings support the accepted D-013 direction. They do not complete
+Q1-Q4 or select N. The synthetic rates are sensitivity scenarios, not
+predictions of benchmark outcomes.
 
 ## 2. Reproducible run
 
@@ -115,16 +115,22 @@ holding the overall mean at 5% or 10%.
 
 The G3 concentration branch is scientifically meaningful, but it should not
 automatically send the instrument back to development. Concentration can be a
-real result. The leading candidate is therefore:
+real result. The accepted response is therefore:
 
 - use G2 as the symmetric ceiling/floor sufficiency gate;
 - compute the G3 family/domain-spread quantities as blinded diagnostics;
-- route concentrated pilots to a pre-specified domain-heterogeneity review,
-  without selecting tasks based on the named context-effect direction;
-- require a fresh pilot only if that review changes the instrument.
+- classify fewer than five failures as `CEILING`, fewer than five successes
+  as `FLOOR`, and either outcome confined to one family as `CONCENTRATED`;
+- stop before confirmatory collection in those three branches;
+- retain domain concentration across at least two families as a diagnostic,
+  without selecting tasks based on the named context-effect direction; and
+- require an amendment, new task-bank digest, and fresh pilot after any
+  outcome-relevant instrument change.
 
-This candidate still requires D-013 acceptance and sensitivity to other
-family/domain heterogeneity patterns.
+`analysis/v2_pilot_gate.py` implements this aggregate decision artifact
+without reporting named-context outcomes. Boundary tests cover 0/4/5 events,
+one versus two families, one-domain/two-family concentration, the symmetric
+floor, missing rows, and foreign-plan rows.
 
 G2 is only a coarse instrument-development ceiling/floor gate. Passing it
 does not establish per-context H1 estimability, H2's failed-trial denominator,
