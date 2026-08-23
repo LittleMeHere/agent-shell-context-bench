@@ -27,6 +27,7 @@ from harness.schedule_identity import ScheduleIdentity
 from harness.scheduler import (
     SchedulePlan,
     schedule_identity_for_cell,
+    validate_plan,
     v2_pilot_epoch_for_position,
 )
 
@@ -395,10 +396,12 @@ def accepted_family_domains() -> dict[str, str]:
 def finite_roster_h1_point_estimate(
     trials: Sequence[AnalysisTrial],
     *,
+    plan: SchedulePlan,
     family_domains: Mapping[str, str] | None = None,
 ) -> FiniteRosterH1PointEstimate:
-    """Compute the accepted equal domain/family/instance/config H1 point RD."""
+    """Compute the plan-bound equal domain/family/instance/config H1 point RD."""
 
+    validate_plan(plan)
     domains = dict(family_domains or accepted_family_domains())
     focal = [
         row
@@ -411,18 +414,37 @@ def finite_roster_h1_point_estimate(
         raise AnalysisDatasetError("no valid focal capability trials")
     if any(row.failed is None for row in focal):
         raise AnalysisDatasetError("valid focal trial has no failure outcome")
+    if any(row.plan_digest != plan.digest for row in focal):
+        raise AnalysisDatasetError("focal trial is bound to a different schedule plan")
     unknown = sorted({row.family_id for row in focal} - set(domains))
     if unknown:
         raise AnalysisDatasetError(f"unknown capability families: {unknown}")
 
+    planned_cells = {
+        cell.cell_id: (
+            cell.env_id,
+            cell.config_id,
+            cell.family_id,
+            cell.instance_id,
+            cell.target_valid_trials,
+        )
+        for cell in plan.cells
+        if cell.env_id in FOCAL_ENVIRONMENTS and cell.family_id in domains
+    }
+    if not planned_cells:
+        raise AnalysisDatasetError("validated plan contains no focal capability cells")
     leaf: defaultdict[tuple[str, str, str, str], list[float]] = defaultdict(list)
     for row in focal:
-        leaf[(row.env_id, row.config_id, row.family_id, row.instance_id)].append(
-            float(row.failed)
-        )
-    configs = sorted({row.config_id for row in focal})
+        planned = planned_cells.get(row.cell_id)
+        observed = (row.env_id, row.config_id, row.family_id, row.instance_id)
+        if planned is None or planned[:4] != observed:
+            raise AnalysisDatasetError(
+                "focal row identity differs from its registered plan cell"
+            )
+        leaf[observed].append(float(row.failed))
+    configs = sorted({value[1] for value in planned_cells.values()})
     families = sorted(domains)
-    instances = sorted({row.instance_id for row in focal})
+    instances = sorted({value[3] for value in planned_cells.values()})
     expected = {
         (env, config, family, instance)
         for env in FOCAL_ENVIRONMENTS
@@ -435,6 +457,20 @@ def finite_roster_h1_point_estimate(
         extra = sorted(set(leaf) - expected)[:5]
         raise AnalysisDatasetError(
             f"focal finite roster is not a complete crossing: missing={missing}, extra={extra}"
+        )
+    planned_counts = {
+        value[:4]: value[4]
+        for value in planned_cells.values()
+    }
+    mismatches = [
+        (key, planned_counts[key], len(leaf[key]))
+        for key in sorted(expected)
+        if planned_counts.get(key) != len(leaf[key])
+    ]
+    if mismatches:
+        raise AnalysisDatasetError(
+            "focal point-estimator leaf counts differ from the registered plan: "
+            f"{mismatches[:5]}"
         )
 
     instance_means = {key: sum(values) / len(values) for key, values in leaf.items()}

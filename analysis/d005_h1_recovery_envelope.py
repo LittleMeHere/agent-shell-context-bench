@@ -346,6 +346,7 @@ def run_recovery_grid(
     *,
     replicates: int,
     seed: int,
+    repetitions_per_family_config: int = 10,
     scenario_names: Iterable[str] = (
         "diffuse_null",
         "diffuse_threshold",
@@ -362,6 +363,7 @@ def run_recovery_grid(
                 simulate_h1_recovery(
                     scenario,
                     mechanism,
+                    repetitions_per_family_config=repetitions_per_family_config,
                     replicates=replicates,
                     seed=seed + 10_000 * scenario_index + mechanism_index,
                 )
@@ -375,8 +377,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--replicates", type=int, default=5_000)
     parser.add_argument("--seed", type=int, default=20260815)
+    parser.add_argument("--repetitions-per-family-config", type=int, default=10)
     args = parser.parse_args(argv)
-    for row in run_recovery_grid(replicates=args.replicates, seed=args.seed):
+    for row in run_recovery_grid(
+        replicates=args.replicates,
+        seed=args.seed,
+        repetitions_per_family_config=args.repetitions_per_family_config,
+    ):
         print(json.dumps(row, sort_keys=True, allow_nan=False))
     return 0
 

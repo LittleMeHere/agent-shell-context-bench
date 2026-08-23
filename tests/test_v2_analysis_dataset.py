@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import hashlib
 
 import pytest
@@ -12,11 +13,15 @@ from analysis.v2_analysis_dataset import (
     derive_analysis_trial,
     finite_roster_h1_point_estimate,
 )
-from analysis.v2_finite_roster import finite_roster_epoch_sensitivity
+from analysis.v2_finite_roster import (
+    finite_roster_epoch_sensitivity,
+    finite_roster_h1_candidate,
+)
 from harness.outcomes import construct_agy_outcome_evidence, construct_binary_outcome
 from harness.scheduler import (
     AGY_MINI_PILOT_PHASE,
     V2_PILOT_PHASE,
+    ScheduleError,
     build_plan,
     schedule_identity_for_cell,
 )
@@ -269,7 +274,7 @@ def test_complete_v2_plan_builds_and_equal_weight_point_estimator_recovers(v2_pl
         180,
         180,
     ]
-    estimate = finite_roster_h1_point_estimate(rows)
+    estimate = finite_roster_h1_point_estimate(rows, plan=v2_plan)
     assert estimate.windows_failure_rate == pytest.approx(1.0)
     assert estimate.linux_failure_rate == pytest.approx(0.0)
     assert estimate.risk_difference == pytest.approx(1.0)
@@ -296,6 +301,7 @@ def test_complete_v2_plan_epoch_sensitivity_matches_frozen_composition(v2_plan) 
     reports = finite_roster_epoch_sensitivity(
         rows,
         expected_configurations=("CFG1", "CFG2"),
+        plan=v2_plan,
     )
 
     assert [report.status for report in reports] == [
@@ -311,6 +317,58 @@ def test_complete_v2_plan_epoch_sensitivity_matches_frozen_composition(v2_plan) 
     assert reports[3].capability_trials == 0
 
 
+def test_h1_interval_requires_valid_plan_and_rejects_bound_identity_swap(v2_plan) -> None:
+    records = []
+    for cell in v2_plan.cells:
+        for index in range(cell.target_valid_trials):
+            records.append(_record(v2_plan, cell, index, success=True))
+    rows = list(build_analysis_dataset(v2_plan, records))
+    result = finite_roster_h1_candidate(
+        rows,
+        plan=v2_plan,
+        expected_configurations=("CFG1", "CFG2"),
+    )
+    assert result.decision == "inconclusive"
+
+    forged_plan = dataclasses.replace(v2_plan, digest="c" * 64)
+    with pytest.raises(ScheduleError, match="plan digest mismatch"):
+        finite_roster_h1_candidate(
+            rows,
+            plan=forged_plan,
+            expected_configurations=("CFG1", "CFG2"),
+        )
+
+    left = next(
+        row for row in rows
+        if row.task_category == "capability"
+        and row.env_id == "windows_powershell"
+        and row.family_id == "C01"
+        and row.instance_id == "I01"
+    )
+    right = next(
+        row for row in rows
+        if row.task_category == "capability"
+        and row.env_id == left.env_id
+        and row.config_id == left.config_id
+        and row.family_id == left.family_id
+        and row.instance_id == "I02"
+    )
+    swapped = [
+        dataclasses.replace(row, instance_id=right.instance_id, task_id=right.task_id)
+        if row.attempt_id == left.attempt_id
+        else dataclasses.replace(row, instance_id=left.instance_id, task_id=left.task_id)
+        if row.attempt_id == right.attempt_id
+        else row
+        for row in rows
+    ]
+    with pytest.raises(AnalysisDatasetError, match="registered plan cell"):
+        finite_roster_h1_candidate(
+            swapped,
+            plan=v2_plan,
+            expected_configurations=("CFG1", "CFG2"),
+        )
+
+
 def test_finite_roster_estimator_equal_weights_domains_and_families(v2_plan) -> None:
     rows = []
     for cell in v2_plan.cells:
@@ -319,10 +377,13 @@ def test_finite_roster_estimator_equal_weights_domains_and_families(v2_plan) -> 
         if cell.env_id not in {"windows_powershell", "linux_native"}:
             continue
         failure = cell.env_id == "windows_powershell" and cell.family_id == "C01"
-        rows.append(
-            derive_analysis_trial(_record(v2_plan, cell, 0, success=not failure))
-        )
-    estimate = finite_roster_h1_point_estimate(rows)
+        for index in range(cell.target_valid_trials):
+            rows.append(
+                derive_analysis_trial(
+                    _record(v2_plan, cell, index, success=not failure)
+                )
+            )
+    estimate = finite_roster_h1_point_estimate(rows, plan=v2_plan)
     assert estimate.windows_failure_rate == pytest.approx(1 / 12)
     assert estimate.linux_failure_rate == 0.0
     assert estimate.risk_difference == pytest.approx(1 / 12)

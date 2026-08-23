@@ -30,6 +30,107 @@ from analysis.v2_analysis_dataset import (
     AnalysisTrial,
     accepted_family_domains,
 )
+from harness.scheduler import SchedulePlan, validate_plan, v2_pilot_epoch_for_position
+
+
+LeafKey = tuple[str, str, str, str]
+
+
+def expected_h1_leaf_counts_from_plan(
+    plan: SchedulePlan,
+    *,
+    family_domains: Mapping[str, str] | None = None,
+    expected_configurations: Sequence[str] = REGISTERED_CONFIG_IDS,
+) -> dict[LeafKey, int]:
+    """Derive the exact H1 leaf/count roster from a validated schedule plan."""
+
+    families = set((family_domains or accepted_family_domains()).keys())
+    configurations = set(expected_configurations)
+    counts: dict[LeafKey, int] = {}
+    for cell in plan.cells:
+        if (
+            cell.env_id not in FOCAL_ENVIRONMENTS
+            or cell.config_id not in configurations
+            or cell.family_id not in families
+        ):
+            continue
+        key = (cell.env_id, cell.config_id, cell.family_id, cell.instance_id)
+        if key in counts:
+            raise AnalysisDatasetError(
+                f"schedule plan contains a duplicate H1 leaf: {key}"
+            )
+        counts[key] = cell.target_valid_trials
+    if not counts:
+        raise AnalysisDatasetError("schedule plan contains no registered H1 leaves")
+    return counts
+
+
+def expected_h1_cell_membership_from_plan(
+    plan: SchedulePlan,
+    *,
+    family_domains: Mapping[str, str] | None = None,
+    expected_configurations: Sequence[str] = REGISTERED_CONFIG_IDS,
+) -> dict[str, LeafKey]:
+    """Bind every eligible plan cell ID to its registered H1 leaf."""
+
+    families = set((family_domains or accepted_family_domains()).keys())
+    configurations = set(expected_configurations)
+    membership: dict[str, LeafKey] = {}
+    for cell in plan.cells:
+        if (
+            cell.env_id not in FOCAL_ENVIRONMENTS
+            or cell.config_id not in configurations
+            or cell.family_id not in families
+        ):
+            continue
+        if cell.cell_id in membership:
+            raise AnalysisDatasetError(
+                f"schedule plan contains duplicate cell ID {cell.cell_id}"
+            )
+        membership[cell.cell_id] = (
+            cell.env_id,
+            cell.config_id,
+            cell.family_id,
+            cell.instance_id,
+        )
+    if not membership:
+        raise AnalysisDatasetError("schedule plan contains no registered H1 cells")
+    return membership
+
+
+def expected_h1_leaf_counts_by_v2_pilot_epoch(
+    plan: SchedulePlan,
+    *,
+    family_domains: Mapping[str, str] | None = None,
+    expected_configurations: Sequence[str],
+    expected_epochs: Sequence[int] = (0, 1, 2, 3),
+) -> dict[int, dict[LeafKey, int]]:
+    """Derive the exact plan-owned H1 counts for each frozen V2 pilot epoch."""
+
+    if plan.execution_slots is None:
+        raise AnalysisDatasetError("schedule plan has no execution-slot roster")
+    families = set((family_domains or accepted_family_domains()).keys())
+    configurations = set(expected_configurations)
+    cells = {cell.cell_id: cell for cell in plan.cells}
+    counts: dict[int, dict[LeafKey, int]] = {
+        epoch: {} for epoch in expected_epochs
+    }
+    for slot in plan.execution_slots:
+        cell = cells[slot.cell_id]
+        if (
+            cell.env_id not in FOCAL_ENVIRONMENTS
+            or cell.config_id not in configurations
+            or cell.family_id not in families
+        ):
+            continue
+        epoch = v2_pilot_epoch_for_position(slot.position)
+        if epoch not in counts:
+            raise AnalysisDatasetError(
+                f"schedule slot maps to unregistered epoch {epoch}"
+            )
+        key = (cell.env_id, cell.config_id, cell.family_id, cell.instance_id)
+        counts[epoch][key] = counts[epoch].get(key, 0) + 1
+    return counts
 
 
 @dataclass(frozen=True)
@@ -247,6 +348,8 @@ def _finite_roster_cells(
     trials: Sequence[AnalysisTrial],
     family_domains: Mapping[str, str],
     expected_configurations: Sequence[str],
+    plan: SchedulePlan,
+    expected_leaf_counts: Mapping[LeafKey, int] | None = None,
 ) -> tuple[
     dict[str, NDArray[np.int64]],
     dict[str, NDArray[np.int64]],
@@ -261,6 +364,33 @@ def _finite_roster_cells(
     ]
     if not focal or any(row.failed is None for row in focal):
         raise AnalysisDatasetError("valid focal capability outcomes are incomplete")
+    if any(row.plan_digest != plan.digest for row in focal):
+        raise AnalysisDatasetError("analysis row is bound to a different schedule plan")
+    if expected_leaf_counts is None:
+        expected_leaf_counts = expected_h1_leaf_counts_from_plan(
+            plan,
+            family_domains=family_domains,
+            expected_configurations=expected_configurations,
+        )
+    expected_cell_membership = expected_h1_cell_membership_from_plan(
+        plan,
+        family_domains=family_domains,
+        expected_configurations=expected_configurations,
+    )
+    for row in focal:
+        observed_leaf = (
+            row.env_id,
+            row.config_id,
+            row.family_id,
+            row.instance_id,
+        )
+        expected_leaf = expected_cell_membership.get(row.cell_id)
+        if expected_leaf is None or expected_leaf != observed_leaf:
+            raise AnalysisDatasetError(
+                "analysis row identity differs from its registered plan cell: "
+                f"cell_id={row.cell_id!r}, expected={expected_leaf!r}, "
+                f"observed={observed_leaf!r}"
+            )
     unknown = sorted({row.family_id for row in focal} - set(family_domains))
     if unknown:
         raise AnalysisDatasetError(f"unknown capability families: {unknown}")
@@ -284,16 +414,39 @@ def _finite_roster_cells(
         )
         for domain in domains
     }
-    instances_by_family = {
+    if not expected_leaf_counts:
+        raise ValueError("expected_leaf_counts must be nonempty")
+    for key, count in expected_leaf_counts.items():
+        if (
+            not isinstance(key, tuple)
+            or len(key) != 4
+            or not all(isinstance(value, str) and value for value in key)
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count < 1
+        ):
+            raise ValueError(
+                "expected_leaf_counts must map four-string leaf keys to "
+                "positive integers"
+            )
+
+    registered_families = set(family_domains)
+    registered_instances = {
         family: sorted(
-            {row.instance_id for row in focal if row.family_id == family}
+            {
+                instance
+                for (_env, _config, observed_family, instance) in expected_leaf_counts
+                if observed_family == family
+            }
         )
         for family in family_domains
     }
-    if any(not values for values in instances_by_family.values()):
-        raise AnalysisDatasetError("one or more accepted families have no instances")
+    if any(not values for values in registered_instances.values()):
+        raise AnalysisDatasetError(
+            "registered leaf-count roster omits one or more accepted families"
+        )
 
-    leaf: defaultdict[tuple[str, str, str, str], list[bool]] = defaultdict(list)
+    leaf: defaultdict[LeafKey, list[bool]] = defaultdict(list)
     for row in focal:
         leaf[(row.env_id, row.config_id, row.family_id, row.instance_id)].append(
             bool(row.failed)
@@ -304,14 +457,14 @@ def _finite_roster_cells(
     for configuration in configurations:
         for domain in domains:
             for family in families_by_domain[domain]:
-                for instance in instances_by_family[family]:
+                for instance in registered_instances[family]:
                     ordered_keys.append((configuration, family, instance))
                     weights.append(
                         1.0
                         / len(configurations)
                         / len(domains)
                         / len(families_by_domain[domain])
-                        / len(instances_by_family[family])
+                        / len(registered_instances[family])
                     )
     expected = {
         (environment, configuration, family, instance)
@@ -323,6 +476,23 @@ def _finite_roster_cells(
         extra = sorted(set(leaf) - expected)[:5]
         raise AnalysisDatasetError(
             f"focal finite roster is not a complete crossing: missing={missing}, extra={extra}"
+        )
+    if set(expected_leaf_counts) != expected:
+        missing = sorted(expected - set(expected_leaf_counts))[:5]
+        extra = sorted(set(expected_leaf_counts) - expected)[:5]
+        raise AnalysisDatasetError(
+            "registered leaf-count roster differs from the finite estimand: "
+            f"missing={missing}, extra={extra}"
+        )
+    count_mismatches = [
+        (key, expected_leaf_counts[key], len(leaf[key]))
+        for key in sorted(expected)
+        if len(leaf[key]) != expected_leaf_counts[key]
+    ]
+    if count_mismatches:
+        raise AnalysisDatasetError(
+            "focal leaf counts differ from the registered plan: "
+            f"expected/observed={count_mismatches[:5]}"
         )
 
     totals: dict[str, NDArray[np.int64]] = {}
@@ -339,23 +509,14 @@ def _finite_roster_cells(
     return events, totals, weight_array
 
 
-def finite_roster_h1_candidate(
-    trials: Sequence[AnalysisTrial],
+def _candidate_from_cells(
+    events: Mapping[str, NDArray[np.int64]],
+    totals: Mapping[str, NDArray[np.int64]],
+    weights: NDArray[np.float64],
     *,
-    family_domains: Mapping[str, str] | None = None,
-    confidence: float = 0.95,
-    minimum_primary_cell_n: int = 3,
-    expected_configurations: Sequence[str] = REGISTERED_CONFIG_IDS,
+    confidence: float,
+    minimum_primary_cell_n: int,
 ) -> FiniteRosterH1Candidate:
-    """Evaluate the executable D-005 candidate and deterministic fallback."""
-
-    if minimum_primary_cell_n < 1:
-        raise ValueError("minimum_primary_cell_n must be positive")
-    events, totals, weights = _finite_roster_cells(
-        trials,
-        dict(family_domains or accepted_family_domains()),
-        expected_configurations,
-    )
     windows_events = events["windows_powershell"]
     linux_events = events["linux_native"]
     windows_totals = totals["windows_powershell"]
@@ -430,10 +591,40 @@ def finite_roster_h1_candidate(
     )
 
 
+def finite_roster_h1_candidate(
+    trials: Sequence[AnalysisTrial],
+    *,
+    plan: SchedulePlan,
+    family_domains: Mapping[str, str] | None = None,
+    confidence: float = 0.95,
+    minimum_primary_cell_n: int = 3,
+    expected_configurations: Sequence[str] = REGISTERED_CONFIG_IDS,
+) -> FiniteRosterH1Candidate:
+    """Evaluate the plan-bound D-005 candidate and deterministic fallback."""
+
+    validate_plan(plan)
+    if minimum_primary_cell_n < 1:
+        raise ValueError("minimum_primary_cell_n must be positive")
+    events, totals, weights = _finite_roster_cells(
+        trials,
+        dict(family_domains or accepted_family_domains()),
+        expected_configurations,
+        plan,
+    )
+    return _candidate_from_cells(
+        events,
+        totals,
+        weights,
+        confidence=confidence,
+        minimum_primary_cell_n=minimum_primary_cell_n,
+    )
+
+
 def finite_roster_epoch_sensitivity(
     trials: Sequence[AnalysisTrial],
     *,
     expected_configurations: Sequence[str],
+    plan: SchedulePlan,
     family_domains: Mapping[str, str] | None = None,
     expected_epochs: Sequence[int] = (0, 1, 2, 3),
     confidence: float = 0.95,
@@ -447,6 +638,7 @@ def finite_roster_epoch_sensitivity(
     explicitly not estimable.
     """
 
+    validate_plan(plan)
     resolved_epochs = tuple(expected_epochs)
     if (
         not resolved_epochs
@@ -455,6 +647,16 @@ def finite_roster_epoch_sensitivity(
     ):
         raise ValueError("expected_epochs must be unique nonnegative integers")
     accepted_domains = dict(family_domains or accepted_family_domains())
+    expected_leaf_counts_by_epoch = expected_h1_leaf_counts_by_v2_pilot_epoch(
+        plan,
+        family_domains=family_domains,
+        expected_configurations=expected_configurations,
+        expected_epochs=resolved_epochs,
+    )
+    if set(expected_leaf_counts_by_epoch) != set(resolved_epochs):
+        raise ValueError(
+            "expected_leaf_counts_by_epoch must define every registered epoch"
+        )
     unknown_epoch_rows = sorted(
         {
             row.collection_epoch
@@ -501,12 +703,19 @@ def finite_roster_epoch_sensitivity(
             )
         epoch_domains = {family: accepted_domains[family] for family in families}
         try:
-            result = finite_roster_h1_candidate(
+            events, totals, weights = _finite_roster_cells(
                 capability_rows,
-                family_domains=epoch_domains,
+                epoch_domains,
+                expected_configurations,
+                plan,
+                expected_leaf_counts_by_epoch[epoch],
+            )
+            result = _candidate_from_cells(
+                events,
+                totals,
+                weights,
                 confidence=confidence,
                 minimum_primary_cell_n=minimum_primary_cell_n,
-                expected_configurations=expected_configurations,
             )
         except AnalysisDatasetError as exc:
             reports.append(

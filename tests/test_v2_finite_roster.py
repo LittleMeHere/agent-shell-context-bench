@@ -14,6 +14,14 @@ from analysis.v2_finite_roster import (
     mover_clopper_pearson_linear_interval,
     mover_wilson_linear_interval,
 )
+from harness.scheduler import Cell, SchedulePlan, ScheduledSlot, V2_PILOT_PHASE
+
+
+@pytest.fixture(autouse=True)
+def _unit_test_plan_boundary(monkeypatch: pytest.MonkeyPatch):
+    """Mechanics tests use miniature plans; production validation is tested end-to-end."""
+
+    monkeypatch.setattr("analysis.v2_finite_roster.validate_plan", lambda plan: plan)
 
 
 def test_mover_matches_independent_linear_combination_oracle() -> None:
@@ -77,7 +85,7 @@ def _trial(
 ) -> AnalysisTrial:
     return AnalysisTrial(
         plan_digest="a" * 64,
-        cell_id=f"{env}:{family}:{instance}:{index}",
+        cell_id=f"{env}:{config}:{family}:{instance}",
         config_id=config,
         env_id=env,
         agent_id="codex",
@@ -121,9 +129,82 @@ def _balanced_trials(repetitions: int) -> list[AnalysisTrial]:
     return rows
 
 
+def _leaf_counts(rows: list[AnalysisTrial]) -> dict[tuple[str, str, str, str], int]:
+    counts: dict[tuple[str, str, str, str], int] = {}
+    for row in rows:
+        key = (row.env_id, row.config_id, row.family_id, row.instance_id)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _cell_membership(
+    rows: list[AnalysisTrial],
+) -> dict[str, tuple[str, str, str, str]]:
+    return {
+        row.cell_id: (row.env_id, row.config_id, row.family_id, row.instance_id)
+        for row in rows
+    }
+
+
+def _plan(rows: list[AnalysisTrial]) -> SchedulePlan:
+    grouped: dict[str, list[AnalysisTrial]] = {}
+    for row in rows:
+        grouped.setdefault(row.cell_id, []).append(row)
+    cells = []
+    for cell_id, values in sorted(grouped.items()):
+        row = values[0]
+        cells.append(
+            Cell(
+                cell_id=cell_id,
+                config_id=row.config_id,
+                agent_id=row.agent_id,
+                model_id=row.model_id,
+                expected_cli_version="test",
+                env_id=row.env_id,
+                task_id=row.task_id,
+                family_id=row.family_id,
+                instance_id=row.instance_id,
+                instance_sha256="b" * 64,
+                task_path=f"tasks/{row.task_id}.yaml",
+                task_sha256="b" * 64,
+                phrasing=row.phrasing,
+                target_valid_trials=len(values),
+            )
+        )
+    slots = []
+    position = 0
+    for cell in cells:
+        for valid_slot_index in range(cell.target_valid_trials):
+            slots.append(
+                ScheduledSlot(
+                    position=position,
+                    round_index=valid_slot_index,
+                    block_index=0,
+                    valid_slot_index=valid_slot_index,
+                    cell_id=cell.cell_id,
+                )
+            )
+            position += 1
+    return SchedulePlan(
+        schema_version="1.3.0",
+        created_at="2026-08-22T00-00-00Z",
+        phase=V2_PILOT_PHASE,
+        order_seed=1,
+        trial_schema_version="1.7.0",
+        sizing_lock=None,
+        runtime_binding=None,
+        execution_slots=tuple(slots),
+        cells=tuple(cells),
+        digest="a" * 64,
+    )
+
+
 def test_h1_candidate_uses_mover_at_three_per_leaf() -> None:
+    rows = _balanced_trials(3)
     result = finite_roster_h1_candidate(
-        _balanced_trials(3), family_domains={"C01": "A", "C02": "B"}
+        rows,
+        plan=_plan(rows),
+        family_domains={"C01": "A", "C02": "B"},
     )
     assert result.windows_failure_rate == pytest.approx(1 / 3)
     assert result.linux_failure_rate == 0.0
@@ -137,6 +218,7 @@ def test_h1_candidate_uses_mover_at_three_per_leaf() -> None:
 @pytest.mark.parametrize("mutation", ["missing", "extra"])
 def test_h1_candidate_rejects_configuration_roster_drift(mutation: str) -> None:
     rows = _balanced_trials(3)
+    plan = _plan(rows)
     if mutation == "missing":
         rows = [row for row in rows if row.config_id != "CFG2"]
         pattern = "missing=\\['CFG2'\\], extra=\\[\\]"
@@ -151,17 +233,89 @@ def test_h1_candidate_rejects_configuration_roster_drift(mutation: str) -> None:
             for row in rows
             if row.config_id == "CFG1"
         )
-        pattern = "missing=\\[\\], extra=\\['CFG8'\\]"
+        pattern = "registered plan cell"
     with pytest.raises(AnalysisDatasetError, match=pattern):
         finite_roster_h1_candidate(
             rows,
+            plan=plan,
+            family_domains={"C01": "A", "C02": "B"},
+        )
+
+
+@pytest.mark.parametrize("mutation", ["missing_instance", "extra_instance", "extra_leaf_row"])
+def test_h1_candidate_rejects_instance_or_leaf_count_drift(mutation: str) -> None:
+    rows = _balanced_trials(3)
+    plan = _plan(rows)
+    if mutation == "missing_instance":
+        rows = [row for row in rows if row.instance_id != "I02"]
+        pattern = "complete crossing"
+    elif mutation == "extra_instance":
+        rows.extend(
+            dataclasses.replace(
+                row,
+                instance_id="I03",
+                task_id=f"{row.family_id}-I03",
+                cell_id=f"{row.cell_id}:I03",
+                attempt_id=f"7{row.attempt_id[1:]}",
+            )
+            for row in rows
+            if row.instance_id == "I01"
+        )
+        pattern = "registered plan cell"
+    else:
+        source = rows[0]
+        rows.append(
+            dataclasses.replace(
+                source,
+                cell_id=f"{source.cell_id}:extra",
+                trial_index=max(row.trial_index for row in rows) + 1,
+                valid_slot_index=3,
+                attempt_id="f" * 32,
+            )
+        )
+        pattern = "registered plan cell"
+    with pytest.raises(AnalysisDatasetError, match=pattern):
+        finite_roster_h1_candidate(
+            rows,
+            plan=plan,
+            family_domains={"C01": "A", "C02": "B"},
+        )
+
+
+def test_h1_candidate_rejects_count_preserving_instance_identity_swap() -> None:
+    rows = _balanced_trials(3)
+    plan = _plan(rows)
+    first = next(row for row in rows if row.instance_id == "I01")
+    second = next(
+        row
+        for row in rows
+        if row.instance_id == "I02"
+        and row.env_id == first.env_id
+        and row.config_id == first.config_id
+        and row.family_id == first.family_id
+    )
+    rows = [
+        dataclasses.replace(row, instance_id="I02", task_id=f"{row.family_id}-I02")
+        if row.cell_id == first.cell_id
+        else dataclasses.replace(row, instance_id="I01", task_id=f"{row.family_id}-I01")
+        if row.cell_id == second.cell_id
+        else row
+        for row in rows
+    ]
+    with pytest.raises(AnalysisDatasetError, match="registered plan cell"):
+        finite_roster_h1_candidate(
+            rows,
+            plan=plan,
             family_domains={"C01": "A", "C02": "B"},
         )
 
 
 def test_h1_candidate_fails_safe_to_exact_envelope_for_singletons() -> None:
+    rows = _balanced_trials(1)
     result = finite_roster_h1_candidate(
-        _balanced_trials(1), family_domains={"C01": "A", "C02": "B"}
+        rows,
+        plan=_plan(rows),
+        family_domains={"C01": "A", "C02": "B"},
     )
     assert result.fallback_used
     assert result.interval_method == "bonferroni_clopper_pearson_fallback"
@@ -172,11 +326,16 @@ def test_h1_candidate_fails_safe_to_exact_envelope_for_singletons() -> None:
 
 def test_candidate_is_permutation_invariant() -> None:
     rows = _balanced_trials(3)
+    plan = _plan(rows)
     expected = finite_roster_h1_candidate(
-        rows, family_domains={"C01": "A", "C02": "B"}
+        rows,
+        plan=plan,
+        family_domains={"C01": "A", "C02": "B"},
     )
     actual = finite_roster_h1_candidate(
-        list(reversed(rows)), family_domains={"C01": "A", "C02": "B"}
+        list(reversed(rows)),
+        plan=plan,
+        family_domains={"C01": "A", "C02": "B"},
     )
     assert dataclasses.asdict(actual) == dataclasses.asdict(expected)
 
@@ -188,6 +347,7 @@ def test_epoch_sensitivity_preserves_planned_task_composition() -> None:
     reports = finite_roster_epoch_sensitivity(
         rows,
         expected_configurations=REGISTERED_CONFIG_IDS,
+        plan=_plan(rows),
         family_domains={"C01": "A", "C02": "B"},
     )
     assert [report.status for report in reports] == [
@@ -210,6 +370,7 @@ def test_epoch_sensitivity_fails_closed_on_partial_crossing() -> None:
     reports = finite_roster_epoch_sensitivity(
         rows,
         expected_configurations=REGISTERED_CONFIG_IDS,
+        plan=_plan(_balanced_trials(3)),
         family_domains={"C01": "A", "C02": "B"},
         expected_epochs=(0,),
     )
@@ -226,5 +387,6 @@ def test_epoch_sensitivity_rejects_unregistered_epoch() -> None:
         finite_roster_epoch_sensitivity(
             rows,
             expected_configurations=REGISTERED_CONFIG_IDS,
+            plan=_plan(rows),
             family_domains={"C01": "A", "C02": "B"},
         )

@@ -896,6 +896,14 @@ def load_plan(path: Path) -> SchedulePlan:
     except (KeyError, TypeError, ValueError) as exc:
         raise ScheduleError(f"malformed plan {path}: {exc}") from exc
 
+    return validate_plan(plan)
+
+
+def validate_plan(plan: SchedulePlan) -> SchedulePlan:
+    """Validate an in-memory plan with the same checks used by ``load_plan``."""
+
+    if not isinstance(plan, SchedulePlan):
+        raise ScheduleError("plan must be a SchedulePlan")
     if plan.schema_version not in {
         LEGACY_PLAN_SCHEMA_VERSION,
         PLAN_SCHEMA_VERSION,
