@@ -106,6 +106,9 @@ parser targets is the one documented from the 2026-05-25 smoke:
 from __future__ import annotations
 
 import json
+import os
+import shutil
+from pathlib import Path
 from typing import ClassVar
 
 from ..environments.base import EnvironmentAdapter
@@ -113,11 +116,57 @@ from ..types import CommandRecord, ProcessResult, SandboxHandle
 from .base import AgentAdapter
 
 
+def _bundled_windows_codex_executable(shim: str | None) -> str | None:
+    """Return the native executable shipped beside an npm Codex shim."""
+    if not shim:
+        return None
+    shim_path = Path(shim).resolve()
+    if shim_path.suffix.lower() == ".exe":
+        return str(shim_path)
+
+    package_root = shim_path.parent / "node_modules" / "@openai" / "codex"
+    search_roots = (
+        package_root / "node_modules" / "@openai",
+        shim_path.parent / "node_modules" / "@openai",
+    )
+    candidates: set[Path] = set()
+    for root in search_roots:
+        candidates.update(
+            path.resolve()
+            for path in root.glob(
+                "codex-win32-*/vendor/*/bin/codex.exe"
+            )
+            if path.is_file()
+        )
+    if len(candidates) == 1:
+        return str(next(iter(candidates)))
+    return None
+
+
 class CodexAdapter(AgentAdapter):
     agent_id: ClassVar[str] = "codex"
 
     @staticmethod
     def _default_cli_path() -> str:
+        if os.name == "nt":
+            # npm exposes Codex through a .cmd shim on Windows. Passing a
+            # multiline benchmark prompt through that batch boundary can
+            # intermittently leave the child with no captured stdout even
+            # when it exits zero. The pinned npm package also ships the exact
+            # native codex.exe; launch it directly so argv reaches the CLI
+            # through CreateProcess without batch re-parsing.
+            shim = shutil.which("codex.cmd") or shutil.which("codex")
+            native = _bundled_windows_codex_executable(shim)
+            if native is not None:
+                return native
+            if shim and Path(shim).suffix.lower() in {".cmd", ".bat"}:
+                raise RuntimeError(
+                    "found a Windows Codex batch shim but not its bundled "
+                    "native codex.exe; refusing an unsafe collection launch"
+                )
+            native_on_path = shutil.which("codex.exe")
+            if native_on_path:
+                return native_on_path
         return "codex"
 
     def build_invocation(

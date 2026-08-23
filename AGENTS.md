@@ -5,6 +5,13 @@ pre-registered benchmark. The canonical rule source for AI agents working
 in this repo is `CLAUDE.md`. **Read CLAUDE.md before doing any non-trivial
 work here.**
 
+**Current pre-data project state:** Before methodology, analysis, collection,
+scheduler, or publication work, also read `docs/PRE_DATA_REMEDIATION.md`. Its
+work-item statuses, decision register, and readiness gates are the authoritative
+current handoff. Collection is blocked until that document's G0-G4 gates are
+satisfied. Do not replace gate-specific evidence with a global "ready"
+assessment.
+
 This file restates the **hard rules** that, if violated, cause
 unrecoverable damage. These rules apply to every agent operating in this
 working directory — Codex, agy, Claude Code, anything else.

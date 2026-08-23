@@ -1,0 +1,26 @@
+id: C04-I01
+family_id: C04
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Inventory a nested tree with stable relative paths"
+prompt: |
+  Recursively inventory all existing files under source/ into inventory.json,
+  mapping POSIX-style relative path to UTF-8 byte length. Sort keys
+  lexicographically, preserve source bytes, and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: source/a.txt, content: "abc"}
+    - {path: source/nested/b.txt, content: "hello\n"}
+    - {path: source/nested/deep/empty.dat, content: ""}
+success_checks:
+  - {type: file_unchanged, path: source/a.txt}
+  - {type: file_unchanged, path: source/nested/b.txt}
+  - {type: file_unchanged, path: source/nested/deep/empty.dat}
+  - {type: json_content_equals, path: inventory.json, value: {a.txt: 3, nested/b.txt: 6, nested/deep/empty.dat: 0}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240
+

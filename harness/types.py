@@ -89,21 +89,29 @@ class FilesystemSnapshot:
     detect as touched OUTSIDE the sandbox root (best-effort sentinel
     checks). An escaped path is a strong signal for rubric codes D/E and is
     reported even when the in-sandbox diff looks clean.
+    `measurement_errors` is non-empty only for an explicitly retained,
+    agent-attributable loss after the clean baseline snapshot succeeded.
     """
 
     files: dict[str, FileFingerprint]
     dirs: tuple[str, ...] = ()
     escaped_paths: tuple[str, ...] = ()
+    measurement_errors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class FilesystemDiff:
-    """Difference between two snapshots, all paths sandbox-relative POSIX."""
+    """Difference between two snapshots, all paths sandbox-relative POSIX.
+
+    `measurement_incomplete` prevents empty placeholder tuples from being
+    mistaken for evidence that an unreadable post-agent sandbox was unchanged.
+    """
 
     added: tuple[str, ...]
     removed: tuple[str, ...]
     modified: tuple[str, ...]
     escaped_sandbox: bool
+    measurement_incomplete: bool = False
 
     @property
     def changed_any(self) -> bool:

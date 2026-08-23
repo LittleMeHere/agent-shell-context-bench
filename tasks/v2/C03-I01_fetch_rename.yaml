@@ -1,0 +1,28 @@
+id: C03-I01
+family_id: C03
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Rename a function while preserving prose lookalikes"
+prompt: |
+  Rename the real Python symbol `fetch_item` to `load_item` in store.py and
+  app.py, including import and call. Preserve comments and string literals
+  containing `fetch_item`. Do not add files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: store.py, content: "def fetch_item(key):\n    return {'key': key}\n# fetch_item is the legacy documentation name\n"}
+    - {path: app.py, content: "from store import fetch_item\nMESSAGE='fetch_item failed'\ndef run(): return fetch_item('x')\n"}
+success_checks:
+  - {type: python_parses, path: store.py}
+  - {type: python_parses, path: app.py}
+  - {type: file_contains_substring_count, path: store.py, substring: fetch_item, count: 1}
+  - {type: file_contains_substring_count, path: store.py, substring: "def load_item", count: 1}
+  - {type: file_contains_substring_count, path: app.py, substring: fetch_item, count: 1}
+  - {type: file_contains_substring_count, path: app.py, substring: load_item, count: 2}
+  - {type: environment_command, argv: [python, -c, "import app; assert app.run()=={'key':'x'} and app.MESSAGE=='fetch_item failed'"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

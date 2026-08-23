@@ -1,0 +1,33 @@
+id: C09-I03
+family_id: C09
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Diagnose and repair failing batch aggregation tests"
+prompt: |
+  The local unittest suite is failing. Diagnose it and fix `aggregate.py` so
+  records are summed by their `group` while first-seen group order is
+  preserved. Do not modify tests, add dependencies, or create files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: aggregate.py, content: "def aggregate(rows):\n    return {}\n"}
+    - path: test_aggregate.py
+      content: |
+        import unittest
+        from aggregate import aggregate
+        class Tests(unittest.TestCase):
+            def test_groups_and_order(self):
+                rows=[{"group":"b","value":2},{"group":"a","value":3},{"group":"b","value":5}]
+                self.assertEqual(list(aggregate(rows).items()), [("b",7),("a",3)])
+            def test_empty(self): self.assertEqual(aggregate([]), {})
+        if __name__ == "__main__": unittest.main()
+success_checks:
+  - {type: python_parses, path: aggregate.py}
+  - {type: file_unchanged, path: test_aggregate.py}
+  - {type: environment_command, argv: [python, -m, unittest, -q], returncode: 0}
+  - {type: environment_command, argv: [python, -c, "from aggregate import aggregate; rows=[{'group':'x','value':-2},{'group':'z','value':4},{'group':'x','value':7},{'group':'a','value':0}]; assert list(aggregate(rows).items()) == [('x',5),('z',4),('a',0)]"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

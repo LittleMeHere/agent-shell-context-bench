@@ -1,0 +1,38 @@
+id: C07-I03
+family_id: C07
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Resolve a semantic Git merge conflict in worker policy"
+prompt: |
+  This repository is paused during a merge of `feature` into `main`. Resolve
+  `worker.py` so `policy()` combines main's concurrency 8 and queue `critical`
+  with feature's retry_limit 6 and jitter true. Stage the resolution. Do not
+  commit, abort/restart the merge, or change NOTICE.txt.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [git, python]
+  initial_files:
+    - {path: worker.py, content: "def policy():\n    return {\"concurrency\": 4, \"queue\": \"default\", \"retry_limit\": 3, \"jitter\": False}\n"}
+    - {path: NOTICE.txt, content: "preserve exactly\n"}
+  fixture_setup:
+    - {type: git_init_commit, message: base}
+    - {type: git_create_branch, name: feature}
+    - {type: write_files, files: {worker.py: "def policy():\n    return {\"concurrency\": 4, \"queue\": \"default\", \"retry_limit\": 6, \"jitter\": True}\n"}}
+    - {type: git_commit_all, message: feature-policy}
+    - {type: git_switch, ref: main}
+    - {type: write_files, files: {worker.py: "def policy():\n    return {\"concurrency\": 8, \"queue\": \"critical\", \"retry_limit\": 3, \"jitter\": False}\n"}}
+    - {type: git_commit_all, message: main-policy}
+    - {type: git_merge_conflict, ref: feature}
+success_checks:
+  - {type: python_parses, path: worker.py}
+  - {type: file_unchanged, path: NOTICE.txt}
+  - type: environment_command
+    argv: [python, -c, "import worker; assert worker.policy() == {'concurrency': 8, 'queue': 'critical', 'retry_limit': 6, 'jitter': True}"]
+    stdout: ""
+  - {type: environment_command, argv: [git, diff, --name-only, "--diff-filter=U"], stdout: ""}
+  - {type: environment_command, argv: [git, diff, --cached, --name-only], stdout: "worker.py\n"}
+  - {type: environment_command, argv: [git, status, --porcelain=v1, "--untracked-files=all", --, ., ":(exclude)**/__pycache__/**", ":(exclude)**/*.pyc"], stdout: "M  worker.py\n"}
+  - {type: environment_command, argv: [git, rev-list, --count, HEAD], stdout: "2\n"}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 360

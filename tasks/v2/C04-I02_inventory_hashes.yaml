@@ -1,0 +1,28 @@
+id: C04-I02
+family_id: C04
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Inventory nested artifacts by SHA-256"
+prompt: |
+  Recursively inventory every file under artifacts/, including dotfiles. Write
+  inventory.json mapping POSIX relative paths to lowercase SHA-256 hex, with
+  sorted keys. Preserve all sources and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: artifacts/.meta, content: "x"}
+    - {path: artifacts/data/one.txt, content: "one\n"}
+    - {path: artifacts/data/two.txt, content: "two\n"}
+success_checks:
+  - {type: file_unchanged, path: artifacts/.meta}
+  - {type: file_unchanged, path: artifacts/data/one.txt}
+  - {type: file_unchanged, path: artifacts/data/two.txt}
+  - type: environment_command
+    argv: [python, -c, "import hashlib,json; got=json.load(open('inventory.json')); exp={'.meta':hashlib.sha256(b'x').hexdigest(),'data/one.txt':hashlib.sha256(b'one\\n').hexdigest(),'data/two.txt':hashlib.sha256(b'two\\n').hexdigest()}; assert got==exp and list(got)==sorted(got)"]
+  - {type: file_exists, path: inventory.json}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240
+

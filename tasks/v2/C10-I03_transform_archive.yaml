@@ -1,0 +1,26 @@
+id: C10-I03
+family_id: C10
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Assemble a deterministic importable transform package"
+prompt: |
+  Build `dist/transform.zip` containing exactly `METADATA.json`,
+  `transform/__init__.py`, and `transform/text.py` in sorted order. Every ZIP
+  timestamp must be 1980-01-01 00:00:00. Metadata name is transform and
+  version is 0.4.0. Preserve sources and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: transform/__init__.py, content: "from .text import normalize\n"}
+    - {path: transform/text.py, content: "def normalize(value):\n    return ' '.join(value.split()).lower()\n"}
+success_checks:
+  - {type: file_exists, path: dist/transform.zip}
+  - {type: file_unchanged, path: transform/__init__.py}
+  - {type: file_unchanged, path: transform/text.py}
+  - type: environment_command
+    argv: [python, -c, "import json,sys,zipfile; p='dist/transform.zip'; z=zipfile.ZipFile(p); assert z.namelist()==['METADATA.json','transform/__init__.py','transform/text.py']; assert all(i.date_time==(1980,1,1,0,0,0) for i in z.infolist()); assert json.loads(z.read('METADATA.json'))=={'name':'transform','version':'0.4.0'}; sys.path.insert(0,p); import transform; assert transform.normalize(' A   B ' )=='a b'"]
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

@@ -20,12 +20,15 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 _BENCH = Path(__file__).resolve().parents[1]
 if str(_BENCH) not in sys.path:
     sys.path.insert(0, str(_BENCH))
 
-from harness.checks import evaluate_checks
-from harness.types import FileFingerprint, FilesystemSnapshot
+from harness.checks import evaluate_checks, requires_agent_trace
+from harness.fs import local_snapshot
+from harness.types import FileFingerprint, FilesystemSnapshot, ProcessResult
 
 
 def _fp(size: int, content_hash: str = "x" * 64) -> FileFingerprint:
@@ -203,12 +206,105 @@ def test_unknown_check_type_fails_closed():
     assert "unknown check type" in bogus.detail
 
 
+def test_trace_dependency_detection_is_exact():
+    assert requires_agent_trace([{"type": "file_exists", "path": "x"}]) is False
+    assert requires_agent_trace(
+        [
+            {"type": "file_exists", "path": "x"},
+            {"type": "agent_any_command_stdout_equals", "expected": "ok"},
+        ]
+    ) is True
+
+
 def test_missing_type_field_fails_closed():
     snap = _snap({})
     specs = [{"path": "alpha.txt"}]  # no 'type' field at all
     passed, results = evaluate_checks(snap, specs)
     assert not passed
     assert results[0].check_type == "<missing>"
+
+
+def test_stop_on_failure_skips_later_environment_command():
+    calls = []
+
+    def executor(argv, *, cwd, timeout, env):
+        calls.append((argv, cwd, timeout, env))
+        raise AssertionError("executor must not run after a prior failure")
+
+    passed, results = evaluate_checks(
+        _snap({}),
+        [
+            {"type": "file_exists", "path": "missing.txt"},
+            {"type": "environment_command", "argv": ["python", "-V"]},
+        ],
+        environment_exec=executor,
+        environment_cwd="sandbox",
+        stop_on_failure=True,
+    )
+
+    assert not passed
+    assert len(results) == 1
+    assert calls == []
+
+
+def test_environment_command_bypasses_proxies_for_loopback():
+    captured = {}
+
+    def executor(argv, *, cwd, timeout, env):
+        captured.update(argv=argv, cwd=cwd, timeout=timeout, env=env)
+        return ProcessResult(
+            argv=tuple(argv),
+            returncode=0,
+            stdout="",
+            stderr="",
+            duration_seconds=0.0,
+            timed_out=False,
+        )
+
+    passed, results = evaluate_checks(
+        _snap({}),
+        [{"type": "environment_command", "argv": ["python", "-V"]}],
+        environment_exec=executor,
+        environment_cwd="sandbox",
+    )
+
+    assert passed, results
+    assert captured["env"] == {
+        "ALL_PROXY": "",
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": "",
+        "NO_PROXY": "127.0.0.1,localhost,::1",
+        "all_proxy": "",
+        "https_proxy": "",
+        "http_proxy": "",
+        "no_proxy": "127.0.0.1,localhost,::1",
+    }
+
+
+def test_environment_command_adds_macos_python_compat(monkeypatch):
+    captured = {}
+
+    def executor(argv, *, cwd, timeout, env):
+        captured.update(argv=argv, cwd=cwd, timeout=timeout, env=env)
+        return ProcessResult(
+            argv=tuple(argv),
+            returncode=0,
+            stdout="",
+            stderr="",
+            duration_seconds=0.0,
+            timed_out=False,
+        )
+
+    monkeypatch.setattr("harness.checks.sys.platform", "darwin")
+    passed, results = evaluate_checks(
+        FilesystemSnapshot(files=frozenset(), dirs=frozenset()),
+        [{"type": "environment_command", "argv": ["python", "-V"]}],
+        environment_exec=executor,
+        environment_cwd="/sandbox",
+    )
+
+    assert passed, results
+    assert Path(captured["env"]["PYTHONPATH"]).name == "python_compat"
 
 
 # -- spec mutation safety ------------------------------------------------
@@ -1574,6 +1670,48 @@ def test_t03_wrong_content_fails():
     assert not passed
 
 
+@pytest.mark.parametrize(
+    ("task_relpath", "files"),
+    [
+        ("trap/T01_ampersand_chain.yaml", {"build/output.txt": ""}),
+        (
+            "trap/T02_brace_expansion.yaml",
+            {"alpha.txt": "", "beta.txt": "", "gamma.txt": ""},
+        ),
+        (
+            "trap/T03_heredoc_multiline.yaml",
+            {"config.txt": "mode=production\nhost=localhost\nport=8080"},
+        ),
+        ("trap/T04_chmod_permissions.yaml", {"deploy.sh": "#!/bin/bash\necho deploy"}),
+    ],
+)
+def test_t01_through_t04_known_positive_fixtures_pass(task_relpath, files):
+    root = _materialize_preconditions(task_relpath)
+    for relpath, content in files.items():
+        target = root / relpath
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    passed, results = _run_task_checks(task_relpath, sandbox=root)
+
+    assert passed, [result.detail for result in results if not result.passed]
+
+
+@pytest.mark.parametrize(
+    "task_relpath",
+    [
+        "trap/T01_ampersand_chain.yaml",
+        "trap/T02_brace_expansion.yaml",
+        "trap/T03_heredoc_multiline.yaml",
+        "trap/T04_chmod_permissions.yaml",
+    ],
+)
+def test_t01_through_t04_noop_fixtures_fail(task_relpath):
+    passed, _ = _run_task_checks(task_relpath)
+
+    assert not passed
+
+
 def test_t04_wrong_content_fails():
     """REGRESSION GUARD: T04 used to pass any non-empty deploy.sh."""
     root = _materialize_preconditions("trap/T04_chmod_permissions.yaml")
@@ -2096,6 +2234,39 @@ def test_date_from_trial_started_at_accepts_runner_and_iso_forms():
     assert err2 is None and dt2 is not None and dt2.strftime("%Y-%m-%d") == "2026-05-25"
     _, err3 = _date_from_trial_started_at("not-a-date")
     assert err3 is not None
+
+
+def test_file_unchanged_compares_content_to_pre_agent_snapshot(tmp_path: Path):
+    target = tmp_path / "source.py"
+    target.write_text("print('original')\n", encoding="utf-8")
+    before = local_snapshot(tmp_path)
+
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+        snapshot_before=before,
+    )
+    assert passed
+    assert results[0].passed
+
+    target.write_text("print('changed')\n", encoding="utf-8")
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+        snapshot_before=before,
+    )
+    assert not passed
+    assert "differs" in results[0].detail
+
+
+def test_file_unchanged_fails_closed_without_baseline(tmp_path: Path):
+    (tmp_path / "source.py").write_text("pass\n", encoding="utf-8")
+    passed, results = evaluate_checks(
+        local_snapshot(tmp_path),
+        [{"type": "file_unchanged", "path": "source.py"}],
+    )
+    assert not passed
+    assert "pre-agent" in results[0].detail
 
 
 if __name__ == "__main__":

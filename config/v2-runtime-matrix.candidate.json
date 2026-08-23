@@ -1,0 +1,62 @@
+{
+  "as_of_date": "2026-08-14",
+  "configurations": [
+    {
+      "agent_id": "claude_code",
+      "config_id": "CFG1",
+      "expected_cli_version": "2.1.231",
+      "model_id": "claude-opus-4-8",
+      "nominal_model_id": "claude-opus-4-8"
+    },
+    {
+      "agent_id": "claude_code",
+      "config_id": "CFG2",
+      "expected_cli_version": "2.1.231",
+      "model_id": "claude-sonnet-4-6",
+      "nominal_model_id": "claude-sonnet-4-6"
+    },
+    {
+      "agent_id": "codex",
+      "config_id": "CFG3",
+      "expected_cli_version": "0.147.0",
+      "model_id": "gpt-5.6-sol",
+      "nominal_model_id": "gpt-5.6-sol"
+    },
+    {
+      "agent_id": "codex",
+      "config_id": "CFG4",
+      "expected_cli_version": "0.147.0",
+      "model_id": "gpt-5.6-terra",
+      "nominal_model_id": "gpt-5.6-terra"
+    },
+    {
+      "agent_id": "agy",
+      "config_id": "CFG5",
+      "expected_cli_version": "1.1.13",
+      "model_id": "gemini-3.1-pro-high",
+      "nominal_model_id": "gemini-3.1-pro"
+    },
+    {
+      "agent_id": "agy",
+      "config_id": "CFG6",
+      "expected_cli_version": "1.1.13",
+      "model_id": "gemini-3.6-flash-medium",
+      "nominal_model_id": "gemini-3.6-flash"
+    },
+    {
+      "agent_id": "agy",
+      "config_id": "CFG7",
+      "expected_cli_version": "1.1.13",
+      "model_id": "claude-sonnet-4-6",
+      "nominal_model_id": "claude-sonnet-4-6"
+    }
+  ],
+  "macos_runner": "macos-26",
+  "node_version": "24.12.0",
+  "python_version": "3.11.9",
+  "pwsh_version": "7.6.4",
+  "schema_version": "1.0.0",
+  "status": "candidate",
+  "ubuntu_release": "Ubuntu 24.04",
+  "windows_release": "Windows 11"
+}

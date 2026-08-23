@@ -24,6 +24,7 @@ from __future__ import annotations
 import time
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import ClassVar
 
 from ..environments.base import EnvironmentAdapter
@@ -75,6 +76,19 @@ class AgentAdapter(ABC):
         """Version string of the CLI as installed in `environment`, captured
         per run for the reproducibility log."""
 
+    def pre_model_infrastructure_error(
+        self, process: ProcessResult
+    ) -> str | None:
+        """Return a fail-closed reason when no model invocation occurred.
+
+        A nonzero CLI exit is ordinarily valid agent behavior. Authentication
+        failures are different: they occur before the model can act and would
+        otherwise turn an infrastructure outage into a false task failure.
+        Concrete adapters may recognize only their CLI's exact, evidenced
+        envelope. The default deliberately recognizes nothing.
+        """
+        return None
+
     def run(
         self,
         prompt: str,
@@ -82,6 +96,8 @@ class AgentAdapter(ABC):
         environment: EnvironmentAdapter,
         *,
         timeout: float,
+        on_invoke: Callable[[], None] | None = None,
+        on_invocation_observed: Callable[[], None] | None = None,
     ) -> AgentRunResult:
         """Template method. Never overridden by concrete adapters.
 
@@ -91,6 +107,12 @@ class AgentAdapter(ABC):
         runs to completion is NOT an error — that is the signal we want.
         """
         argv = self.build_invocation(prompt, sandbox)
+        # This callback is the write-ahead launch-commit boundary. It must
+        # complete before attempting the external process. A second callback
+        # below records that the environment actually returned process
+        # evidence; an exception between them remains launch-unknown.
+        if on_invoke is not None:
+            on_invoke()
         start = time.monotonic()
         harness_error: str | None = None
         commands: list[CommandRecord] = []
@@ -120,12 +142,22 @@ class AgentAdapter(ABC):
                 harness_error=traceback.format_exc(),
             )
 
+        if on_invocation_observed is not None:
+            on_invocation_observed()
         wall = time.monotonic() - start
         try:
             transcript, commands = self.parse_transcript(process)
         except Exception:  # noqa: BLE001 - parser bug must not destroy raw data
             harness_error = "parse_transcript failed:\n" + traceback.format_exc()
             transcript = process.stdout
+
+        infrastructure_error = self.pre_model_infrastructure_error(process)
+        if infrastructure_error:
+            harness_error = (
+                f"{harness_error}; {infrastructure_error}"
+                if harness_error
+                else infrastructure_error
+            )
 
         return AgentRunResult(
             agent_id=self.agent_id,

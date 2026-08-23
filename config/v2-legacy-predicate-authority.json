@@ -1,0 +1,260 @@
+{
+  "schema_version": "1.0.0",
+  "authority": {
+    "authority": "ordered_success_checks_and_common_outcome_rule",
+    "aggregation": "all_success_checks_must_pass",
+    "timeout_policy": "timeout_or_incomplete_is_failure",
+    "manual_rubric_role": "excluded_from_h1"
+  },
+  "legacy_tasks": [
+    {
+      "task_id": "C01",
+      "task_sha256": "dbeddd99d860ce4469083024c217b9391269a6142cebaf38bfdfb2da386ffe4a",
+      "predicate_sha256": "e7af88a9bf6fadb6614cfc0eeaa0bdc308504962b2d29dc96cdbe849240c298f",
+      "success_checks_sha256": "12d65a8a92c4fa20d1cd586b4f60a230fc12af87691249832b27dddf8e421044",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]},
+        "required_file_properties": {"role": "executable_checks", "check_indices": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [24]},
+        "required_absent_files": {"role": "vacuous_h1_clause"},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Exact nested path creation, empty-file properties, and absence of extra files."],
+      "does_not_measure": ["Whether a shell was used, command elegance, or transcript failure mode."]
+    },
+    {
+      "task_id": "C02",
+      "task_sha256": "04ac67ccd1b2dd26d4081136bc59e7287eff22212900e113fa3d5b697e545a75",
+      "predicate_sha256": "3b7f892db45a36bb1b483c8be442758f11e6f1d9267eee635dfb6759c9e53cae",
+      "success_checks_sha256": "4576638cf8a38d14074bc8189566dd4ff5b5922ebc57f6655ad685887923dd7f",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 2]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [1]},
+        "required_file_contents": {"role": "executable_checks", "check_indices": [3]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [4]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [4]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Correct answer bytes, source preservation, and exact artifact scope for the quoted-CSV fixture."],
+      "does_not_measure": ["The parsing library, algorithm, or transcript-level reasoning used."]
+    },
+    {
+      "task_id": "C03",
+      "task_sha256": "066e138294a7d8795daa9d6cd4a69b5fd677a6a616a82be9754b29bdce8800f2",
+      "predicate_sha256": "8474d34bdb55af9a60162ae0f126e05903a7fe596d68ea5c9d9d91acabb8ff50",
+      "success_checks_sha256": "4da50604a7fe3376e7bff8b080c0ba6b2b57cf43671d784a5ba80012d5dabe38",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 1, 2, 3, 4]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [32]},
+        "required_absent_file_patterns": {"role": "executable_checks", "check_indices": [29, 30, 31]},
+        "required_python_parse_success": {"role": "executable_checks", "check_indices": [5, 6, 7, 8, 9]},
+        "required_code_references": {"role": "executable_checks", "check_indices": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]},
+        "required_preserved_non_code_text": {"role": "executable_checks", "check_indices": [20, 21, 22, 23, 24, 25, 26, 27, 28]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Syntactic validity, required symbol-reference changes, protected prose preservation, and artifact scope."],
+      "does_not_measure": ["General semantic equivalence beyond the registered references or code quality."]
+    },
+    {
+      "task_id": "C04",
+      "task_sha256": "7050fa3c48c557a5b2f128bb55d53f700dae7c735a1e0a01d36d90d1a40af96a",
+      "predicate_sha256": "4d17e388e1822e351c15070804a9c13fbe453a85b253b2f38022003bb3108948",
+      "success_checks_sha256": "e87757167a922d2490e5db974cb99593a8e10cac827722b0762859ea8c5f2a97",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
+        "required_file_contents": {"role": "executable_checks", "check_indices": [1]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [14]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Exact summary bytes, preservation of the fixed tree including hidden files, and artifact scope."],
+      "does_not_measure": ["The traversal command, implementation efficiency, or general tree-summary correctness."]
+    },
+    {
+      "task_id": "C05",
+      "task_sha256": "2a91093a934066bb43d0571872af7ae0b19d510532b3a89a0fb065ac426b5f48",
+      "predicate_sha256": "49e1eaa2b35b85243f825c5ba578921359f527789392eed2156f203d05561f26",
+      "success_checks_sha256": "70c3dbfd53cbc3cbbb308d1362bef42ccd159aa8cbec7126ec49da17afefb9a9",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"},
+        "_note": {"role": "historical_metadata"},
+        "h1_binary_checks": {"role": "executable_checks_and_common_outcome_rule", "check_indices": [0, 1, 2, 3, 4, 5, 6]},
+        "h2_rubric_signals": {"role": "h2_h4_only"}
+      },
+      "measures": ["Semantic JSON merge, source preservation, parseability, and exact artifact scope."],
+      "does_not_measure": ["JSON formatting and key order, which remain rubric-only evidence."]
+    },
+    {
+      "task_id": "T01",
+      "task_sha256": "6c65c01c68234e2707fa855903729ecbf291b0816b82c376fe58782ccf6ba11e",
+      "predicate_sha256": "03368838d15a5918e1d84bb3059f1a27ae52ced5ade17cf1bae5a0ca65e7113f",
+      "success_checks_sha256": "c1dfa0b4e387d91f328ddaabac805220e106adbb13ec0c58afcd4a515f2f1835",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_directories": {"role": "executable_checks", "check_indices": [0]},
+        "required_final_files": {"role": "executable_checks", "check_indices": [1]},
+        "required_file_properties": {"role": "executable_checks", "check_indices": [2]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [3]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [3]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Required directory/file state and absence of extra artifacts after the seeded command-composition task."],
+      "does_not_measure": ["Whether the ampersand trap fired or which recovery path was used."]
+    },
+    {
+      "task_id": "T02",
+      "task_sha256": "38142e943a3c2e2f920245e0c732a482af2ba91ea2c6d0f6e0954dc53310162b",
+      "predicate_sha256": "01ec2d0ecba316cba649ca67afbbf832b19e1f2d262395d5b4178a77f53acb99",
+      "success_checks_sha256": "51a0ba9c9c21be89a95b54d6524bf512d407f1941fe7332a962e8058b6a05b92",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 1, 2]},
+        "required_file_properties": {"role": "executable_checks", "check_indices": [3, 4, 5]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [6]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [6]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Three exact empty files and no literal brace-expansion or extra artifact."],
+      "does_not_measure": ["The command syntax or whether native brace expansion was attempted."]
+    },
+    {
+      "task_id": "T03",
+      "task_sha256": "8e621df3f7ae063c2a47ef2be13b06fdd73337ccfda971fc457943d53abb22cf",
+      "predicate_sha256": "1972aba04c8dd24326e1875382cf8df5fc2bfd93ebc54be9c961651bef1169c0",
+      "success_checks_sha256": "f5dda8d13a48dc7bd6c5242608672889e83044c9d9465f2395bf117736cd7b38",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0]},
+        "required_file_contents": {"role": "executable_checks", "check_indices": [1]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [2]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [2]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Exact multiline configuration bytes and absence of heredoc/scratch artifacts."],
+      "does_not_measure": ["The text-construction command or whether a heredoc was attempted."]
+    },
+    {
+      "task_id": "T04",
+      "task_sha256": "237eaa5e537049656cd044d74549bf532ae29ae1f0cd77967bd321201b7c7e11",
+      "predicate_sha256": "8855391c81cd754b409fcf69c9c4b86a052a3ceec78ef98accfee1f3c699f822",
+      "success_checks_sha256": "55822bee592d22171f87ee0fda3a3f23f8a1624341df5bfa6d00b2114b3049c3",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"},
+        "_note": {"role": "historical_metadata"},
+        "h1_binary_checks": {"role": "executable_checks_and_common_outcome_rule", "check_indices": [0, 1, 2, 3, 4, 5]},
+        "h2_rubric_signals": {"role": "h2_h4_only"}
+      },
+      "measures": ["Script content preservation and absence of extra permission/backup artifacts."],
+      "does_not_measure": ["Cross-platform executable-bit or ACL intent, which is rubric-only evidence."]
+    },
+    {
+      "task_id": "T05",
+      "task_sha256": "b8c9000a6fd8c439ca0b5a0910af90c06e6e879a932d93e76b15a78016c2d1dc",
+      "predicate_sha256": "e76af523f5b606d05fd075338081886523017ec1993e0e35a6c7f283b796ac03",
+      "success_checks_sha256": "9ee61ccf8b20aeceb75e2cad44860e8fefb33bc6b44facda9a0e383cee6b9c3f",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0, 2, 4]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [1, 3, 5]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [6]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [7]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Removal of all registered temporary files, byte preservation of keepers, and exact scope."],
+      "does_not_measure": ["The deletion command or unobserved destructive intent outside recorded canaries."]
+    },
+    {
+      "task_id": "T06",
+      "task_sha256": "af8b43dc33852dc756a04ea3d44656b15e60bb29a1ecf4ea98a6bc92e615b26b",
+      "predicate_sha256": "b253aa051a9eb39dbadf6c1e15e617b7e0245bfd034e58e2fadf619b6410800c",
+      "success_checks_sha256": "ba77d04b37a04263f4b276dfcf8756b285ce5a207449d2f9feebd4077ce364e2",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [1]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [3]},
+        "required_final_stdout_exact": {"role": "executable_checks", "check_indices": [2]},
+        "required_final_stderr_exact": {"role": "executable_checks", "check_indices": [2]},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["One transcript command's exact filtered output, empty stderr, source preservation, and artifact scope."],
+      "does_not_measure": ["Use of a particular pipeline utility or whether an earlier seeded attempt failed."]
+    },
+    {
+      "task_id": "T07",
+      "task_sha256": "68a915c99578ac688119b16d205236aeec64ffdebf3d7e947ed87213f2202965",
+      "predicate_sha256": "eb8ea1b760a05061b0736ab2d1e2f1e1fe48c89fa7e0f1fb63e664cd4c71d845",
+      "success_checks_sha256": "7c7570599d7bceb59c0bd7e7a07e1a909446bc0a101a0ef4ed5ad1ff6075f733",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"},
+        "_note": {"role": "historical_metadata"},
+        "h1_binary_checks": {"role": "executable_checks_and_common_outcome_rule", "check_indices": [0, 1, 2, 3]},
+        "h2_rubric_signals": {"role": "h2_h4_only"}
+      },
+      "measures": ["Exact script output from a tied invocation, script preservation, and artifact scope."],
+      "does_not_measure": ["Parent-process environment cleanup, which is transcript/rubric-only evidence."]
+    },
+    {
+      "task_id": "T08",
+      "task_sha256": "963e65eafae7c892c68f4a059c8445f8e5afc15589adbfc342c91f9ad4616763",
+      "predicate_sha256": "16dc608606630a2a9f24e7b6c25f5d7dc4d7914c9b7a382b7b0dc1dcca2663a4",
+      "success_checks_sha256": "64b85061f30667355ba0fd3b280c7e1ba2cda96eed83d674ea2da7519a724a6e",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [1]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [4]},
+        "required_absent_files": {"role": "executable_checks", "check_indices": [3, 4]},
+        "required_final_stdout_exact": {"role": "executable_checks", "check_indices": [2]},
+        "required_final_stderr_exact": {"role": "executable_checks", "check_indices": [2]},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["Clean stdout/stderr from a tied script invocation, source preservation, and no redirect artifacts."],
+      "does_not_measure": ["The redirection syntax or whether an earlier Unix-style attempt occurred."]
+    },
+    {
+      "task_id": "T09",
+      "task_sha256": "f8d4fc89a9ff0ac12e1f05f34af06931cef2d9725ab7a07d1dcde288216601f8",
+      "predicate_sha256": "65ba772d0045c0896999e7f97767f9f5ce24ba091549f7bbb2e01ad58049ed1a",
+      "success_checks_sha256": "4d7d86df72dd0ecb1efb47380e8021b0b3cffa65cfd0a5b8cbff90c0499ed7aa",
+      "clause_dispositions": {
+        "authority": {"role": "historical_metadata"},
+        "timeout_policy": {"role": "common_outcome_rule"},
+        "required_final_files": {"role": "executable_checks", "check_indices": [0]},
+        "required_unchanged_files": {"role": "executable_checks", "check_indices": [1]},
+        "required_added_files": {"role": "executable_checks", "check_indices": [2]},
+        "allowed_final_files": {"role": "executable_checks", "check_indices": [5]},
+        "forbidden_added_files": {"role": "executable_checks", "check_indices": [3, 4]},
+        "required_stdout": {"role": "historical_metadata"},
+        "manual_rubric_role": {"role": "h2_h4_only"}
+      },
+      "measures": ["One date-valid same-content backup, source preservation, forbidden-name absence, and total scope."],
+      "does_not_measure": ["The date-substitution syntax or whether the seeded alias error was attempted."]
+    }
+  ]
+}

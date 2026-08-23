@@ -24,6 +24,7 @@ Run: python -m pytest tests/ -q   (or: python tests/test_linux_native_conformanc
 from __future__ import annotations
 
 import sys
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,8 @@ from harness.environments.linux_native import (
     LinuxNativeEnvironment,
     _ssh_configured,
 )
+from harness.fs import SandboxUnreadableError
+from harness.types import ProcessResult, SandboxHandle
 from tests.conformance import assert_environment_conforms
 
 # Linux-native commands for the live exec battery.
@@ -80,12 +83,276 @@ def test_linux_native_requires_ssh_target_for_exec(monkeypatch):
         env._wrap_argv(["true"])
 
 
+def test_linux_native_pinned_known_hosts_fails_closed():
+    env = LinuxNativeEnvironment(
+        ssh_target="bench@example.invalid",
+        ssh_key="bench-key",
+        ssh_port="2200",
+        ssh_known_hosts="bench-known-hosts",
+    )
+    wrapped = env._wrap_argv(["true"])
+    assert "UserKnownHostsFile=bench-known-hosts" in wrapped
+    assert "StrictHostKeyChecking=yes" in wrapped
+    assert "StrictHostKeyChecking=accept-new" not in wrapped
+    assert wrapped[-3:] == ["bench@example.invalid", "--", "true"]
+
+
+def test_linux_native_without_known_hosts_accepts_first_seen_key(monkeypatch):
+    import harness.environments.linux_native as ln
+    monkeypatch.setattr(ln, "_GCP_SSH_KNOWN_HOSTS", None)
+    env = LinuxNativeEnvironment(
+        ssh_target="bench@example.invalid",
+        ssh_known_hosts=None,
+    )
+    opts = env._ssh_opts()
+    assert "StrictHostKeyChecking=accept-new" in opts
+    assert not any(opt.startswith("UserKnownHostsFile=") for opt in opts)
+
+
+def _fake_remote_sandbox(
+    env: LinuxNativeEnvironment,
+) -> SandboxHandle:
+    root = "/tmp/pstax/X01_0"
+    return SandboxHandle(
+        task_id="X01",
+        trial_index=0,
+        env_id=env.env_id,
+        root=root,
+        host_root=env._host_root_for(root),
+    )
+
+
+@pytest.mark.parametrize(
+    "producer",
+    [
+        subprocess.CompletedProcess(
+            ["ssh"],
+            255,
+            stdout=b"",
+            stderr=b"ssh: connection reset",
+        ),
+        subprocess.CompletedProcess(
+            ["ssh"],
+            255,
+            stdout=b"",
+            stderr=b"Permission denied (publickey)",
+        ),
+        subprocess.CompletedProcess(
+            ["ssh"],
+            255,
+            stdout=b"",
+            stderr=b"Identity file key.pem: No such file or directory",
+        ),
+        subprocess.CompletedProcess(
+            ["ssh"],
+            0,
+            stdout=b"",
+            stderr=b"",
+        ),
+    ],
+)
+def test_linux_native_sync_transport_failure_never_becomes_empty_snapshot(
+    tmp_path: Path,
+    monkeypatch,
+    producer,
+):
+    import harness.environments.linux_native as ln
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    monkeypatch.setattr(env, "_local_mirror_root", lambda: tmp_path)
+    sandbox = _fake_remote_sandbox(env)
+    monkeypatch.setattr(ln.subprocess, "run", lambda *args, **kwargs: producer)
+    with pytest.raises(EnvironmentError) as caught:
+        env._sync_back(sandbox)
+    assert not isinstance(caught.value, SandboxUnreadableError)
+
+
+def test_linux_native_missing_remote_sandbox_is_explicit_unreadability(
+    tmp_path: Path,
+    monkeypatch,
+):
+    import harness.environments.linux_native as ln
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    monkeypatch.setattr(env, "_local_mirror_root", lambda: tmp_path)
+    sandbox = _fake_remote_sandbox(env)
+    producer = subprocess.CompletedProcess(
+        ["ssh"],
+        2,
+        stdout=b"",
+        stderr=(
+            b"tar: /tmp/pstax/X01_0: Cannot open: "
+            b"No such file or directory"
+        ),
+    )
+    monkeypatch.setattr(ln.subprocess, "run", lambda *args, **kwargs: producer)
+    with pytest.raises(SandboxUnreadableError) as caught:
+        env._sync_back(sandbox)
+    assert caught.value.agent_attributable is True
+
+
+def test_linux_native_extract_failure_is_infrastructure_not_empty_snapshot(
+    tmp_path: Path,
+    monkeypatch,
+):
+    import harness.environments.linux_native as ln
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    monkeypatch.setattr(env, "_local_mirror_root", lambda: tmp_path)
+    sandbox = _fake_remote_sandbox(env)
+    responses = iter(
+        [
+            subprocess.CompletedProcess(
+                ["ssh"],
+                0,
+                stdout=b"tar-bytes",
+                stderr=b"",
+            ),
+            subprocess.CompletedProcess(
+                ["tar"],
+                2,
+                stdout=b"",
+                stderr=b"corrupt archive",
+            ),
+        ]
+    )
+    monkeypatch.setattr(
+        ln.subprocess,
+        "run",
+        lambda *args, **kwargs: next(responses),
+    )
+    with pytest.raises(EnvironmentError) as caught:
+        env._sync_back(sandbox)
+    assert not isinstance(caught.value, SandboxUnreadableError)
+
+
+def test_linux_native_exec_transport_255_without_remote_marker_is_infrastructure(
+    monkeypatch,
+):
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    monkeypatch.setattr(
+        env,
+        "_spawn",
+        lambda *args, **kwargs: ProcessResult(
+            argv=("ssh",),
+            returncode=255,
+            stdout="",
+            stderr="Permission denied (publickey)",
+            duration_seconds=0.01,
+        ),
+    )
+    with pytest.raises(EnvironmentError, match="before the remote agent start"):
+        env.exec(["agent"], cwd="/tmp/pstax/X01_0", timeout=30)
+
+
+def test_linux_native_remote_agent_exit_255_with_marker_remains_agent_result(
+    monkeypatch,
+):
+    import harness.environments._remote as remote_mod
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    token = "a" * 32
+    monkeypatch.setattr(
+        remote_mod.uuid,
+        "uuid4",
+        lambda: type("FixedUuid", (), {"hex": token})(),
+    )
+
+    def marked_spawn(wrapped_argv, *, timeout, env=None):
+        return ProcessResult(
+            argv=tuple(wrapped_argv),
+            returncode=255,
+            stdout="agent output",
+            stderr=(
+                f"\n__PSTAX_REMOTE_START_{token}__\n"
+                f"agent warning\n"
+                f"__PSTAX_REMOTE_EXIT_{token}__=255\n"
+            ),
+            duration_seconds=0.01,
+        )
+
+    monkeypatch.setattr(env, "_spawn", marked_spawn)
+    result = env.exec(["agent"], cwd="/tmp/pstax/X01_0", timeout=30)
+    assert result.returncode == 255
+    assert result.stdout == "agent output"
+    assert result.stderr == "agent warning"
+
+
+@pytest.mark.parametrize("start_observed", [False, True])
+def test_linux_native_timeout_requires_remote_agent_start_marker(
+    monkeypatch,
+    start_observed: bool,
+):
+    import harness.environments._remote as remote_mod
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+    token = "b" * 32
+    monkeypatch.setattr(
+        remote_mod.uuid,
+        "uuid4",
+        lambda: type("FixedUuid", (), {"hex": token})(),
+    )
+
+    def timed_spawn(wrapped_argv, *, timeout, env=None):
+        stderr = "transport stalled"
+        if start_observed:
+            stderr = (
+                f"\n__PSTAX_REMOTE_START_{token}__\n"
+                "agent still running"
+            )
+        return ProcessResult(
+            argv=tuple(wrapped_argv),
+            returncode=None,
+            stdout="partial",
+            stderr=stderr,
+            duration_seconds=30,
+            timed_out=True,
+        )
+
+    monkeypatch.setattr(env, "_spawn", timed_spawn)
+    if not start_observed:
+        with pytest.raises(
+            EnvironmentError,
+            match="before the remote agent start",
+        ):
+            env.exec(["agent"], cwd="/tmp/pstax/X01_0", timeout=30)
+        return
+    result = env.exec(["agent"], cwd="/tmp/pstax/X01_0", timeout=30)
+    assert result.timed_out is True
+    assert result.stdout == "partial"
+    assert result.stderr == "agent still running"
+
+
+def test_remote_spawn_normalizes_timeout_bytes_to_text(monkeypatch):
+    import harness.environments._remote as remote_mod
+
+    env = LinuxNativeEnvironment(ssh_target="fake")
+
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            cmd=["ssh"],
+            timeout=30,
+            output=b"partial stdout",
+            stderr=b"partial stderr",
+        )
+
+    monkeypatch.setattr(remote_mod.subprocess, "run", raise_timeout)
+    result = env._spawn(["ssh"], timeout=30)
+    assert result.timed_out is True
+    assert result.stdout == "partial stdout"
+    assert result.stderr == "partial stderr"
+
+
 def test_linux_native_live():
     if not _ssh_configured():
         pytest.skip("no GCP SSH target configured (set PSTAX_GCP_SSH)")
     obs = assert_environment_conforms(
         LinuxNativeEnvironment(), live=True,
         exec_ok_argv=_OK_ARGV, exec_sleep_argv=_SLEEP_ARGV,
+        # Permit SSH to authenticate and emit the start marker before timing
+        # out the deliberately sleeping command. The benchmark timeout is
+        # 180 s; 5 s is still far below the conformance command's 30 s sleep.
+        exec_timeout_seconds=5,
     )
     assert obs["snapshot_file_keys"] == 2  # keep.txt + sub/nested.txt synced back
     assert "kernel" in obs["probe_keys"] and "os_release" in obs["probe_keys"]

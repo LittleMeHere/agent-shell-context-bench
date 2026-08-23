@@ -1,0 +1,234 @@
+# Precollection qualification and resource shakedown
+
+**Status:** IN PROGRESS — 82/82 current-manifest calls pass semantic
+authentication, process, validity, and artifact-integrity review; D-004 human
+timing, D-006 coder costing, final caps, and the day-one `agy` freeze remain
+**Work items:** D-004, D-007, D-009, R-010, G4
+**Analysis status:** every artifact described here is excluded from pilot and
+confirmatory inference
+
+## Purpose
+
+This runbook turns precollection checks into manifest-bound evidence without
+silently starting the study. It has three distinct layers:
+
+1. zero-quota version and environment-path qualification;
+2. a deterministic 82-call resource and transport shakedown; and
+3. the separate day-one agy freeze immediately before its compact collection
+   epoch.
+
+Passing this runbook is necessary but not sufficient for the pilot. G1-G3 in
+`docs/PRE_DATA_REMEDIATION.md` must also be complete.
+
+## Safety boundary
+
+- Never execute from the methodology checkout.
+- Never execute a bypass-enabled agent on the researcher's ordinary
+  workstation. Use disposable collection VMs or the registered ephemeral
+  runner path.
+- Keep raw shakedown output in an external private operational root. The
+  executor refuses output below this public repository.
+- Dry run is the default. A model call requires the explicit `--execute` flag.
+- Do not call a shakedown an official agy day-one pin. The day-one
+  manifest/hash/archive/re-smoke/updater block happens only when G1-G3 are
+  closed and the agy collection epoch is ready to start.
+
+## 1. Zero-quota path audit
+
+`scripts/collection_preflight.py` uses the real environment adapters to run an
+environment probe and `<agent> --version`. It never supplies a prompt and
+never invokes a model. It also checks the controller's Claude hygiene
+variables without recording their values.
+
+For V2, use the explicit candidate or frozen runtime matrix from an external
+control directory:
+
+```powershell
+$benchRoot = "C:\path\to\agent-shell-context-bench"
+$env:PYTHONPATH = $benchRoot
+$env:DISABLE_TELEMETRY = "1"
+$env:DISABLE_ERROR_REPORTING = "1"
+$env:DISABLE_FEEDBACK_COMMAND = "1"
+$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+$env:DISABLE_AUTOUPDATER = "1"
+
+# E4 only: bind transport identity as well as target/key/port. Generate this
+# private file from the provisioned VM before preflight; do not commit it.
+$env:PSTAX_GCP_SSH = "user@127.0.0.1"
+$env:PSTAX_GCP_SSH_KEY = "C:\private-ops\gcp-key"
+$env:PSTAX_GCP_SSH_PORT = "2200"
+$env:PSTAX_GCP_SSH_KNOWN_HOSTS = "C:\private-ops\e4-known-hosts"
+
+python "$benchRoot\scripts\collection_preflight.py" `
+  --env windows_powershell `
+  --env windows_pwsh7 `
+  --env windows_wsl2 `
+  --matrix "$benchRoot\config\v2-runtime-matrix.candidate.json" `
+  --output "C:\private-ops\preflight-windows.json"
+```
+
+Run the matching command separately for `linux_native` and on the
+`macos_actions` runner. A PASS is scoped only to the named paths in that JSON
+artifact. The tool intentionally fails on a prefix collision such as expected
+`0.147.0` versus observed `0.147.00`.
+
+For E4 collection evidence, `PSTAX_GCP_SSH_KNOWN_HOSTS` is required by the
+operational runbook even though the adapter retains an `accept-new` fallback
+for development. When supplied, the adapter sets
+`StrictHostKeyChecking=yes`; a missing or changed host identity then fails
+closed instead of depending on the controller's personal SSH state.
+
+E4 agent commands run through non-login SSH. Before qualification, the exact
+`node`, `claude`, `codex`, and `agy` executables must therefore resolve on that
+non-login PATH (for example through explicit `/usr/local/bin` symlinks to the
+pinned installation). A successful interactive or `bash -lc` version check is
+not sufficient. The zero-quota preflight calls the production environment path
+and must pass all four versions before an authenticated smoke.
+
+All production environment process seams close inherited stdin with
+`stdin=DEVNULL`. This is part of the non-interactive contract: Codex otherwise
+may wait for additional input until the task timeout without emitting an event.
+
+The artifact also binds the matrix status and SHA-256 digest. The legacy
+`--agy-cli-version` mode uses the frozen V1 model and CLI constants and is
+diagnostic only; it is not a V2 qualification path.
+
+The native Windows environment resolves a bare executable to a
+CreateProcess-compatible PATHEXT sibling. This prevents an extensionless npm
+POSIX shim from being selected ahead of its Windows `.cmd` launcher. Focused
+tests preserve both PATH and extension precedence.
+
+## 2. Resource-shakedown design
+
+Generate the V2 manifest from the same explicit matrix used by preflight:
+
+```powershell
+python "$benchRoot\scripts\resource_shakedown_plan.py" `
+  --matrix "$benchRoot\config\v2-runtime-matrix.candidate.json" `
+  --output "C:\private-ops\resource-shakedown.json"
+```
+
+The manifest binds the matrix digest and status. Regenerate it whenever any
+candidate model, executable, or environment pin changes; old schema-1.0
+diagnostic manifests without that binding are superseded and cannot execute
+under the current runner.
+
+The fixed design contains 82 calls:
+
+| Stage | Design | Calls |
+|---|---|---:|
+| Resource core | 7 configurations × 5 task strata × 2 repeats in Windows PowerShell 5.1 | 70 |
+| Transport qualification | workhorse config for each of 3 agents × C01 × 4 non-core environments | 12 |
+
+The five resource-core strata are:
+
+- C01, short capability;
+- C05, long capability;
+- T01 formal, simple shell-syntax error;
+- T05 colloquial, destructive-recovery risk; and
+- T09 formal, subtle wrong-output/verification risk.
+
+This is not a power sample. It estimates wall time, surfaced usage, invalid
+and retry behavior, rate-limit/routing messages, and whether each real
+transport is executable. Two repeats are deliberately modest; heavy tails or
+invalids trigger a documented follow-up sample rather than an automatic
+claim of precision.
+
+## 3. Dry run and execute
+
+Inspect a provider/path slice first:
+
+```powershell
+python "$benchRoot\scripts\resource_shakedown_run.py" `
+  --manifest "C:\private-ops\resource-shakedown.json" `
+  --output "C:\private-ops\resource-shakedown-output" `
+  --stage transport-qualification `
+  --env windows_wsl2 `
+  --agent claude_code `
+  --agent codex
+```
+
+On the disposable qualified host, repeat the identical command with
+`--execute`. The executor:
+
+- verifies the manifest digest and every task-file hash;
+- binds an empty output root to exactly one manifest;
+- obtains an exclusive output lock;
+- runs one selected call at a time through `python -m harness run`;
+- passes the exact CLI version and hides outcomes;
+- passes a deterministic schedule identity that binds the child record to the
+  shakedown-manifest digest, call, task bytes, configuration, and runtime;
+- writes a per-call receipt containing artifact hashes; and
+- refuses a duplicate call directory rather than overwriting evidence.
+
+If execution returns nonzero, stop that slice. Do not delete the receipt or
+raw artifacts. Diagnose the infrastructure failure, decide whether a new
+manifested retry is required, and record it as retry-tail evidence.
+
+As of 2026-08-15, current candidate manifest
+`ee6f15cf6b677d24bb2612b4202468ffb2ae41086d68e6f2c8389b895020e023`
+has 82/82 private, analysis-excluded calls with a newest accepted receipt. The
+semantic audit requires a valid trial, no harness error, process return code
+zero, no known pre-model authentication envelope, and exact receipt-bound
+artifact paths, byte counts, and SHA-256 values. It selects 70 corrected
+resource-core calls and 12 transport calls, covering 410 artifacts including
+328 immutable attempt-state records.
+
+The credential-free `macos-26` qualification is separately complete: exact
+runtime presence, live adapter conformance, collection preflight, and all 36
+current-bank oracle completions passed in GitHub Actions run `31913265675`.
+Later semantic review found that the first 82-receipt composition had counted
+four pre-model authentication failures as task failures: the Windows and
+macOS `agy` paths and the WSL2/Linux-native Claude transports. The raw records
+remain preserved as diagnostic retry-tail evidence and are not accepted
+qualification records.
+
+Public commits `d8d97e8790ce38a1b5debecc08f3958f6f807aeb` and
+`27bf86f95ec2043dbdce0a29b523afba9c641fe7` make the exact observed `agy` and
+Claude authentication envelopes fail closed. Corrected private Actions runs
+`31919535320` (30 Windows `agy` resource calls) and `31919774650` (Claude,
+Codex, and `agy` on `macos-26`) passed explicit rejection of invalid records,
+nonzero CLI exits, and interactive authentication fallback. Manifest-bound
+WSL2 `agy` and WSL2/Linux-native Claude corrections also returned zero and
+passed artifact validation. This corrected composition is the semantic 82/82
+claim.
+
+The same-day execution-date review also rechecked the first-party policy pages
+and signed-in account controls for all three vendors. It confirmed the
+registered subscription paths, recorded current privacy/training, telemetry,
+and overage state, and explicitly pinned Antigravity's `useG1Credits`
+personal-credit fallback off. Agent-under-test timing, available provider
+meters, integrity totals, correction history, and cleanup are in the corrected
+sanitized private review bound by SHA-256
+`a8f48c67f919d9265a9ee838d0f5789b10b1d71447c36789c83857857bbb246c`.
+Hosted artifact and temporary Actions-secret inventories are zero. R-010 is
+therefore VERIFIED on semantic evidence; D-004 remains separate and open below.
+
+## 4. What remains manual
+
+Before D-004 can close, the private operational record still needs the final
+numeric provider/calendar caps showing that each proposed block fits the 60%
+planned window with 10% retry reserve and 30% untouched.
+
+The 35-case, analysis-excluded human timing exercise completed on 2026-08-17.
+Combined p50/p90 were 46.20/118.73 seconds, three cases were uncertain, and
+the full range was 16.62-219.92 seconds. The exercise was explicit-label-
+masked rather than identity-blind: paths, syntax, and event wrappers made
+identities inferable, and its A=24/B=1/F=10 mix contained no hard C/D/E case.
+Resource planning therefore retains the conservative five-minutes-per-label
+value plus 10% overhead rather than extrapolating the faster observed mean.
+
+Agent-under-test wall time, invalid-attempt/authentication tails, available
+provider-meter observations, routing/substitution review, and credential
+cleanup are complete. Five-hour windows that replenished during measurement
+are recorded as non-comparable rather than converted into false usage deltas.
+
+The separate AI-coder shakedown is complete for the frozen Codex/Terra primary
+and Claude/Sonnet secondary candidates. Do not substitute an agent-under-test
+call for a coder cost measurement; the remaining D-006 work is the production
+evidence contract and exact staged sampler/gate/cap.
+
+The current candidate selection and exact freeze rule are in
+`docs/V2_RUNTIME_PINNING.md`. Candidate status is suitable for this
+analysis-excluded shakedown. Pilot and confirmatory collection require the
+same matrix to be frozen and propagated into the accepted V2 scheduler.

@@ -74,18 +74,18 @@ agent-shell-context-bench/
 
 ## Implementation status at pre-registration-v1
 
-Per the methodology-vs-implementation discipline in DECISIONS, pre-registration locks **methodology**, not implementation completeness: a V1 cell could be PIN-AT-START at the tag and have its adapter land post-tag with no methodology change. As of 2026-06-26 **all V1 adapters have landed** (implementation only — methodology unchanged). The table below reflects current code; the remaining **pre-data obligations** (real-CLI / brain re-smokes, and `PSTAX_GCP_SSH` for E4) are tracked in `docs/VERSIONS.md`.
+Per the methodology-vs-implementation discipline in DECISIONS, pre-registration locks **methodology**, not implementation completeness: a V1 cell could be PIN-AT-START at the tag and have its adapter land post-tag with no methodology change. As of 2026-06-26 **all V1 adapters had landed** (implementation only — methodology unchanged). The table below records that V1 implementation boundary. Its July 2026 V1 re-smokes are historical evidence, not the current collection-start checklist. The authoritative current V2 handoff and gate status are in `docs/PRE_DATA_REMEDIATION.md`.
 
 | Component | Status |
 |---|---|
 | Claude Code adapter (configs #1, #2) | Implemented + parser-verified against real CLI output (current CLI/model pins and the full verification history live in `docs/VERSIONS.md` — the single aggregated record) |
 | Windows PS 5.1 environment | Implemented + canary-confirmed escape detection |
-| Codex adapter (configs #3, #4) | Implemented — `CodexAdapter` (`exec --json` parser); conformance-tested against synthetic fixtures. Real-CLI re-smoke (0.139.0) is a pre-data obligation |
-| agy adapter (configs #5, #6, #7) | Implemented — `AgyAdapter` + cross-env runtime (out-of-band brain-transcript parse, `settings.json` model pin, per-command Cwd tagging, scratch canary; runs on all 5 envs via the `HomeFilesystem` seam); conformance-tested against synthetic transcripts. 1.0.7 brain-schema re-smoke is a pre-data obligation |
+| Codex adapter (configs #3, #4) | Implemented — `CodexAdapter` (`exec --json` parser); conformance-tested against synthetic fixtures. The V1 0.139.0 real-CLI re-smoke passed 2026-07-05; current V2 pins/evidence are tracked separately. |
+| agy adapter (configs #5, #6, #7) | Implemented — `AgyAdapter` + cross-env runtime (out-of-band brain-transcript parse, `settings.json` model pin, per-command Cwd tagging, scratch canary; runs on all 5 envs via the `HomeFilesystem` seam); conformance-tested against synthetic transcripts. The V1 brain-schema re-smoke passed 2026-07-04; current V2 pins/evidence are tracked separately. |
 | Windows pwsh 7 env (E2) | Implemented — `Pwsh7Environment` subclass (overrides only the shell binary); conformance-verified live on pwsh 7.x |
 | Windows WSL2 env (E3) | Implemented — `WslEnvironment` (`wsl -d Ubuntu-24.04 --`, UNC host-view bridge); structural conformance verified |
-| Linux native env (E4) | Implemented — `LinuxNativeEnvironment` (SSH transport + tar sync-back); structural conformance verified; live run needs `PSTAX_GCP_SSH` |
-| macOS env (E5) | Implemented — `MacOSActionsEnvironment`; structural conformance verified. The Actions self-invocation smoke (capability C01) for `macos-26` is *defined*; a green CI run is a pre-data obligation |
+| Linux native env (E4) | Implemented — `LinuxNativeEnvironment` (SSH transport + tar sync-back); V1 and current V2 live transport/conformance evidence recorded. |
+| macOS env (E5) | Implemented — `MacOSActionsEnvironment`; the current V2 exact-runtime zero-quota preflight and all 36 portable oracles pass on `macos-26`. The three authenticated vendor transport calls remain a collection-start gate. |
 
 Per-CLI / per-environment qualification gate for any future additions: SAP S5.
 
@@ -103,7 +103,7 @@ python -m harness run \
   --output data/
 ```
 
-Every pre-registered cell now has a registered adapter; the runner raises `NotImplementedError` only for an identifier outside the V1 matrix — see `harness/registry.py`. Cells other than Claude Code × Windows PS 5.1 are runnable in code but carry pre-data obligations (real-CLI / brain re-smokes, and `PSTAX_GCP_SSH` for E4) recorded in `docs/VERSIONS.md` before their data is collected.
+Every pre-registered cell now has a registered adapter; the runner raises `NotImplementedError` only for an identifier outside the V1 matrix — see `harness/registry.py`. Do not infer current collection readiness from this historical V1 implementation table: `docs/PRE_DATA_REMEDIATION.md` is the authoritative G0–G4 checklist.
 
 ## Reproducibility
 

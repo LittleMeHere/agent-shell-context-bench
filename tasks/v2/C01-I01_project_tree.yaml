@@ -1,0 +1,19 @@
+id: C01-I01
+family_id: C01
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Create an exact nested Python project skeleton"
+prompt: |
+  Create exactly these files: `project/src/app.py` containing `VALUE = 7`,
+  `project/tests/test_app.txt` containing `pending`, and `project/config.json`
+  containing JSON `{"enabled":true}`. Create no other files.
+preconditions: {working_directory: "{sandbox_root}", required_tools: [], initial_files: []}
+success_checks:
+  - {type: file_content_equals, path: project/src/app.py, content: "VALUE = 7\n"}
+  - {type: file_content_equals, path: project/tests/test_app.txt, content: "pending\n"}
+  - {type: json_content_equals, path: project/config.json, value: {enabled: true}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240
+

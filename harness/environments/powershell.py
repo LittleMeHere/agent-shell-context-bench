@@ -25,6 +25,7 @@ Pinned assumptions (must hold, else the cell is confounded — see SAP):
 from __future__ import annotations
 
 import json
+import ntpath
 import os
 import shutil
 import subprocess
@@ -33,6 +34,62 @@ import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import ClassVar
+
+
+_WINDOWS_CREATEPROCESS_EXTENSIONS = (".com", ".exe", ".bat", ".cmd")
+
+
+def _resolve_windows_executable(
+    command: str,
+    *,
+    search_dirs: Sequence[str] | None = None,
+    pathext: str | None = None,
+) -> str:
+    """Resolve a bare command to a CreateProcess-compatible Windows file.
+
+    npm installs both an extensionless POSIX shim and a ``.cmd`` shim on
+    Windows.  Passing the bare name to ``subprocess.run`` can select the
+    extensionless file first and fail with ``WinError 5`` even though the
+    same command works in an interactive shell.  Collection launches through
+    CreateProcess, so deliberately prefer PATHEXT executable siblings and
+    ignore an extensionless file.
+
+    ``search_dirs`` is injectable so this boundary is testable on non-Windows
+    CI.  An explicit path receives the same sibling-extension treatment.
+    """
+    extension = ntpath.splitext(command)[1].lower()
+    explicit_dir = ntpath.dirname(command)
+    if extension in _WINDOWS_CREATEPROCESS_EXTENSIONS:
+        return command
+
+    raw_extensions = (pathext or os.environ.get("PATHEXT", "")).split(";")
+    extensions = [
+        value.lower()
+        for value in raw_extensions
+        if value.lower() in _WINDOWS_CREATEPROCESS_EXTENSIONS
+    ]
+    if not extensions:
+        extensions = list(_WINDOWS_CREATEPROCESS_EXTENSIONS)
+
+    if explicit_dir:
+        bases = [Path(command)]
+    else:
+        directories = (
+            list(search_dirs)
+            if search_dirs is not None
+            else os.environ.get("PATH", "").split(os.pathsep)
+        )
+        bases = [Path(directory) / command for directory in directories if directory]
+
+    # PATH directory precedence comes before extension precedence. This keeps
+    # a user-installed npm ``codex.cmd`` ahead of an unrelated later PATH
+    # entry that happens to expose ``codex.exe``.
+    for base in bases:
+        for extension in extensions:
+            candidate = Path(str(base) + extension)
+            if candidate.is_file():
+                return str(candidate)
+    return command
 
 from ..fs import local_snapshot
 from ..types import FilesystemSnapshot, ProcessResult, SandboxHandle
@@ -204,12 +261,26 @@ class PowerShellEnvironment(EnvironmentAdapter, LocalHomeFilesystem):
         env: Mapping[str, str] | None,
     ) -> ProcessResult:
         full_env = {**os.environ, **(env or {})}
+        # Resolve before CreateProcess sees argv[0]. In particular, npm's
+        # extensionless POSIX shim is not executable on Windows while its
+        # adjacent .cmd shim is. The remote Unix environments intentionally
+        # do not use this Windows-only resolution step.
+        if argv:
+            argv = [
+                _resolve_windows_executable(
+                    argv[0],
+                    search_dirs=full_env.get("PATH", "").split(os.pathsep),
+                    pathext=full_env.get("PATHEXT"),
+                ),
+                *argv[1:],
+            ]
         start = time.monotonic()
         try:
             proc = subprocess.run(
                 argv,
                 cwd=cwd,
                 env=full_env,
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=timeout,

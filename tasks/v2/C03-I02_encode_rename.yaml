@@ -1,0 +1,29 @@
+id: C03-I02
+family_id: C03
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Rename an exported function while preserving diagnostic text"
+prompt: |
+  Rename the Python function `encode_value` to `serialize_value` across
+  codec.py, api.py, and exports.py. Rename the __all__ export, import, and
+  call, but preserve comments and ERROR text containing `encode_value`.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: codec.py, content: "def encode_value(value):\n    return str(value)\n# encode_value used to accept bytes\n"}
+    - {path: exports.py, content: "from codec import encode_value\n__all__=['encode_value']\n"}
+    - {path: api.py, content: "from exports import encode_value\nERROR='encode_value failed'\ndef render(v): return encode_value(v)\n"}
+success_checks:
+  - {type: python_parses, path: codec.py}
+  - {type: python_parses, path: exports.py}
+  - {type: python_parses, path: api.py}
+  - {type: file_contains_substring_count, path: codec.py, substring: encode_value, count: 1}
+  - {type: file_contains_substring_count, path: exports.py, substring: encode_value, count: 0}
+  - {type: file_contains_substring_count, path: api.py, substring: encode_value, count: 1}
+  - {type: environment_command, argv: [python, -c, "import api,exports; assert api.render(4)=='4' and api.ERROR=='encode_value failed' and exports.__all__==['serialize_value']"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

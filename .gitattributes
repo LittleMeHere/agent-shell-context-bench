@@ -3,3 +3,7 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+
+# The qualified V2 task-bank digest covers exact, historically qualified bytes.
+# Disable EOL conversion while retaining text diffs and accurate whitespace QA.
+tasks/v2/*.yaml -text whitespace=cr-at-eol,-blank-at-eof

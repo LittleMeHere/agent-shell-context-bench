@@ -1,0 +1,25 @@
+id: C06-I02
+family_id: C06
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Repair bounded exponential retry scheduling"
+prompt: |
+  Fix `retry.py` so `delay(attempt, base, cap)` returns `min(cap, base *
+  2**attempt)` for non-negative integer attempts and raises ValueError for a
+  negative attempt. Preserve the signature. Do not modify `api.txt` or add files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: retry.py, content: "def delay(attempt, base, cap):\n    return base * attempt\n"}
+    - {path: api.txt, content: "delay(attempt, base, cap)\n"}
+success_checks:
+  - {type: python_parses, path: retry.py}
+  - {type: file_unchanged, path: api.txt}
+  - {type: environment_command, argv: [python, -c, "import retry; assert [retry.delay(i,3,20) for i in range(5)] == [3,6,12,20,20];\ntry: retry.delay(-1,3,20)\nexcept ValueError: pass\nelse: raise AssertionError('negative attempt accepted')"]}
+  - {type: environment_command, argv: [python, -c, "import retry; assert [retry.delay(i,2,100) for i in (0,1,5,8)] == [2,4,64,100]; assert retry.delay(0,9,4) == 4;\nfor bad in (-3, 1.5):\n  try: retry.delay(bad,2,100)\n  except ValueError: pass\n  else: raise AssertionError(f'invalid attempt accepted: {bad!r}')"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

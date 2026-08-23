@@ -47,11 +47,13 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from abc import abstractmethod
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -141,17 +143,24 @@ class RemoteUnixEnvironment(EnvironmentAdapter, HomeFilesystem):
         try:
             proc = subprocess.run(
                 wrapped_argv,
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
                 env=full_env,
             )
         except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout or ""
+            stderr = exc.stderr or ""
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode("utf-8", errors="replace")
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode("utf-8", errors="replace")
             return ProcessResult(
                 argv=tuple(wrapped_argv),
                 returncode=None,
-                stdout=exc.stdout or "",
-                stderr=exc.stderr or "",
+                stdout=stdout,
+                stderr=stderr,
                 duration_seconds=time.monotonic() - start,
                 timed_out=True,
             )
@@ -199,9 +208,90 @@ class RemoteUnixEnvironment(EnvironmentAdapter, HomeFilesystem):
         reference env.
         """
         quoted = " ".join(shlex.quote(str(a)) for a in argv)
-        inner = f"cd {shlex.quote(cwd)} && exec {quoted}"
-        return self._spawn(
-            self._wrap_argv(["bash", "-lc", inner]), timeout=timeout, env=env
+        marker_token = uuid.uuid4().hex
+        start_marker = f"__PSTAX_REMOTE_START_{marker_token}__"
+        exit_marker = f"__PSTAX_REMOTE_EXIT_{marker_token}__="
+        executable = shlex.quote(str(argv[0]))
+        inner = (
+            f"cd {shlex.quote(cwd)} "
+            f"&& command -v {executable} >/dev/null 2>&1 "
+            f"&& printf '\\n{start_marker}\\n' >&2 "
+            f"&& exec {quoted}"
+        )
+        remote_argv = " ".join(
+            shlex.quote(str(part)) for part in ["bash", "-lc", inner]
+        )
+        marked = (
+            f"{remote_argv}; __pstax_rc=$?; "
+            f"printf '\\n{exit_marker}%s\\n' \"$__pstax_rc\" >&2; "
+            'exit "$__pstax_rc"'
+        )
+        # WSL and SSH introduce different transport-side parsing layers.
+        # Base64 keeps `$?` and the exit-code variable inert until the intended
+        # outer remote bash decodes and executes the marked script.
+        encoded_marked = base64.b64encode(marked.encode("utf-8")).decode(
+            "ascii"
+        )
+        transport_script = (
+            f"printf %s {shlex.quote(encoded_marked)} | base64 -d | bash"
+        )
+        result = self._spawn(
+            self._wrap_argv(["bash", "-lc", transport_script]),
+            timeout=timeout,
+            env=env,
+        )
+        start_match = re.search(
+            rf"(?:^|\r?\n){re.escape(start_marker)}\r?\n",
+            result.stderr,
+        )
+        if start_match is None:
+            raise EnvironmentError(
+                f"{self.env_id}: execution transport ended before the remote "
+                f"agent start marker (host returncode={result.returncode}, "
+                f"stderr={result.stderr[-500:]!r})"
+            )
+        clean_stderr = (
+            result.stderr[: start_match.start()]
+            + result.stderr[start_match.end() :]
+        )
+        if result.timed_out:
+            # The start marker proves the remote cwd/executable checks passed
+            # and control reached the agent exec. A live command cannot emit
+            # its exit marker before the registered timeout kills transport.
+            return ProcessResult(
+                argv=result.argv,
+                returncode=result.returncode,
+                stdout=result.stdout,
+                stderr=clean_stderr,
+                duration_seconds=result.duration_seconds,
+                timed_out=True,
+            )
+        match = re.search(
+            rf"(?:^|\r?\n){re.escape(exit_marker)}(\d+)\r?\n?$",
+            clean_stderr,
+        )
+        if match is None:
+            raise EnvironmentError(
+                f"{self.env_id}: execution transport ended without a remote "
+                f"exit marker after agent start (host "
+                f"returncode={result.returncode}, "
+                f"stderr={clean_stderr[-500:]!r})"
+            )
+        remote_returncode = int(match.group(1))
+        if result.returncode != remote_returncode:
+            raise EnvironmentError(
+                f"{self.env_id}: host transport returncode "
+                f"{result.returncode} disagrees with remote exit marker "
+                f"{remote_returncode}"
+            )
+        clean_stderr = clean_stderr[: match.start()]
+        return ProcessResult(
+            argv=result.argv,
+            returncode=remote_returncode,
+            stdout=result.stdout,
+            stderr=clean_stderr,
+            duration_seconds=result.duration_seconds,
+            timed_out=False,
         )
 
     def run_shell(

@@ -1,0 +1,30 @@
+id: C04-I03
+family_id: C04
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Summarize a nested tree by normalized extension"
+prompt: |
+  Recursively inspect tree/ and write summary.json mapping lowercase extension
+  (including the dot) to file count. Files without an extension use key
+  `[none]`; dotfiles without another suffix also use `[none]`. Preserve all
+  sources and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: tree/a.PY, content: a}
+    - {path: tree/b.py, content: b}
+    - {path: tree/docs/readme, content: c}
+    - {path: tree/docs/.hidden, content: d}
+    - {path: tree/data/x.JSON, content: e}
+success_checks:
+  - {type: file_unchanged, path: tree/a.PY}
+  - {type: file_unchanged, path: tree/b.py}
+  - {type: file_unchanged, path: tree/docs/readme}
+  - {type: file_unchanged, path: tree/docs/.hidden}
+  - {type: file_unchanged, path: tree/data/x.JSON}
+  - {type: json_content_equals, path: summary.json, value: {".py": 2, ".json": 1, "[none]": 2}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240

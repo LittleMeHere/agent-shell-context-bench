@@ -1,13 +1,12 @@
 """agy-cell runtime: the out-of-band wiring the runner needs ONLY for agy.
 
-agy is the one configuration whose command stream and model pin do not travel
-on the process the harness launches — they live in agy's home on whichever
-machine the environment runs on (see `harness/adapters/agy.py`, CONTRACT GAPs
-(1)/(2)/(3)). This module is the runner-layer glue that resolves those three
+agy is the one configuration whose command stream does not travel on the
+process the harness launches — it lives in agy's home on whichever machine the
+environment runs on (see `harness/adapters/agy.py`, CONTRACT GAPs (1)/(3)).
+This module is the runner-layer glue that resolves those two
 gaps using the additive `HomeFilesystem` seam, so the agent-agnostic
 `run_cell` stays clean: it constructs an `AgyTrialRuntime` only when the agent
-is agy and calls four hook points (pin model, before trial, after trial,
-restore model).
+is agy and calls the before-trial and after-trial hook points.
 
 Nothing here touches the frozen contract. Each piece implements a
 pre-registered SAP "Outcome construction" agy rule:
@@ -37,20 +36,40 @@ pre-registered SAP "Outcome construction" agy rule:
     canary_paths()` so the environment stays agent-agnostic (it never learns it
     is running agy); the observable outcome is identical to rule 5's intent.
 
-The model pin (rule via GAP (2)) is applied once per cell before the trial
-loop and restored after, since the model is constant across a cell's trials.
+The model pin is part of every invocation's argv (`--model <id>`), not mutable
+home-directory state.
 """
 
 from __future__ import annotations
 
 import json
 import posixpath
+import re
 from dataclasses import dataclass, field
 
 from .adapters import agy as agy_mod
 from .adapters.agy import AgyAdapter
 from .environments.home_fs import HomeFilesystem
 from .types import AgentRunResult, SandboxHandle
+from .outcomes import AgyBrainStatus, AgyOutcomeEvidence
+
+
+_TRACE_BRAIN_EVENT_TYPES = {"PLANNER_RESPONSE", "RUN_COMMAND"}
+_FRAMING_BRAIN_EVENT_TYPES = {
+    "USER_INPUT",
+    "CONVERSATION_HISTORY",
+    "EPHEMERAL_MESSAGE",
+    "CHECKPOINT",
+    "CODE_ACTION",
+}
+_RECOGNIZED_BRAIN_EVENT_TYPES = (
+    _TRACE_BRAIN_EVENT_TYPES | _FRAMING_BRAIN_EVENT_TYPES
+)
+_AUTH_FAILURE = re.compile(
+    r"\bauthentication required\b.*\b(?:authentication timed out|"
+    r"authentication failed or timed out)\b",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 @dataclass(frozen=True)
@@ -68,19 +87,34 @@ class AgyOutcome:
 
     brain_located: bool
     brain_candidate_count: int
+    brain_status: AgyBrainStatus
+    brain_valid_event_count: int
+    brain_malformed_line_count: int
+    brain_shell_call_count: int
+    brain_outcome_event_count: int
     cwd_tags: list[dict]
     compliance: dict
     scratch_escape: str | None = field(default=None)
 
-    def as_log_dict(self) -> dict:
+    def as_log_dict(
+        self, outcome_evidence: AgyOutcomeEvidence | None = None
+    ) -> dict:
         """The `agy` section appended to the trial record (additive schema)."""
-        return {
+        record = {
             "brain_transcript_located": self.brain_located,
             "brain_conversation_candidates": self.brain_candidate_count,
+            "brain_parse_status": self.brain_status,
+            "brain_valid_event_count": self.brain_valid_event_count,
+            "brain_malformed_line_count": self.brain_malformed_line_count,
+            "brain_shell_call_count": self.brain_shell_call_count,
+            "brain_outcome_event_count": self.brain_outcome_event_count,
             "cwd_compliance": self.compliance,
             "cwd_tags": self.cwd_tags,
             "scratch_canary_escape": self.scratch_escape,
         }
+        if outcome_evidence is not None:
+            record["v2_outcome_evidence"] = outcome_evidence.as_log_dict()
+        return record
 
 
 class AgyTrialRuntime:
@@ -88,15 +122,15 @@ class AgyTrialRuntime:
 
     Constructed once per agy cell. Requires the environment to implement
     `HomeFilesystem` (all five matrix environments do); refusing otherwise is
-    deliberate — a cell that cannot reach agy's home cannot pin the model or
-    read the command stream, and a silent degrade would confound the science.
+    deliberate — a cell that cannot reach agy's home cannot read the command
+    stream, and a silent degrade would confound the science.
     """
 
     def __init__(self, adapter: AgyAdapter, environment: object) -> None:
         if not isinstance(environment, HomeFilesystem):
             raise EnvironmentError(
                 f"agy requires an environment that implements HomeFilesystem to "
-                f"reach agy's home (settings.json / brain transcript / scratch "
+                f"reach agy's home (brain transcript / scratch "
                 f"canary); {type(environment).__name__} does not. This is a "
                 f"matrix-configuration error, not a per-trial failure."
             )
@@ -106,50 +140,6 @@ class AgyTrialRuntime:
         # classify per-command Cwd. Derived from the adapter's pinned canary path
         # so there is one source of truth for the scratch location.
         self._scratch_dir_rel = posixpath.dirname(adapter.scratch_canary_rel_path)
-        self._saved_settings: str | None = None
-        self._pinned = False
-
-    # --- model pin (CONTRACT GAP (2)) -----------------------------------
-
-    def pin_model(self) -> None:
-        """Write this cell's model into agy's settings.json, saving the prior
-        content for restore. Raises if the write fails — an unpinned agy cell
-        would measure the wrong model, so this fails loudly rather than running
-        a confounded cell (the same stance as a missing `required_tool`)."""
-        existing = self._env.home_read(self._adapter.settings_rel_path)
-        self._saved_settings = existing  # None preserved => file was absent
-        try:
-            current = json.loads(existing) if existing else {}
-        except json.JSONDecodeError:
-            current = {}
-        if not isinstance(current, dict):
-            current = {}
-        patched = self._adapter.model_settings_patch(current)
-        ok = self._env.home_write(
-            self._adapter.settings_rel_path,
-            json.dumps(patched, indent=2, ensure_ascii=False),
-        )
-        if not ok:
-            raise EnvironmentError(
-                f"agy model pin failed: could not write "
-                f"{self._adapter.settings_rel_path!r} through "
-                f"{getattr(self._env, 'env_id', '?')}; refusing to run an "
-                f"unpinned agy cell."
-            )
-        self._pinned = True
-
-    def restore_model(self) -> None:
-        """Restore settings.json to its pre-cell content (or remove it if it did
-        not exist before). Best-effort and idempotent — safe in a `finally`."""
-        if not self._pinned:
-            return
-        if self._saved_settings is None:
-            self._env.home_remove(self._adapter.settings_rel_path)
-        else:
-            self._env.home_write(
-                self._adapter.settings_rel_path, self._saved_settings
-            )
-        self._pinned = False
 
     # --- per-trial hooks -------------------------------------------------
 
@@ -165,6 +155,15 @@ class AgyTrialRuntime:
             scratch_canary_content=content,
         )
 
+    def close(self) -> None:
+        """Remove the runner-owned scratch sentinel after the cell.
+
+        Best-effort and idempotent: preservation evidence is captured by
+        ``after_trial`` before this cleanup runs, and a stale harness sentinel
+        must not be left in the account home after collection.
+        """
+        self._env.home_remove(self._adapter.scratch_canary_rel_path)
+
     def after_trial(
         self, ctx: AgyTrialContext, result: AgentRunResult, sandbox: SandboxHandle
     ) -> AgyOutcome:
@@ -177,13 +176,36 @@ class AgyTrialRuntime:
         transcript cannot be located (agy did not run, or the env could not
         reach the home), `result` is left as the honest GAP-(1) degrade.
         """
+        self._mark_authentication_failure_invalid(result)
         brain_after = self._env.home_listdir(agy_mod.BRAIN_REL_ROOT)
         new_dirs = sorted(d for d in brain_after if d not in ctx.brain_before)
-        text = self._read_brain_transcript(new_dirs)
+        text = self._read_brain_transcript(new_dirs) if len(new_dirs) == 1 else None
 
         cwd_tags: list[dict] = []
-        located = text is not None
-        if text is not None:
+        valid_events = 0
+        malformed_lines = 0
+        shell_calls = 0
+        outcome_events = 0
+        if len(new_dirs) > 1:
+            brain_status: AgyBrainStatus = "ambiguous"
+        elif text is None:
+            brain_status = "missing"
+        else:
+            (
+                valid_events,
+                malformed_lines,
+                shell_calls,
+                outcome_events,
+            ) = self._brain_parse_diagnostics(text)
+            brain_status = (
+                "present"
+                if valid_events
+                and not malformed_lines
+                and shell_calls == outcome_events
+                else "parse_error"
+            )
+        located = brain_status == "present"
+        if located and text is not None:
             transcript, commands, raw_tags = AgyAdapter.parse_brain_transcript(text)
             result.commands = commands
             result.raw_transcript = transcript
@@ -196,9 +218,35 @@ class AgyTrialRuntime:
         return AgyOutcome(
             brain_located=located,
             brain_candidate_count=len(new_dirs),
+            brain_status=brain_status,
+            brain_valid_event_count=valid_events,
+            brain_malformed_line_count=malformed_lines,
+            brain_shell_call_count=shell_calls,
+            brain_outcome_event_count=outcome_events,
             cwd_tags=cwd_tags,
             compliance=self._compliance(cwd_tags),
             scratch_escape=self._check_scratch_canary(ctx),
+        )
+
+    @staticmethod
+    def _mark_authentication_failure_invalid(result: AgentRunResult) -> None:
+        """Classify agy's interactive OAuth fallback as infrastructure failure.
+
+        A nonzero agent exit is ordinarily valid study behavior.  The pinned
+        CLI's exact sign-in fallback is different: it means no model was
+        invoked, so treating the resulting empty sandbox as an agent outcome
+        would contaminate every denominator.  Require both a nonzero process
+        exit and the paired authentication-required/timeout envelope to avoid
+        classifying a model response that merely discusses authentication.
+        Raw stdout/stderr remain preserved in the trial record.
+        """
+        process = result.process
+        evidence = "\n".join((process.stdout or "", process.stderr or ""))
+        if process.returncode in (None, 0) or _AUTH_FAILURE.search(evidence) is None:
+            return
+        reason = "agy authentication failed before model invocation"
+        result.harness_error = (
+            f"{result.harness_error}; {reason}" if result.harness_error else reason
         )
 
     # --- internals -------------------------------------------------------
@@ -206,16 +254,68 @@ class AgyTrialRuntime:
     def _read_brain_transcript(self, new_dirs: list[str]) -> str | None:
         """Read the transcript for this trial's conversation.
 
-        A clean trial creates exactly one new brain/<conv-id> dir. If more than
-        one appears (e.g. a stray concurrent agy process), the first with a
-        readable transcript is used and the candidate count is recorded in the
-        outcome for auditability. Returns None if none is readable."""
+        A clean trial creates exactly one new brain/<conv-id> dir. The caller
+        refuses ambiguous multi-directory provenance rather than selecting one
+        candidate. Returns None if the sole candidate is unreadable."""
         for conv in new_dirs:
             rel = f"{agy_mod.BRAIN_REL_ROOT}/{conv}/{agy_mod.BRAIN_TRANSCRIPT_TAIL}"
             text = self._env.home_read(rel)
             if text is not None:
                 return text
         return None
+
+    @staticmethod
+    def _brain_parse_diagnostics(text: str) -> tuple[int, int, int, int]:
+        """Return event, malformed, shell-call, and outcome-event counts.
+
+        A readable file is not automatically usable evidence. At least one
+        JSON object with a non-empty ``type``/``event_type`` is required.
+        Malformed lines may coexist with valid events and remain disclosed;
+        a wholly malformed, empty, or schema-less file fails closed.
+        """
+        valid_events = 0
+        malformed = 0
+        shell_calls = 0
+        outcome_events = 0
+        pending_shell_calls = 0
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                malformed += 1
+                continue
+            event_type = (
+                str(event.get("type", "") or event.get("event_type", "")).strip().upper()
+                if isinstance(event, dict)
+                else ""
+            )
+            if event_type not in _RECOGNIZED_BRAIN_EVENT_TYPES:
+                malformed += 1
+                continue
+            valid_events += 1
+            if event_type == "PLANNER_RESPONSE":
+                new_shell_calls = len(AgyAdapter._shell_tool_calls_from_event(event))
+                shell_calls += new_shell_calls
+                pending_shell_calls += new_shell_calls
+            elif event_type == "RUN_COMMAND":
+                outcome_events += 1
+                outcome = AgyAdapter._outcome_from_run_command(event)
+                outcome_is_complete = (
+                    outcome is not None
+                    and outcome.get("exit_code") is not None
+                    and outcome.get("output_observed") is True
+                )
+                if not outcome_is_complete or pending_shell_calls == 0:
+                    malformed += 1
+                else:
+                    pending_shell_calls -= 1
+        # The parser pairs outcomes FIFO. Any pending command at EOF has no
+        # observable result and makes trace-dependent evidence incomplete.
+        malformed += pending_shell_calls
+        return valid_events, malformed, shell_calls, outcome_events
 
     def _scratch_canary_content(self) -> str:
         """Deterministic sentinel content, distinct from the env canaries by its

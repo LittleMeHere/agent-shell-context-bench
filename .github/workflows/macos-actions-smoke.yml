@@ -1,29 +1,23 @@
-# macOS environment (E5) self-invocation smoke — docs/VERSIONS.md E5.
+# macOS environment (E5) zero-quota qualification — docs/VERSIONS.md E5.
 #
-# Proves the macos_actions EnvironmentAdapter works END-TO-END on the pinned
-# macos-26 runner: the harness self-invokes one CAPABILITY trial (C01) on the
-# E5 env, exercising the real sandbox / probe / exec / snapshot / canary /
-# success-check / immutable-log path locally on the runner, then uploads the
-# trial log as an artifact.
-#
-# SAFETY (matches the harness contract + CLAUDE.md):
-#   * CAPABILITY task only (C01). The seeded-error `tasks/trap/*` tasks are
-#     designed to trigger agent spirals and are NEVER run here.
-#   * No real agent CLI / API credentials are provisioned. A tiny local
-#     `claude` shim emits one harmless stream-json event so the harness drives
-#     the agent seam through the E5 environment without any external call and
-#     without mutating the sandbox (the emitted command is a no-op `echo`, so
-#     the canary sentinels stay intact). The trial logs as a real datum.
-#   * This is the macOS env's parallel to tests/test_pwsh7_conformance.py's
-#     live path: it runs where the env can actually run (the macos-26 runner).
+# This workflow installs the exact candidate runtimes, runs the real macOS
+# adapter conformance battery, performs the same no-model preflight used by
+# the other four environments, and proves all 36 V2 oracle completions.  It
+# does not provision credentials or invoke an agent model.  A separate,
+# explicitly authorized analysis-excluded smoke is still required for D-007.
 
-name: macOS env (E5) smoke
+name: macOS env (E5) qualification
 
 on:
   workflow_dispatch: {}
   pull_request:
     paths:
+      - "analysis/d013_oracle_qualification.py"
+      - "config/v2-runtime-matrix.candidate.json"
       - "harness/environments/macos_actions.py"
+      - "scripts/collection_preflight.py"
+      - "tasks/v2/**"
+      - "tests/test_d013_oracle_qualification.py"
       - "tests/test_macos_actions_conformance.py"
       - ".github/workflows/macos-actions-smoke.yml"
 
@@ -31,76 +25,86 @@ permissions:
   contents: read
 
 jobs:
-  macos-e5-smoke:
-    # Pinned per docs/VERSIONS.md E5 (advanced macos-14 -> macos-26 on
-    # 2026-06-12; macos-26 is the current macos-latest default).
+  macos-e5-qualification:
     runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DISABLE_TELEMETRY: "1"
+      DISABLE_ERROR_REPORTING: "1"
+      DISABLE_FEEDBACK_COMMAND: "1"
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      DISABLE_AUTOUPDATER: "1"
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up exact Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.11.9"
 
-      - name: Install dependencies
+      - name: Set up exact Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.12.0"
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Install exact Claude and Codex CLIs
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          npm install --global \
+            @anthropic-ai/claude-code@2.1.231 \
+            @openai/codex@0.147.0
 
-      - name: Conformance battery (structural + live on the runner)
-        # The live battery is gated on darwin and runs here on the macos-26
-        # runner; structural + registry checks run regardless.
+      - name: Install checksum-pinned agy CLI
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/google-antigravity/antigravity-cli/releases/download/1.1.13/agy_cli_mac_arm64.tar.gz \
+            --output "$RUNNER_TEMP/agy_cli_mac_arm64.tar.gz"
+          printf '%s  %s\n' \
+            f8c27b70708843eeb2c8f6efff0119a27041980e95cba6c49b86a0950ed19ba1 \
+            "$RUNNER_TEMP/agy_cli_mac_arm64.tar.gz" | shasum -a 256 --check
+          mkdir -p "$HOME/.local/bin" "$RUNNER_TEMP/agy-extract"
+          tar -xzf "$RUNNER_TEMP/agy_cli_mac_arm64.tar.gz" \
+            -C "$RUNNER_TEMP/agy-extract"
+          install -m 0755 "$RUNNER_TEMP/agy-extract/antigravity" \
+            "$HOME/.local/bin/agy"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Exact runtime versions
+        run: |
+          node --version
+          python --version
+          claude --version
+          codex --version
+          agy --version
+
+      - name: macOS adapter conformance
         run: python -m pytest tests/test_macos_actions_conformance.py -q
 
-      - name: Install no-op agent shim on PATH
-        # A minimal `claude` stand-in so the harness can self-invoke without
-        # any external API. It answers `--version` and, under `-p`, emits one
-        # stream-json assistant event whose only command is a harmless `echo`
-        # (no sandbox mutation -> canaries stay intact). This exercises the
-        # full E5 agent seam; it is NOT the real agent and collects no science.
+      - name: Exact zero-quota collection preflight
         run: |
-          SHIM_DIR="$RUNNER_TEMP/shim-bin"
-          mkdir -p "$SHIM_DIR"
-          cat > "$SHIM_DIR/claude" <<'SHIM'
-          #!/usr/bin/env bash
-          # --version probe used once per cell by the adapter.
-          for arg in "$@"; do
-            if [ "$arg" = "--version" ]; then
-              echo "0.0.0-ci-shim (not a real Claude Code CLI)"
-              exit 0
-            fi
-          done
-          # Headless run: emit one stream-json event the parser understands,
-          # then a terminal result event. The single tool_use is a no-op echo.
-          printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"shim-1","name":"Bash","input":{"command":"echo macos-e5-smoke"}}]}}'
-          printf '%s\n' '{"type":"result","result":"ci shim run complete"}'
-          exit 0
-          SHIM
-          chmod +x "$SHIM_DIR/claude"
-          echo "$SHIM_DIR" >> "$GITHUB_PATH"
-
-      - name: Harness self-invocation on a capability task (C01) on E5
-        # One trial of a CAPABILITY task on the macos_actions env. Drives the
-        # real E5 sandbox/probe/exec/snapshot/check/log path on the runner.
-        # NOT a trap task. The trial will register FAIL (the shim does no real
-        # work) — the artifact of interest is the trial log proving the cell
-        # wiring works on macOS, not a passing outcome.
-        run: |
-          python -m harness run \
-            --task C01 \
-            --agent claude_code \
-            --model claude-opus-4-8 \
+          cd "$RUNNER_TEMP"
+          python "$GITHUB_WORKSPACE/scripts/collection_preflight.py" \
             --env macos_actions \
-            --trials 1 \
-            --output "$RUNNER_TEMP/e5-trial-logs"
+            --matrix "$GITHUB_WORKSPACE/config/v2-runtime-matrix.candidate.json" \
+            --output "$RUNNER_TEMP/preflight-macos.json"
 
-      - name: Upload trial log artifact
+      - name: All 36 portable oracle completions
+        run: |
+          cd "$RUNNER_TEMP"
+          python "$GITHUB_WORKSPACE/analysis/d013_oracle_qualification.py" \
+            --env macos_actions \
+            --output "$RUNNER_TEMP/d013-oracles-macos.json"
+
+      - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: macos-e5-trial-logs
-          path: ${{ runner.temp }}/e5-trial-logs
+          name: macos-e5-zero-quota-qualification
+          path: |
+            ${{ runner.temp }}/preflight-macos.json
+            ${{ runner.temp }}/d013-oracles-macos.json
           if-no-files-found: error

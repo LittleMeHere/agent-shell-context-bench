@@ -1,0 +1,26 @@
+id: C06-I01
+family_id: C06
+instance_id: I01
+category: capability
+difficulty: candidate
+title: "Repair case-insensitive header lookup without changing the API"
+prompt: |
+  Fix the behavioral bug in `headers.py`: `get_header(headers, name)` must
+  match header names case-insensitively, return the original value, and return
+  None when absent. Preserve the function signature and do not modify
+  `contract.txt` or create files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: headers.py, content: "def get_header(headers, name):\n    return headers.get(name)\n"}
+    - {path: contract.txt, content: "get_header(headers, name) -> value | None\n"}
+success_checks:
+  - {type: python_parses, path: headers.py}
+  - {type: file_unchanged, path: contract.txt}
+  - {type: environment_command, argv: [python, -c, "import headers; h={'Content-Type':'json','X-ID':'7'}; assert headers.get_header(h,'content-type') == 'json'; assert headers.get_header(h,'x-id') == '7'; assert headers.get_header(h,'missing') is None"]}
+  - {type: environment_command, argv: [python, -c, "import headers; h={'ACCEPT':'text/plain','x-Custom':'v'}; assert headers.get_header(h,'Accept') == 'text/plain'; assert headers.get_header(h,'X-CUSTOM') == 'v'; assert headers.get_header({},'anything') is None"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

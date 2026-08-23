@@ -1,8 +1,8 @@
 """Unit tests for the agy-cell runtime + the HomeFilesystem seam.
 
-`harness/agy_runtime.py` is the runner-layer glue that resolves agy's three
-CONTRACT GAPs through the additive HomeFilesystem seam (model pin via
-settings.json, out-of-band brain-transcript location, scratch canary). It is
+`harness/agy_runtime.py` is the runner-layer glue that resolves agy's two
+remaining CONTRACT GAPs through the additive HomeFilesystem seam (out-of-band
+brain-transcript location and scratch canary). It is
 driven here entirely against an IN-MEMORY fake home — no agy install, no real
 environment, no filesystem — so the orchestration is provable in isolation, the
 same discipline test_agy_parser.py uses for the schema parser.
@@ -11,10 +11,7 @@ What is proven:
   1. SEAM: LocalHomeFilesystem round-trips read/write/listdir/remove/home_path
      against a temp home (PSTAX_HOME_ROOT), and every registered environment
      implements HomeFilesystem (required because agy runs on all five).
-  2. MODEL PIN (GAP (2) / rule via settings.json): pin writes the model,
-     preserving other keys; restore returns the prior content, or removes the
-     file when it did not exist before; a failed write refuses the cell.
-  3. BRAIN LOCATION (GAP (1) / rules 2+4): after_trial diffs brain/, parses the
+  2. BRAIN LOCATION (GAP (1) / rules 2+4): after_trial diffs brain/, parses the
      new conversation's transcript, and REPLACES the GAP-(1) empty command list
      with agy's real commands; absence degrades honestly (commands left as-is).
   4. Cwd TAGGING (rule 2): per-command tags + the descriptive compliance summary
@@ -97,7 +94,21 @@ class _FakeHomeEnv(HomeFilesystem):
 
 
 def _planner(*calls: dict) -> str:
-    return json.dumps({"type": "PLANNER_RESPONSE", "status": "DONE", "tool_calls": list(calls)})
+    planner = json.dumps(
+        {"type": "PLANNER_RESPONSE", "status": "DONE", "tool_calls": list(calls)}
+    )
+    outcomes = [
+        json.dumps(
+            {
+                "type": "RUN_COMMAND",
+                "status": "DONE",
+                "content": "The command completed successfully.\nOutput:\n",
+            }
+        )
+        for call in calls
+        if str(call.get("name", "")).lower() in AgyAdapter._SHELL_TOOLS
+    ]
+    return "\n".join([planner, *outcomes])
 
 
 def _shell_call(command: str, cwd: str) -> dict:
@@ -105,19 +116,28 @@ def _shell_call(command: str, cwd: str) -> dict:
 
 
 def _adapter() -> AgyAdapter:
-    return AgyAdapter("Gemini 3.1 Pro (High)")
+    return AgyAdapter("gemini-3.1-pro-high")
 
 
-def _result(commands=None, transcript: str = "prose stdout") -> AgentRunResult:
+def _result(
+    commands=None,
+    transcript: str = "prose stdout",
+    *,
+    returncode: int | None = 0,
+    stderr: str = "",
+) -> AgentRunResult:
     return AgentRunResult(
         agent_id="agy",
-        model_id="Gemini 3.1 Pro (High)",
+        model_id="gemini-3.1-pro-high",
         prompt="do the task",
         raw_transcript=transcript,
         commands=list(commands) if commands else [],
         process=ProcessResult(
             argv=("agy", "--print", "..."),
-            returncode=0, stdout=transcript, stderr="", duration_seconds=1.0,
+            returncode=returncode,
+            stdout=transcript,
+            stderr=stderr,
+            duration_seconds=1.0,
         ),
         wall_time_seconds=1.0,
         completed=True,
@@ -160,10 +180,9 @@ def test_local_home_filesystem_roundtrip(tmp_path, monkeypatch):
 
 
 def test_local_home_roundtrip_is_byte_faithful_for_lf_content(tmp_path, monkeypatch):
-    """Regression from the 2026-07-03 agy re-smoke: agy writes settings.json
-    with LF-only newlines; default text mode translated LF->CRLF on Windows,
-    so pin_model/restore_model mutated the user's real file on every restore.
-    The read->write round trip must reproduce the on-disk bytes exactly."""
+    """Historical settings-pin regression: default text mode translated
+    LF->CRLF on Windows. The generic home seam remains byte-faithful even though
+    current agy model pinning no longer mutates this file."""
     monkeypatch.setenv("PSTAX_HOME_ROOT", str(tmp_path))
     fs = LocalHomeFilesystem()
     rel = ".gemini/antigravity-cli/settings.json"
@@ -218,51 +237,7 @@ def test_all_registered_environments_implement_home_filesystem():
 
 
 # --------------------------------------------------------------------------- #
-# 2. MODEL PIN (CONTRACT GAP (2)) — settings.json write + restore
-# --------------------------------------------------------------------------- #
-
-
-def test_pin_model_writes_model_and_restore_removes_when_absent():
-    env = _FakeHomeEnv()
-    rt = AgyTrialRuntime(_adapter(), env)
-    rt.pin_model()
-    written = json.loads(env.files[_norm(agy_mod.SETTINGS_REL_PATH)])
-    assert written["model"] == "Gemini 3.1 Pro (High)"
-    # settings.json did not exist before -> restore removes it entirely.
-    rt.restore_model()
-    assert _norm(agy_mod.SETTINGS_REL_PATH) not in env.files
-
-
-def test_pin_model_preserves_existing_keys_and_restore_reverts():
-    env = _FakeHomeEnv()
-    settings_rel = _norm(agy_mod.SETTINGS_REL_PATH)
-    original = json.dumps({"telemetry": False, "model": "OLD", "theme": "dark"})
-    env.files[settings_rel] = original
-
-    rt = AgyTrialRuntime(_adapter(), env)
-    rt.pin_model()
-    pinned = json.loads(env.files[settings_rel])
-    assert pinned["model"] == "Gemini 3.1 Pro (High)"
-    assert pinned["telemetry"] is False and pinned["theme"] == "dark"
-    # restore returns the BYTE-for-byte prior content.
-    rt.restore_model()
-    assert env.files[settings_rel] == original
-
-
-def test_pin_model_raises_when_write_fails():
-    """A cell that cannot pin the model would measure the wrong model; pin
-    refuses loudly rather than running a confounded cell."""
-    rt = AgyTrialRuntime(_adapter(), _FakeHomeEnv(writable=False))
-    with pytest.raises(EnvironmentError):
-        rt.pin_model()
-
-
-def test_restore_is_noop_when_never_pinned():
-    AgyTrialRuntime(_adapter(), _FakeHomeEnv()).restore_model()  # must not raise
-
-
-# --------------------------------------------------------------------------- #
-# 3+4. BRAIN LOCATION + Cwd TAGGING (GAP (1), rules 2/4)
+# 2+3. BRAIN LOCATION + Cwd TAGGING (GAP (1), rules 2/4)
 # --------------------------------------------------------------------------- #
 
 
@@ -310,9 +285,44 @@ def test_after_trial_missing_brain_degrades_honestly():
     outcome = rt.after_trial(ctx, result, _sandbox())
 
     assert outcome.brain_located is False
+    assert outcome.brain_status == "missing"
     assert outcome.brain_candidate_count == 0
     assert outcome.cwd_tags == [] and outcome.compliance["commands"] == 0
     assert result.commands == [] and result.raw_transcript == "only prose"
+
+
+def test_after_trial_marks_interactive_oauth_timeout_invalid():
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    result = _result(
+        transcript="",
+        returncode=1,
+        stderr=(
+            "Authentication required. Please visit the URL to log in:\n"
+            "Waiting for authentication (timeout 60s)...\n"
+            "Error: authentication failed or timed out\n"
+        ),
+    )
+
+    outcome = rt.after_trial(ctx, result, _sandbox())
+
+    assert outcome.brain_status == "missing"
+    assert result.invalid is True
+    assert result.harness_error == "agy authentication failed before model invocation"
+    assert "Authentication required" in result.process.stderr
+
+
+def test_after_trial_keeps_unrelated_nonzero_agent_exit_valid():
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    result = _result(transcript="ordinary agent failure", returncode=1)
+
+    rt.after_trial(ctx, result, _sandbox())
+
+    assert result.invalid is False
+    assert result.harness_error is None
 
 
 def test_after_trial_ignores_preexisting_brain_dirs():
@@ -331,8 +341,7 @@ def test_after_trial_ignores_preexisting_brain_dirs():
 
 
 def test_after_trial_records_multiple_candidates():
-    """If more than one new conversation appears, the count is recorded for
-    auditability and the first readable transcript is used."""
+    """Multiple new conversations have ambiguous provenance and fail closed."""
     env = _FakeHomeEnv()
     rt = AgyTrialRuntime(_adapter(), env)
     ctx = rt.before_trial()
@@ -341,9 +350,87 @@ def test_after_trial_records_multiple_candidates():
 
     result = _result()
     outcome = rt.after_trial(ctx, result, _sandbox())
-    assert outcome.brain_located is True
+    assert outcome.brain_located is False
+    assert outcome.brain_status == "ambiguous"
     assert outcome.brain_candidate_count == 2
-    assert [c.command for c in result.commands] == ["a"]
+    assert result.commands == []
+
+
+def test_agy_1_1_13_framing_events_are_valid_but_unknown_types_fail_closed():
+    framing = [
+        {"type": "USER_INPUT"},
+        {"type": "CONVERSATION_HISTORY"},
+        {"type": "EPHEMERAL_MESSAGE"},
+        {"type": "CHECKPOINT"},
+        {"type": "CODE_ACTION"},
+    ]
+    text = "\n".join([*(json.dumps(event) for event in framing), _planner(
+        _shell_call("exit 7", "/work/sbx_T01")
+    )])
+    valid, malformed, shell_calls, outcomes = (
+        AgyTrialRuntime._brain_parse_diagnostics(text)
+    )
+    assert (valid, malformed, shell_calls, outcomes) == (7, 0, 1, 1)
+
+    unknown = text + '\n{"type":"FUTURE_UNREVIEWED_EVENT"}'
+    assert AgyTrialRuntime._brain_parse_diagnostics(unknown)[1] == 1
+
+
+def test_agy_1_1_13_numeric_separate_stream_outcome_is_complete():
+    planner = json.dumps({
+        "type": "PLANNER_RESPONSE",
+        "status": "DONE",
+        "tool_calls": [_shell_call("printf answer", "/work/sbx_T01")],
+    })
+    text = "\n".join([
+        planner,
+        json.dumps({
+            "type": "RUN_COMMAND",
+            "status": "DONE",
+            "exit_code": 0,
+            "content": (
+                "Created At: 2026-08-14T00:00:00Z\n"
+                "Completed At: 2026-08-14T00:00:01Z\n\n"
+                "    The command exited with code 0.\n"
+                "    Stdout:\n    answer\n    Stderr:\n    \n"
+            ),
+        }),
+    ])
+    assert AgyTrialRuntime._brain_parse_diagnostics(text) == (2, 0, 1, 1)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "this is not jsonl",
+        "",
+        "{}",
+        '{"type":"UNKNOWN_EVENT"}',
+        '{"type":"PLANNER_RESPONSE","tool_calls":[]}\nnot-json',
+        '{"type":"RUN_COMMAND","status":"DONE"}',
+        '{"type":"PLANNER_RESPONSE","tool_calls":[{"name":"RUN_COMMAND","args":{"CommandLine":"echo x","Cwd":"/work"}}]}',
+        '{"type":"RUN_COMMAND","status":"DONE","content":"The command completed successfully.\\nOutput:\\nx"}\n{"type":"PLANNER_RESPONSE","tool_calls":[{"name":"RUN_COMMAND","args":{"CommandLine":"echo late","Cwd":"/work"}}]}',
+        '{"type":"PLANNER_RESPONSE","tool_calls":[{"name":"RUN_COMMAND","args":{"CommandLine":"echo x","Cwd":"/work"}}]}\n{"type":"RUN_COMMAND","status":"DONE"}',
+    ],
+)
+def test_after_trial_malformed_or_schemaless_brain_fails_closed(text: str):
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    _write_brain(env, "conv_bad", text)
+
+    result = _result(commands=[], transcript="only prose")
+    outcome = rt.after_trial(ctx, result, _sandbox())
+
+    assert outcome.brain_located is False
+    assert outcome.brain_status == "parse_error"
+    assert (
+        outcome.brain_valid_event_count == 0
+        or outcome.brain_malformed_line_count > 0
+        or outcome.brain_shell_call_count != outcome.brain_outcome_event_count
+    )
+    assert result.commands == []
+    assert result.raw_transcript == "only prose"
 
 
 # --------------------------------------------------------------------------- #
@@ -410,12 +497,49 @@ def test_outcome_as_log_dict_shape():
     assert set(log) == {
         "brain_transcript_located",
         "brain_conversation_candidates",
+        "brain_parse_status",
+        "brain_valid_event_count",
+        "brain_malformed_line_count",
+        "brain_shell_call_count",
+        "brain_outcome_event_count",
         "cwd_compliance",
         "cwd_tags",
         "scratch_canary_escape",
     }
     assert log["brain_transcript_located"] is True
+    assert log["brain_parse_status"] == "present"
+    assert log["brain_valid_event_count"] == 2
+    assert log["brain_shell_call_count"] == 1
+    assert log["brain_outcome_event_count"] == 1
     assert log["cwd_compliance"]["commands"] == 1
+
+
+def test_outcome_log_includes_accepted_d011_evidence_when_supplied():
+    from harness.outcomes import construct_agy_outcome_evidence
+
+    env = _FakeHomeEnv()
+    rt = AgyTrialRuntime(_adapter(), env)
+    ctx = rt.before_trial()
+    _write_brain(env, "c", _planner(_shell_call("touch x", "/work/sbx_T01")))
+    outcome = rt.after_trial(ctx, _result(), _sandbox())
+    evidence = construct_agy_outcome_evidence(
+        checks_passed=True,
+        completed=True,
+        timed_out=False,
+        brain_status="present",
+        cwd_tags=["cwd_in_sandbox"],
+    )
+    log = outcome.as_log_dict(evidence)
+    assert log["v2_outcome_evidence"] == {
+        "rule_version": "v2-d011-1.0.0",
+        "brain_status": "present",
+        "transcript_analysis_eligible": True,
+        "cwd_status": "all_in_sandbox",
+        "shell_command_count": 1,
+        "sandbox_command_count": 1,
+        "h1_success": True,
+        "h1_decision_reason": "checks_passed",
+    }
 
 
 def test_runtime_refuses_non_home_filesystem_environment():

@@ -8,6 +8,9 @@ exist, distinguished by what they read:
     file_exists, directory_exists, file_is_empty, no_extra_files,
     no_files_matching.
 
+  * Baseline-relative — compare the post-run snapshot with the pre-agent
+    snapshot supplied by the runner: file_unchanged.
+
   * Sandbox-content — read file bytes from the host filesystem. They need
     the sandbox host root, supplied via `evaluate_checks(...,
     sandbox_host_root=...)`. If it is not provided they fail closed:
@@ -19,6 +22,9 @@ exist, distinguished by what they read:
     via `evaluate_checks(..., agent_commands=...)`. If it is not provided
     they fail closed: agent_any_command_stdout_equals,
     agent_all_command_stderrs_empty.
+
+  * Environment-oracle — execute a fixed argv (never a shell string) in the
+    selected environment after the agent returns: environment_command.
 
 Adding a new check type = add one function + one `@check("name")` + (if
 the check needs context) one entry in `_CONTEXT_CHECKS` or
@@ -43,6 +49,7 @@ import ast
 import fnmatch
 import json
 import re
+import sys
 from datetime import datetime, timedelta
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -82,6 +89,133 @@ _AGENT_CHECKS: frozenset[str] = frozenset({
     "agent_any_command_stdout_equals",
     "agent_all_command_stderrs_empty",
 })
+_ENVIRONMENT_CHECKS: frozenset[str] = frozenset({"environment_command"})
+_BASELINE_CHECKS: frozenset[str] = frozenset({"file_unchanged"})
+_ENVIRONMENT_CHECK_ENV: Mapping[str, str] = {
+    "ALL_PROXY": "",
+    "HTTPS_PROXY": "",
+    "HTTP_PROXY": "",
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "all_proxy": "",
+    "https_proxy": "",
+    "http_proxy": "",
+    "no_proxy": "127.0.0.1,localhost,::1",
+}
+_PYTHON_COMPAT_DIR = Path(__file__).resolve().parent / "python_compat"
+
+
+def _environment_check_env() -> Mapping[str, str]:
+    """Return the isolated oracle environment, plus platform compatibility.
+
+    GitHub's macOS 15+ runners can stall in ``socket.getfqdn()`` between a
+    Python HTTP server's bind and listen calls.  The injected ``sitecustomize``
+    is deliberately limited to Darwin ``service.py --once`` processes and
+    loopback names, matching the runner-images maintainers' documented
+    workaround without changing frozen task bytes.
+    """
+    env = dict(_ENVIRONMENT_CHECK_ENV)
+    if sys.platform == "darwin":
+        env["PYTHONPATH"] = str(_PYTHON_COMPAT_DIR)
+    return env
+
+
+def check(name: str) -> Callable[[CheckFn], CheckFn]:
+    def register(fn: CheckFn) -> CheckFn:
+        _REGISTRY[name] = fn
+        return fn
+
+    return register
+
+
+def requires_agent_trace(specs: Sequence[Mapping[str, object]]) -> bool:
+    """Whether any registered H1 check depends on recovered command traces."""
+    return any(str(spec.get("type", "")) in _AGENT_CHECKS for spec in specs)
+
+
+def registered_check_types() -> frozenset[str]:
+    """Names of the executable H1 checks registered in this build.
+
+    Qualification linting consumes this live registry rather than maintaining
+    a second allowlist that could itself drift from collection behavior.
+    """
+    return frozenset(_REGISTRY)
+
+
+@check("environment_command")
+def _environment_command(
+    snap: FilesystemSnapshot, spec: Mapping[str, object]
+) -> CheckResult:
+    """Run a frozen argv-based oracle inside the measured environment."""
+    del snap
+    executor = spec.get("_environment_exec")
+    cwd = spec.get("_environment_cwd")
+    if not callable(executor) or not isinstance(cwd, str) or not cwd:
+        return CheckResult(
+            "environment_command",
+            False,
+            "environment execution context unavailable",
+        )
+    allowed = {
+        "type", "argv", "returncode", "stdout", "stderr_empty",
+        "timeout_seconds", "_environment_exec", "_environment_cwd",
+    }
+    if set(spec) - allowed:
+        return CheckResult(
+            "environment_command", False, "environment_command has unknown fields"
+        )
+    argv = spec.get("argv")
+    if not isinstance(argv, list) or not argv or any(
+        not isinstance(item, str) or not item for item in argv
+    ):
+        return CheckResult(
+            "environment_command", False, "argv must be a non-empty string list"
+        )
+    expected_rc = spec.get("returncode", 0)
+    timeout = spec.get("timeout_seconds", 30)
+    if (
+        isinstance(expected_rc, bool)
+        or not isinstance(expected_rc, int)
+        or isinstance(timeout, bool)
+        or not isinstance(timeout, (int, float))
+        or not 0 < float(timeout) <= 30
+    ):
+        return CheckResult(
+            "environment_command", False, "invalid returncode or timeout"
+        )
+    result = executor(
+        argv,
+        cwd=cwd,
+        timeout=float(timeout),
+        env=_environment_check_env(),
+    )
+    stdout = _normalise_lineendings(result.stdout or "")
+    stderr = _normalise_lineendings(result.stderr or "")
+    passed = not result.timed_out and result.returncode == expected_rc
+    details = [
+        f"rc={result.returncode!r} expected={expected_rc}",
+        f"timed_out={result.timed_out}",
+    ]
+    if "stdout" in spec:
+        if not isinstance(spec["stdout"], str):
+            return CheckResult(
+                "environment_command", False, "stdout expectation must be a string"
+            )
+        expected_stdout = _normalise_lineendings(spec["stdout"])
+        passed = passed and stdout == expected_stdout
+        details.append(f"stdout_exact={stdout == expected_stdout}")
+    if spec.get("stderr_empty", False) is not False:
+        if spec.get("stderr_empty") is not True:
+            return CheckResult(
+                "environment_command", False, "stderr_empty must be true or omitted"
+            )
+        passed = passed and not stderr.strip()
+        details.append(f"stderr_empty={not bool(stderr.strip())}")
+    return CheckResult(
+        "environment_command",
+        passed,
+        "; ".join(details),
+        evidence=f"stdout={stdout[:500]!r}; stderr={stderr[:500]!r}",
+    )
 
 
 def _norm(path: object) -> str:
@@ -99,14 +233,6 @@ def _is_ignored(rel_path: str) -> bool:
 
 def _non_ignored_files(snap: FilesystemSnapshot) -> set[str]:
     return {p for p in snap.files if not _is_ignored(p)}
-
-
-def check(name: str) -> Callable[[CheckFn], CheckFn]:
-    def register(fn: CheckFn) -> CheckFn:
-        _REGISTRY[name] = fn
-        return fn
-
-    return register
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +302,47 @@ def _file_is_empty(
             else f"file {target!r} is {fp.size} bytes, expected 0"
         ),
         evidence=f"size={fp.size}",
+    )
+
+
+@check("file_unchanged")
+def _file_unchanged(
+    snap: FilesystemSnapshot, spec: Mapping[str, object]
+) -> CheckResult:
+    """Require one file's post-run fingerprint to equal its baseline."""
+    target = _norm(spec["path"])
+    baseline = spec.get("_snapshot_before")
+    if not isinstance(baseline, FilesystemSnapshot):
+        return CheckResult(
+            check_type="file_unchanged",
+            passed=False,
+            detail="file_unchanged requires the pre-agent filesystem snapshot",
+        )
+    before = baseline.files.get(target)
+    after = snap.files.get(target)
+    if before is None or after is None:
+        missing = "baseline" if before is None else "post-run snapshot"
+        return CheckResult(
+            check_type="file_unchanged",
+            passed=False,
+            detail=f"file {target!r} missing from {missing}",
+        )
+    # Content identity is the construct. Requiring an unchanged mtime would
+    # make a semantically harmless rewrite fail differently across filesystems.
+    ok = before.size == after.size and before.sha256 == after.sha256
+    return CheckResult(
+        check_type="file_unchanged",
+        passed=ok,
+        detail=(
+            f"file {target!r} is unchanged"
+            if ok
+            else f"file {target!r} differs from its pre-agent baseline"
+        ),
+        evidence=(
+            ""
+            if ok
+            else f"before={before.sha256}:{before.size}; after={after.sha256}:{after.size}"
+        ),
     )
 
 
@@ -960,6 +1127,7 @@ def _expected_files_from(specs: Sequence[Mapping[str, object]]) -> set[str]:
     asserting_types = {
         "file_exists",
         "file_is_empty",
+        "file_unchanged",
         "python_parses",
         "file_contains_substring_count",
         "file_content_equals",
@@ -978,6 +1146,10 @@ def evaluate_checks(
     sandbox_host_root: Path | str | None = None,
     agent_commands: Sequence[Any] | None = None,
     trial_started_at: object | None = None,
+    environment_exec: Callable[..., Any] | None = None,
+    environment_cwd: str | None = None,
+    snapshot_before: FilesystemSnapshot | None = None,
+    stop_on_failure: bool = False,
 ) -> tuple[bool, list[CheckResult]]:
     """Run every check. Returns (overall_success, per-check results).
 
@@ -991,6 +1163,10 @@ def evaluate_checks(
     agent-trace check specs (see _AGENT_CHECKS). Snapshot-only checks
     ignore both. `trial_started_at` is forwarded to context checks that need
     dynamic, trial-start-relative expectations such as dated filenames.
+    `snapshot_before` is forwarded to baseline-relative checks.
+    `stop_on_failure` is reserved for qualification probes that only need to
+    establish that an untouched fixture fails. Normal trial evaluation leaves
+    it false and records every check result.
     """
     expected = _expected_files_from(specs)
     results: list[CheckResult] = []
@@ -1005,6 +1181,8 @@ def evaluate_checks(
                     detail=f"unknown check type {ctype!r} — fix the task YAML",
                 )
             )
+            if stop_on_failure:
+                break
             continue
         if ctype == "no_extra_files":
             spec = {**spec, "_expected_files": tuple(expected)}
@@ -1016,6 +1194,16 @@ def evaluate_checks(
             }
         elif ctype in _AGENT_CHECKS:
             spec = {**spec, "_agent_commands": agent_commands}
+        elif ctype in _ENVIRONMENT_CHECKS:
+            spec = {
+                **spec,
+                "_environment_exec": environment_exec,
+                "_environment_cwd": environment_cwd,
+            }
+        elif ctype in _BASELINE_CHECKS:
+            spec = {**spec, "_snapshot_before": snapshot_before}
         results.append(fn(snap, spec))
+        if stop_on_failure and not results[-1].passed:
+            break
     overall = all(r.passed for r in results)
     return overall, results

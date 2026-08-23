@@ -208,3 +208,97 @@ def test_status_tables_have_no_stale_pin_at_start_when_nothing_planned():
                 f"adapters (empty _PLANNED sets) -- stale status/registry "
                 f"drift: {row.strip()}"
             )
+
+
+# --- 6. Active V2 readiness docs agree with executable candidate artifacts ---
+
+V2_RUNTIME_DOCS = (
+    "docs/V2_RUNTIME_PINNING.md",
+    "docs/PRE_DATA_REMEDIATION.md",
+)
+V2_BANK_DOCS = (
+    "docs/V2_RUNTIME_PINNING.md",
+    "docs/TASK_FAMILY_QUALIFICATION.md",
+    "docs/D013_ACCEPTED_FAMILY_SLATE.md",
+    "docs/PRE_DATA_REMEDIATION.md",
+)
+V2_SHAKEDOWN_DOCS = (
+    "docs/V2_RUNTIME_PINNING.md",
+    "docs/PRECOLLECTION_SHAKEDOWN.md",
+    "docs/PRE_DATA_REMEDIATION.md",
+)
+CURRENT_SHAKEDOWN_DIGEST = (
+    "ee6f15cf6b677d24bb2612b4202468ffb2ae41086d68e6f2c8389b895020e023"
+)
+
+
+def test_active_v2_runtime_digest_and_versions_match_candidate_matrix():
+    from scripts.configuration_matrix import load_matrix
+
+    matrix = load_matrix(REPO / "config" / "v2-runtime-matrix.candidate.json")
+    assert matrix.status == "candidate"
+    for rel in V2_RUNTIME_DOCS:
+        text = read(rel)
+        assert matrix.digest in text, (
+            f"{rel} must name the current executable V2 matrix digest "
+            f"{matrix.digest}"
+        )
+        for configuration in matrix.configurations:
+            assert configuration.expected_cli_version in text, (
+                f"{rel} omits current CLI version "
+                f"{configuration.expected_cli_version} for "
+                f"{configuration.config_id}"
+            )
+        for version in (
+            matrix.node_version,
+            matrix.pwsh_version,
+        ):
+            assert version in text, f"{rel} omits current runtime version {version}"
+
+
+def test_active_v2_task_bank_digest_matches_current_task_bytes():
+    from analysis.d013_task_bank import validate_task_bank
+
+    evidence = validate_task_bank(
+        slate_path=REPO / "config" / "v2-family-slate.accepted.json",
+        tasks_root=REPO / "tasks" / "v2",
+    )
+    assert evidence.task_count == 36
+    for rel in V2_BANK_DOCS:
+        assert evidence.bank_digest in read(rel), (
+            f"{rel} must name current V2 task-bank digest "
+            f"{evidence.bank_digest}"
+        )
+
+
+def test_all_registered_tasks_have_one_executable_predicate_authority():
+    from analysis.task_predicate_authority import validate_predicate_authority
+
+    evidence = validate_predicate_authority(
+        tasks_root=REPO / "tasks",
+        overlay_path=REPO / "config" / "v2-legacy-predicate-authority.json",
+    )
+    assert evidence.task_count == 50
+    assert evidence.inline_canonical_tasks == 36
+    assert evidence.legacy_overlay_tasks == 14
+    assert evidence.authority_digest in read("docs/R021_TASK_PREDICATE_REVIEW.md")
+
+
+def test_active_v2_shakedown_status_is_consistent():
+    for rel in V2_SHAKEDOWN_DOCS:
+        text = read(rel)
+        assert CURRENT_SHAKEDOWN_DIGEST in text, (
+            f"{rel} must name the current 82-call shakedown manifest"
+        )
+        assert "82/82" in text, f"{rel} must report the current receipt count"
+
+
+def test_historical_v1_readme_routes_current_work_to_v2_handoff():
+    handoff = "docs/PRE_DATA_REMEDIATION.md"
+    readme = read("README.md")
+    assert handoff in readme
+    assert "historical V1" in readme
+    assert (
+        "remaining **pre-data obligations** (real-CLI / brain re-smokes"
+        not in readme
+    )

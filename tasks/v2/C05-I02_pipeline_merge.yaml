@@ -1,0 +1,23 @@
+id: C05-I02
+family_id: C05
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Recursively merge pipeline configuration"
+prompt: |
+  Merge base.json and override.json into merged.json recursively: objects
+  recurse, arrays concatenate base then override, other conflicts use override,
+  and one-sided keys pass through. Preserve inputs and create no other files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: base.json, content: "{\"steps\":[\"lint\"],\"env\":{\"MODE\":\"dev\",\"flags\":[\"a\"]},\"retries\":1}\n"}
+    - {path: override.json, content: "{\"steps\":[\"test\",\"build\"],\"env\":{\"MODE\":\"ci\",\"flags\":[\"b\"]},\"timeout\":60}\n"}
+success_checks:
+  - {type: file_unchanged, path: base.json}
+  - {type: file_unchanged, path: override.json}
+  - {type: json_content_equals, path: merged.json, value: {steps: [lint, test, build], env: {MODE: ci, flags: [a, b]}, retries: 1, timeout: 60}}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300

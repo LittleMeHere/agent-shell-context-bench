@@ -1,0 +1,36 @@
+id: C09-I02
+family_id: C09
+instance_id: I02
+category: capability
+difficulty: candidate
+title: "Diagnose and repair failing configuration validation tests"
+prompt: |
+  Run the local unittest suite, diagnose the failures, and fix `config.py`.
+  `load_config` must apply the tested defaults and reject non-positive worker
+  counts. Do not modify tests, add dependencies, or create files.
+preconditions:
+  working_directory: "{sandbox_root}"
+  required_tools: [python]
+  initial_files:
+    - {path: config.py, content: "def load_config(raw):\n    return dict(raw)\n"}
+    - path: test_config.py
+      content: |
+        import unittest
+        from config import load_config
+        class Tests(unittest.TestCase):
+            def test_defaults(self):
+                self.assertEqual(load_config({"name":"x"}), {"name":"x","workers":2,"debug":False})
+            def test_rejects_workers(self):
+                with self.assertRaises(ValueError): load_config({"name":"x","workers":0})
+            def test_preserves_explicit(self):
+                self.assertEqual(load_config({"name":"x","workers":4,"debug":True})["workers"], 4)
+        if __name__ == "__main__": unittest.main()
+success_checks:
+  - {type: python_parses, path: config.py}
+  - {type: file_unchanged, path: test_config.py}
+  - {type: environment_command, argv: [python, -m, unittest, -q], returncode: 0}
+  - {type: environment_command, argv: [python, -c, "from config import load_config; assert load_config({'name':'y','workers':1}) == {'name':'y','workers':1,'debug':False}; assert load_config({'name':'z','debug':True}) == {'name':'z','workers':2,'debug':True};\ntry: load_config({'workers':-2})\nexcept ValueError: pass\nelse: raise AssertionError('negative workers accepted')"]}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 300
+

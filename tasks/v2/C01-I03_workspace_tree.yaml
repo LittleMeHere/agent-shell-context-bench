@@ -1,0 +1,18 @@
+id: C01-I03
+family_id: C01
+instance_id: I03
+category: capability
+difficulty: candidate
+title: "Create an exact nested workspace configuration"
+prompt: |
+  Create exactly `.workspace/settings/tool.json` with JSON
+  `{"mode":"safe","retries":3}`, `.workspace/docs/readme.txt` containing
+  `workspace ready`, and `outputs/.keep` as an empty file. Create nothing else.
+preconditions: {working_directory: "{sandbox_root}", required_tools: [], initial_files: []}
+success_checks:
+  - {type: json_content_equals, path: .workspace/settings/tool.json, value: {mode: safe, retries: 3}}
+  - {type: file_content_equals, path: .workspace/docs/readme.txt, content: "workspace ready\n"}
+  - {type: file_is_empty, path: outputs/.keep}
+  - {type: no_extra_files}
+binary_success_predicate: {authority: "ordered_success_checks_and_common_outcome_rule", aggregation: "all_success_checks_must_pass", timeout_policy: "timeout_or_incomplete_is_failure", manual_rubric_role: "excluded_from_h1"}
+timeout_seconds: 240

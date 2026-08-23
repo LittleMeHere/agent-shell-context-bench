@@ -1,7 +1,7 @@
 """Home-directory file seam — the out-of-band capability `agy` needs.
 
-agy's command stream and its model pin do not live in the sandbox. They live
-in agy's *home* (`~/.gemini/antigravity-cli/...`) on whichever machine the
+agy's command stream does not live in the sandbox. It lives in agy's *home*
+(`~/.gemini/antigravity-cli/...`) on whichever machine the
 environment runs on. The frozen `EnvironmentAdapter` contract reaches the
 sandbox (`snapshot`) and runs processes (`exec`) but has no general seam to
 read or write a file in the environment's home.
@@ -17,12 +17,12 @@ the local/remote split that already governs sandbox access:
   * remote envs (WSL2 / Linux-over-SSH): the *same transport* the sandbox
     uses (`wsl --` / `ssh`), implemented once in `RemoteUnixEnvironment`.
 
-The runner uses this seam only for agy cells (settings.json model pin,
-brain-transcript location, scratch canary — `harness/agy_runtime.py`). It is
+The runner uses this seam only for agy cells (brain-transcript location and
+scratch canary — `harness/agy_runtime.py`). It is
 invisible to every other agent and to the frozen measurement surface.
 
 Convention: all paths are home-relative POSIX strings, e.g.
-`".gemini/antigravity-cli/settings.json"`, matching the pinned constants in
+`".gemini/antigravity-cli/brain"`, matching the pinned constants in
 `harness/adapters/agy.py`. Every method is best-effort and must not raise on
 ordinary I/O failure (missing file, permission, unreachable remote): a read
 returns None, a write returns False, a remove is silent, a listing returns [].
@@ -44,7 +44,7 @@ class HomeFilesystem(ABC):
     not part of the frozen contract. An environment that an out-of-band agent
     (agy) must reach implements it; the runner checks `isinstance(env,
     HomeFilesystem)` before using it and fails the cell loudly if a required
-    env does not provide it (a silently-skipped model pin would confound the
+    env does not provide it (a silently-missing transcript would confound the
     cell). Knowing *which* agent is running stays out of the environment — the
     runner, not the env, decides to use this seam for agy.
     """
@@ -97,10 +97,8 @@ class LocalHomeFilesystem(HomeFilesystem):
         return str(self._home_root() / rel)
 
     def home_read(self, rel: str) -> str | None:
-        # newline='' both here and in home_write: the pin/restore cycle must be
-        # byte-faithful. Default text mode would translate the LF-only files
-        # agy writes into CRLF on Windows, silently mutating the user's real
-        # settings.json on every restore. The remote implementation is already
+        # newline='' both here and in home_write preserves exact home-file text
+        # when this generic seam is used. The remote implementation is already
         # byte-faithful via base64.
         path = self._home_root() / rel
         try:

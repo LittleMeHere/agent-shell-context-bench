@@ -41,6 +41,7 @@ Usage modes:
 
        python scripts/size_from_pilot.py \\
            --pilot-json data/pre-registration/pilot_blinded.json \\
+           --blinding-commitment data/pre-registration/pilot-blinding-commitment.json \\
            --compute-budget 50.00 --per-trial-cost 0.06 --n-cells 805 \\
            --output data/pre-registration/pilot_sizing_lock.json
 
@@ -71,18 +72,10 @@ Usage modes:
 
        python scripts/size_from_pilot.py --self-test
 
-Pilot-input JSON schema:
-
-    [
-      {"blinded_group": "E01",          # sealed env label, NOT name
-       "task_id":       "T01",          # public, clusters base rate;
-                                        # prefix "C" = capability,
-                                        # "T" = seeded-error (legacy)
-       "config_id":     "CFG01",        # public, clusters base rate
-       "valid":         true,
-       "failed":        false},         # only meaningful when valid=true
-      ...
-    ]
+Pilot input must be the integrity-checked object emitted by
+``scripts/pilot_blinding.py export``.  Ad-hoc JSON lists are rejected: the
+wrapper binds the 460 valid rows to the pilot plan, sealed mapping, canonical
+source-artifact manifest, and exporter digest before sizing reads outcomes.
 
 Output JSON keys (printed to stdout or --output):
     n_per_cell                  the locked integer (CONFIRMATORY-N)
@@ -111,6 +104,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+
+_BENCH_ROOT = Path(__file__).resolve().parents[1]
+if str(_BENCH_ROOT) not in sys.path:
+    sys.path.insert(0, str(_BENCH_ROOT))
+
+from harness.blinding import BlindingError, load_blinded_export
 
 # --------------------------------------------------------------------------
 # Pre-registered constants (locked in SAP.md "Pilot-sizing formula")
@@ -606,6 +605,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     p.add_argument("--pilot-json", type=Path, help="blinded pilot trials JSON")
+    p.add_argument(
+        "--blinding-commitment",
+        type=Path,
+        help="public pre-outcome commitment used to verify the signed export",
+    )
     p.add_argument("--task-class",
                    choices=TASK_CLASS_CHOICES,
                    default=DEFAULT_TASK_CLASS,
@@ -642,7 +646,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     if args.pilot_json is not None:
-        trials = json.loads(args.pilot_json.read_text(encoding="utf-8"))
+        if args.blinding_commitment is None:
+            p.error("--pilot-json requires --blinding-commitment")
+        try:
+            trials = load_blinded_export(
+                args.pilot_json,
+                args.blinding_commitment,
+            )
+        except BlindingError as exc:
+            p.error(str(exc))
         record = size_from_trials(
             trials, cap_per_cell=cap, task_class=args.task_class
         )

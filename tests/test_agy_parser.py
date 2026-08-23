@@ -1,16 +1,13 @@
 """Unit tests for AgyAdapter — the Antigravity CLI adapter.
 
 Unlike the Claude Code parser test (pinned to a real redacted stream-json
-capture), this suite is driven by synthetic transcripts shaped to agy's brain
-schema. This is deliberate:
+capture), this suite uses capture-shaped synthetic records so private paths,
+prompts, and identity data never enter the public repository:
 
   * agy's command stream is OUT-OF-BAND (CONTRACT GAP (1)) — it is not on the
-    ProcessResult the adapter is handed — and the real schema is characterised
-    only from a 1.0.2 smoke whose 1.0.7 re-capture (with a failing command) is
-    a pre-DATA obligation per docs/VERSIONS.md. Fabricating a "real capture"
-    before that re-smoke would be inventing data; synthetic fixtures shaped to
-    the documented schema (PLANNER_RESPONSE.tool_calls[] with name/CommandLine/
-    Cwd; prose RUN_COMMAND.content) test the parser honestly without it.
+    ProcessResult the adapter is handed. The 1.1.13 schema was re-characterised
+    with successful and deliberately failing commands on 2026-08-14; fixtures
+    below reproduce the observed field shapes without copying private content.
   * agy transcripts also embed real local paths + git identity and require
     their own redaction pass (VERSIONS.md 2026-06-10 CAVEAT (iv)); keeping the
     fixtures synthetic keeps this test file capture-free by construction.
@@ -25,8 +22,7 @@ What is proven here:
      input — a crashed run with three good events is still three events.
   4. CONTRACT GAP (1): parse_transcript(process) returns the prose transcript
      and ZERO commands (the command stream is unreachable from ProcessResult).
-  5. CONTRACT GAP (2): model_settings_patch merges {"model": model_id} without
-     clobbering other settings keys.
+  5. MODEL PIN: build_invocation records the exact model slug in `--model`.
   6. CONTRACT GAP (3): per-command Cwd is captured as a sidecar (no CommandRecord
      field) and classify_cwd_tags labels sandbox/scratch/elsewhere correctly.
   7. The adapter passes the shared assert_agent_adapter_conforms battery.
@@ -88,7 +84,7 @@ _SUCCESS_CONTENT = (
 
 
 def _adapter() -> AgyAdapter:
-    return AgyAdapter("Gemini 3.1 Pro (High)")
+    return AgyAdapter("gemini-3.1-pro-high")
 
 
 # --------------------------------------------------------------------------- #
@@ -196,6 +192,55 @@ def test_failure_sentence_maps_to_exit_code_1():
     ])
     _, commands, _ = AgyAdapter.parse_brain_transcript(text)
     assert commands[0].exit_code == 1
+
+
+def test_agy_1_1_13_numeric_exit_and_combined_output_shape():
+    """The current Gemini route emits numeric exit_code plus Output: prose."""
+    content = (
+        "Created At: 2026-08-14T00:00:00Z\n"
+        "Completed At: 2026-08-14T00:00:01Z\n\n"
+        "The command exited with code 7.\n"
+        "Output:\nAGY_STDOUT\r\nAGY_STDERR\r\n"
+    )
+    text = "\n".join([
+        _planner_event(_shell_call("synthetic failing command", cwd="/sandbox")),
+        json.dumps({
+            "type": "RUN_COMMAND",
+            "status": "DONE",
+            "exit_code": 7,
+            "content": content,
+        }),
+    ])
+    _, commands, _ = AgyAdapter.parse_brain_transcript(text)
+    assert commands[0].exit_code == 7
+    assert commands[0].stdout == "AGY_STDOUT\nAGY_STDERR"
+    assert commands[0].stderr == ""
+
+
+def test_agy_1_1_13_separate_stdout_stderr_shape():
+    """The Sonnet route emits numeric exit_code and separate stream blocks."""
+    content = (
+        "Created At: 2026-08-14T00:00:00Z\n"
+        "Completed At: 2026-08-14T00:00:01Z\n\n"
+        "    The command exited with code 0.\n"
+        "    Stdout:\n"
+        "    expected answer\n"
+        "    Stderr:\n"
+        "    warning text\n"
+    )
+    text = "\n".join([
+        _planner_event(_shell_call("synthetic successful command", cwd="/sandbox")),
+        json.dumps({
+            "type": "RUN_COMMAND",
+            "status": "DONE",
+            "exit_code": 0,
+            "content": content,
+        }),
+    ])
+    _, commands, _ = AgyAdapter.parse_brain_transcript(text)
+    assert commands[0].exit_code == 0
+    assert commands[0].stdout == "expected answer"
+    assert commands[0].stderr == "warning text"
 
 
 def test_error_status_maps_to_exit_code_1_even_without_failure_sentence():
@@ -339,30 +384,21 @@ def test_parse_transcript_never_raises_on_empty_process():
 
 
 # --------------------------------------------------------------------------- #
-# 5. CONTRACT GAP (2) — model pin is a settings.json patch, not argv
+# 5. MODEL PIN — exact route is recorded in argv
 # --------------------------------------------------------------------------- #
 
 
-def test_model_settings_patch_sets_model_field():
-    patch = _adapter().model_settings_patch()
-    assert patch == {"model": "Gemini 3.1 Pro (High)"}
-
-
-def test_model_settings_patch_preserves_existing_keys():
-    existing = {"telemetry": False, "model": "OLD", "theme": "dark"}
-    patch = _adapter().model_settings_patch(existing)
-    assert patch["model"] == "Gemini 3.1 Pro (High)"
-    assert patch["telemetry"] is False and patch["theme"] == "dark"
-    # Input not mutated (pure).
-    assert existing["model"] == "OLD"
-
-
-def test_build_invocation_has_no_model_flag():
-    """The model is NEVER an argv flag for agy (GAP (2)); it must not leak into
-    build_invocation. Guards against a future edit accidentally adding --model."""
+def test_build_invocation_pins_exact_model_flag():
     argv = _adapter().build_invocation("do the task", _sandbox())
-    assert "--model" not in argv
-    assert "Gemini 3.1 Pro (High)" not in " ".join(argv)
+    assert argv[:5] == [
+        "agy",
+        "--model",
+        "gemini-3.1-pro-high",
+        "--dangerously-skip-permissions",
+        "--print",
+    ]
+    assert argv.count("--model") == 1
+    assert argv.count("--dangerously-skip-permissions") == 1
 
 
 # --------------------------------------------------------------------------- #
