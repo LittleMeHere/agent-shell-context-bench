@@ -1,15 +1,16 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "status": "candidate",
   "decision": "D-010",
   "claim_scope": "exploratory_h2_h4",
   "primary_label_source": "frozen_coder_1",
   "adjudication_rewrites_primary": false,
-  "human_blinding": {
-    "environment_name": true,
-    "windows_linux_contrast": true,
-    "ai_labels": true,
-    "hypothesis_aggregate_results": true
+  "label_masking": {
+    "explicit_environment_name_removed": true,
+    "explicit_windows_linux_contrast_removed": true,
+    "ai_labels_removed": true,
+    "hypothesis_aggregate_results_removed": true,
+    "identity_blinding_claimed": false
   },
   "anchor": {
     "labels": 50,
@@ -18,8 +19,8 @@
   },
   "focal_audit": {
     "population": "valid_failed_trials",
-    "sampling": "blinded_context_stratified_srs",
-    "candidate_additional_labels": [100, 150],
+    "sampling": "label_masked_context_stratified_srs",
+    "additional_labels": 150,
     "maximum_routine_total_labels": 200,
     "automatic_third_stage": false
   },
@@ -38,11 +39,19 @@
       "forecast_significance_after_expansion",
       "investigator_selected_interesting_cases"
     ],
+    "thresholds": {
+      "minimum_primary_completeness_overall": 0.95,
+      "minimum_primary_completeness_per_registered_stratum": 0.90,
+      "minimum_design_weighted_kappa": 0.60,
+      "minimum_pooled_focal_failures": 10,
+      "minimum_focal_failures_per_context": 5
+    },
     "outcomes": [
       "stop_sparse",
       "stop_invalid",
       "run_bounded_audit"
     ]
   },
+  "sampling_seed": "sha256(policy_digest || analysis_manifest_digest)",
   "larger_audit_requires_new_explicit_decision": true
 }

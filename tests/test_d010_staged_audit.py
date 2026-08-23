@@ -9,6 +9,7 @@ from analysis.d010_staged_audit import (
     StagedAuditError,
     estimate_human_hours,
     load_staged_audit_policy,
+    staged_gate_decision,
 )
 
 
@@ -19,7 +20,7 @@ POLICY = REPO_ROOT / "config" / "v2-human-audit.candidate.json"
 def test_candidate_policy_is_bounded_and_forbids_result_selected_expansion():
     policy = load_staged_audit_policy(POLICY)
     assert policy.anchor_labels == 50
-    assert policy.focal_label_options == (100, 150)
+    assert policy.focal_label_options == (150,)
     assert policy.maximum_routine_total_labels == 200
     assert "named_environment_effect_direction" in policy.forbidden_gate_inputs
     assert "forecast_significance_after_expansion" in policy.forbidden_gate_inputs
@@ -67,7 +68,7 @@ def test_invalid_time_inputs_fail_closed():
         lambda raw: raw["gate"].__setitem__(
             "expansion_rule", "run_if_hypothesis_favorable"
         ),
-        lambda raw: raw["human_blinding"].__setitem__(
+        lambda raw: raw["label_masking"].__setitem__(
             "may_unblind_if_interesting", True
         ),
     ],
@@ -81,3 +82,52 @@ def test_outcome_selected_or_unknown_policy_fields_fail_closed(
     candidate.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(StagedAuditError):
         load_staged_audit_policy(candidate)
+
+
+def _gate(policy, **overrides):
+    values = {
+        "evidence_contract_qualified": True,
+        "primary_completeness_overall": 0.99,
+        "primary_completeness_by_stratum": {"s1": 0.95, "s2": 1.0},
+        "design_weighted_ai_kappa": 0.75,
+        "minimum_design_weighted_human_ai_kappa": 0.70,
+        "focal_failures_by_context": {
+            "windows_powershell": 8,
+            "linux_native": 8,
+        },
+    }
+    values.update(overrides)
+    return staged_gate_decision(policy, **values)
+
+
+def test_gate_precedence_and_sparse_boundaries():
+    policy = load_staged_audit_policy(POLICY)
+    assert _gate(policy) == "run_bounded_audit"
+    assert _gate(policy, evidence_contract_qualified=False) == "stop_invalid"
+    assert _gate(
+        policy,
+        evidence_contract_qualified=False,
+        focal_failures_by_context={"windows_powershell": 0, "linux_native": 0},
+    ) == "stop_invalid"
+    assert _gate(
+        policy,
+        focal_failures_by_context={"windows_powershell": 4, "linux_native": 6},
+    ) == "stop_sparse"
+    assert _gate(
+        policy,
+        focal_failures_by_context={"windows_powershell": 5, "linux_native": 5},
+    ) == "run_bounded_audit"
+
+
+def test_zero_de_candidates_does_not_stop_the_focal_audit():
+    policy = load_staged_audit_policy(POLICY)
+    assert "aggregate_de_candidate_prevalence_without_named_context_effect" in (
+        policy.allowed_gate_inputs
+    )
+    assert _gate(policy) == "run_bounded_audit"
+
+
+def test_gate_rejects_nonboolean_contract_status():
+    policy = load_staged_audit_policy(POLICY)
+    with pytest.raises(StagedAuditError, match="must be boolean"):
+        _gate(policy, evidence_contract_qualified=1)

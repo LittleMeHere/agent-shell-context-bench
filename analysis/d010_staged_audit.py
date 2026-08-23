@@ -12,10 +12,10 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 EXPECTED_GATE_OUTCOMES = {
     "stop_sparse",
     "stop_invalid",
@@ -35,26 +35,35 @@ EXPECTED_FORBIDDEN_INPUTS = {
     "forecast_significance_after_expansion",
     "investigator_selected_interesting_cases",
 }
-EXPECTED_BLINDING_FIELDS = {
-    "environment_name",
-    "windows_linux_contrast",
-    "ai_labels",
-    "hypothesis_aggregate_results",
+EXPECTED_MASKING_FIELDS = {
+    "explicit_environment_name_removed",
+    "explicit_windows_linux_contrast_removed",
+    "ai_labels_removed",
+    "hypothesis_aggregate_results_removed",
+    "identity_blinding_claimed",
 }
 EXPECTED_ANCHOR_FIELDS = {"labels", "always_run", "sampling"}
 EXPECTED_FOCAL_FIELDS = {
     "population",
     "sampling",
-    "candidate_additional_labels",
+    "additional_labels",
     "maximum_routine_total_labels",
     "automatic_third_stage",
 }
-EXPECTED_GATE_FIELDS = {"allowed_inputs", "forbidden_inputs", "outcomes"}
+EXPECTED_GATE_FIELDS = {"allowed_inputs", "forbidden_inputs", "thresholds", "outcomes"}
 EXPECTED_ANCHOR_SAMPLING = (
     "known_probability_stratified_by_programmatic_outcome_and_task_domain"
 )
 EXPECTED_FOCAL_POPULATION = "valid_failed_trials"
-EXPECTED_FOCAL_SAMPLING = "blinded_context_stratified_srs"
+EXPECTED_FOCAL_SAMPLING = "label_masked_context_stratified_srs"
+EXPECTED_THRESHOLDS = {
+    "minimum_primary_completeness_overall": 0.95,
+    "minimum_primary_completeness_per_registered_stratum": 0.90,
+    "minimum_design_weighted_kappa": 0.60,
+    "minimum_pooled_focal_failures": 10,
+    "minimum_focal_failures_per_context": 5,
+}
+EXPECTED_SEED_RULE = "sha256(policy_digest || analysis_manifest_digest)"
 
 
 class StagedAuditError(ValueError):
@@ -69,6 +78,7 @@ class StagedAuditPolicy:
     allowed_gate_inputs: frozenset[str]
     forbidden_gate_inputs: frozenset[str]
     gate_outcomes: frozenset[str]
+    thresholds: Mapping[str, float]
 
     @property
     def maximum_focal_labels(self) -> int:
@@ -95,10 +105,11 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
         "claim_scope",
         "primary_label_source",
         "adjudication_rewrites_primary",
-        "human_blinding",
+        "label_masking",
         "anchor",
         "focal_audit",
         "gate",
+        "sampling_seed",
         "larger_audit_requires_new_explicit_decision",
     }
     if set(raw) != expected:
@@ -114,13 +125,16 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
     ):
         raise StagedAuditError("staged audit policy violates accepted D-010 scope")
 
-    blinding = raw["human_blinding"]
-    if not isinstance(blinding, dict) or set(blinding) != EXPECTED_BLINDING_FIELDS:
-        raise StagedAuditError("human_blinding has unknown or missing fields")
+    masking = raw["label_masking"]
+    if not isinstance(masking, dict) or set(masking) != EXPECTED_MASKING_FIELDS:
+        raise StagedAuditError("label_masking has unknown or missing fields")
     if any(
-        value is not True for value in blinding.values()
-    ):
-        raise StagedAuditError("every declared human-blinding field must be true")
+        masking[field] is not True
+        for field in EXPECTED_MASKING_FIELDS - {"identity_blinding_claimed"}
+    ) or masking["identity_blinding_claimed"] is not False:
+        raise StagedAuditError("label-masking claims contradict the accepted boundary")
+    if raw["sampling_seed"] != EXPECTED_SEED_RULE:
+        raise StagedAuditError("sampling seed rule differs from the accepted design")
 
     anchor = raw["anchor"]
     focal = raw["focal_audit"]
@@ -144,15 +158,10 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
     if focal.get("sampling") != EXPECTED_FOCAL_SAMPLING:
         raise StagedAuditError("focal sampling differs from the accepted design")
 
-    options_raw = focal.get("candidate_additional_labels")
-    if not isinstance(options_raw, list) or not options_raw:
-        raise StagedAuditError("focal label options must be a non-empty list")
-    options = tuple(
-        _positive_int(value, field="focal_audit.candidate_additional_labels")
-        for value in options_raw
+    additional = _positive_int(
+        focal.get("additional_labels"), field="focal_audit.additional_labels"
     )
-    if tuple(sorted(set(options))) != options:
-        raise StagedAuditError("focal label options must be unique and increasing")
+    options = (additional,)
     maximum = _positive_int(
         focal.get("maximum_routine_total_labels"),
         field="focal_audit.maximum_routine_total_labels",
@@ -178,6 +187,9 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
         raise StagedAuditError("gate forbidden inputs differ from the accepted vocabulary")
     if outcomes != EXPECTED_GATE_OUTCOMES:
         raise StagedAuditError("gate outcomes differ from the accepted three branches")
+    thresholds = gate["thresholds"]
+    if not isinstance(thresholds, dict) or thresholds != EXPECTED_THRESHOLDS:
+        raise StagedAuditError("gate thresholds differ from the accepted candidate")
 
     return StagedAuditPolicy(
         anchor_labels=anchor_labels,
@@ -186,6 +198,7 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
         allowed_gate_inputs=allowed,
         forbidden_gate_inputs=forbidden,
         gate_outcomes=outcomes,
+        thresholds=dict(thresholds),
     )
 
 
@@ -211,3 +224,63 @@ def estimate_human_hours(
     ):
         raise StagedAuditError("overhead_fraction must be finite and non-negative")
     return labels * float(minutes_per_label) * (1 + float(overhead_fraction)) / 60
+
+
+def staged_gate_decision(
+    policy: StagedAuditPolicy,
+    *,
+    evidence_contract_qualified: bool,
+    primary_completeness_overall: float,
+    primary_completeness_by_stratum: Mapping[str, float],
+    design_weighted_ai_kappa: float,
+    minimum_design_weighted_human_ai_kappa: float,
+    focal_failures_by_context: Mapping[str, int],
+) -> str:
+    """Apply the frozen precedence without reading named effect estimates."""
+
+    if not isinstance(evidence_contract_qualified, bool):
+        raise StagedAuditError("evidence_contract_qualified must be boolean")
+    rates = (
+        primary_completeness_overall,
+        design_weighted_ai_kappa,
+        minimum_design_weighted_human_ai_kappa,
+        *primary_completeness_by_stratum.values(),
+    )
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or not 0.0 <= float(value) <= 1.0
+        for value in rates
+    ):
+        raise StagedAuditError("gate rates and kappas must lie in [0, 1]")
+    if not primary_completeness_by_stratum:
+        raise StagedAuditError("registered-stratum completeness is required")
+    if set(focal_failures_by_context) != {"windows_powershell", "linux_native"}:
+        raise StagedAuditError("focal failure counts require both registered contexts")
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in focal_failures_by_context.values()
+    ):
+        raise StagedAuditError("focal failure counts must be nonnegative integers")
+
+    threshold = policy.thresholds
+    if (
+        not evidence_contract_qualified
+        or primary_completeness_overall
+        < threshold["minimum_primary_completeness_overall"]
+        or min(primary_completeness_by_stratum.values())
+        < threshold["minimum_primary_completeness_per_registered_stratum"]
+        or design_weighted_ai_kappa < threshold["minimum_design_weighted_kappa"]
+        or minimum_design_weighted_human_ai_kappa
+        < threshold["minimum_design_weighted_kappa"]
+    ):
+        return "stop_invalid"
+
+    counts = tuple(focal_failures_by_context.values())
+    if (
+        sum(counts) < threshold["minimum_pooled_focal_failures"]
+        or min(counts) < threshold["minimum_focal_failures_per_context"]
+    ):
+        return "stop_sparse"
+    return "run_bounded_audit"
