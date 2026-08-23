@@ -1,8 +1,9 @@
 # V2 analysis-source, H1 reconstruction, and coder-input boundary
 
-**Status:** IMPLEMENTED CANDIDATE — H1 interval and paid coder-backend
-qualification/assignment implemented; acceptance, A2-A4, and external
-anchoring remain open
+**Status:** IMPLEMENTED CANDIDATE — H1 interval, paid coder-backend
+qualification/assignment, r005 evidence join, staged audit, confirmatory
+design lock, and A2-A4/reporting candidate implemented; final acceptance and
+external anchoring remain open
 **Date:** 2026-08-16
 **Code:** `analysis/v2_analysis_dataset.py`,
 `analysis/v2_analysis_manifest.py`, `scripts/v2_analysis_manifest.py`,
@@ -90,13 +91,12 @@ tool-use gates. Codex CLI 0.147.0 / GPT-5.6 Terra is frozen as population-wide
 Coder 1; Claude Code 2.1.231 / Sonnet 4.6 is frozen as probability-sampled
 Coder 2. The rationale is recorded in `docs/D006_CODER_ASSIGNMENT.md`.
 
-This boundary intentionally sends only the V1-compatible task prompt, binary
-outcome, and transcript, with no explicit environment id. It hashes the exact
-packet but does not claim identity blindness: paths, shell syntax, and vendor
-event wrappers can reveal agent/environment identity. It also does not resolve
-R-018: the V2 canary/filesystem evidence packet, capability-failure rule,
-code-E evidence class, wrapper normalization, and any deterministic post-coder
-join remain pre-data decisions.
+The r005 boundary sends a digest-bound evidence packet without explicit
+identity labels and does not claim identity blindness: evidential commands,
+paths, shell syntax, and wrappers can still reveal agent/environment identity.
+It preserves raw and final codes and applies the accepted deterministic D/E
+evidence join. Both pinned AI coders passed all 12 current r005 goldens. The
+human golden and exact probability-sample manifest remain open.
 
 ## Still open
 
@@ -111,7 +111,9 @@ counterexample, broad-model sensitivity disposition, and researcher freeze.
 Planned-epoch sensitivity reports every epoch
 separately, fails closed on incomplete crossings, and marks no-capability
 epochs not applicable rather than pooling unlike tasks. A2-A4 models, staged
-human-audit sampler/threshold/cap, coder join, FDR families,
-final tables/figures, and the V2 confirmatory plan remain open. The implemented
-boundaries do not decide those remaining statistical or measurement choices
-by implication.
+human-audit sampling, coder join, and generated reporting now exist as
+candidates. Independent review blocked A2-A4 acceptance on exact phase and
+design-lock binding, H1 coherence, A3 multiplicity, scarcity and epoch rules,
+reporting firewalls, audit/provenance sensitivities, and evidence-transition
+retention. The candidate is therefore not frozen and must not be used for
+confirmatory claims until those gaps are repaired and independently accepted.

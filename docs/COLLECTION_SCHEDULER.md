@@ -223,17 +223,38 @@ requires an independent custodian or an accepted isolated custody procedure,
 pre-outcome anchoring evidence, and independent manifest/signature
 reconstruction.
 
-## 7. Historical V1 sizing/confirmatory path — not authorized for V2
+## 7. V2 confirmatory planning and historical V1 boundary
+
+The `v2-confirmatory` phase now implements the accepted N=36 candidate as
+1,890 cells and 28,980 valid slots in four fixed 7,245-slot epochs. It requires
+a signed prospective design lock anchored to the pilot commitment and a
+separate signed post-pilot release; both fail closed on digest, plan, source,
+phase, roster, and output substitution. `scripts/v2_provider_cap.py` verifies
+the prospective exact 60/10/30 provider allocation and the approved calendar,
+delay, and human-audit caps. These commands are implementation surfaces only:
+do not create a production lock or execute the plan until the numeric cap is
+approved, G1-G4 pass, and the V2 tag is cut.
+
+The current V2 surfaces are:
+
+```powershell
+python "$benchRoot\scripts\v2_design_lock.py" create-design-lock --help
+python "$benchRoot\scripts\v2_design_lock.py" create-pilot-release --help
+python "$benchRoot\scripts\v2_design_lock.py" verify --help
+python "$benchRoot\scripts\v2_provider_cap.py" --help
+python -m harness schedule plan --phase v2-confirmatory --help
+```
+
+### Historical V1 path — not authorized for V2
 
 The remainder of this section documents the already-tested historical V1
 R-006 machinery. Do not run it for the accepted V2 design. D-003 now selects
 confirmatory N prospectively from frozen simulations and the resource cap;
 pilot outcomes validate the instrument and operations but do not resize N.
-The V2 confirmatory plan remains open. An exact outcome-blind blocked-order
-candidate and fail-closed finite-roster H1 reconstruction now exist in
-`analysis/d009_blocked_rounds.py` and `analysis/v2_analysis_dataset.py`, but
-the production order/epoch rule and D-005 interval are not accepted or bound
-to a confirmatory plan. No V2 confirmatory command is currently authorized.
+The V2 production release remains blocked, although its plan and lock
+machinery now exist. The older commands below are retained only to document
+the V1 R-006 path and are not substitutes for the V2 design-lock/release
+contract.
 
 Do not create or execute the confirmatory plan until the blinded pilot sizing
 lock fixes N. Pilot logs and confirmatory logs must use different roots. The

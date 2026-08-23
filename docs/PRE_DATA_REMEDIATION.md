@@ -325,8 +325,10 @@ schema rejection does not depend on the shared constant.
 ### R-008 — confirmatory analysis is only partially implemented
 
 **Status:** IN PROGRESS — plan-bound H1 interval/fallback independently accepted,
-N=24/N=36 recovery envelopes complete, and N=36 target accepted subject to
-the provider cap; broad sensitivity and A2-A4 pending
+N=24/N=36 recovery envelopes complete, N=36 confirmatory planning/design-lock
+machinery implemented, and the target accepted subject to the provider cap;
+A2-A4/reporting is implemented as a candidate but failed independent design
+acceptance and is not frozen
 **Severity:** confirmatory-data blocker; research integrity
 
 `analysis/v2_analysis_manifest.py` now freezes and verifies the exact trial-
@@ -367,9 +369,10 @@ FDR, and generated reporting remain absent; see
 
 ### R-009 — IRR execution path is incomplete and selects the wrong universe
 
-**Status:** IN PROGRESS — manifest-bound selection/provenance and two pinned
-subscription-CLI backends implemented, paid-qualified, and assigned; staged
-audit pending
+**Status:** IN PROGRESS — manifest-bound selection/provenance, two pinned
+subscription-CLI backends, deterministic evidence join, and the exact staged
+audit are implemented. Both AI coders passed the current 12-case r005 golden
+suite; the human golden and exact probability-sample manifest remain pending
 **Severity:** H2/H4 blocker; implementation and budget
 
 `scripts/irr_code.py` now consumes only the complete digest-verified V2
@@ -657,9 +660,10 @@ when visible directories and trial fields have been made to match.
 
 ### R-017 — the primary H2/H4 label is undefined across multiple raters
 
-**Status:** IN PROGRESS — D-010 primary/no-rewrite rule, exact backend,
-50+150/cap-200 audit, D/E boundary, and masking claim accepted; production
-analysis join pending
+**Status:** IMPLEMENTED — D-010 primary/no-rewrite rule, exact backends,
+50+150/cap-200 audit, D/E boundary, masking claim, production evidence join,
+and fail-closed missing-label states are implemented; the human golden,
+probability-sample manifest, and synthetic end-to-end acceptance remain
 **Severity:** H2/H4 blocker; methodology
 
 The SAP names Coder 1 “primary” and requires two AI coders plus a human anchor,
@@ -681,9 +685,10 @@ tiebreaking is explicitly non-load-bearing.
 
 ### R-018 — the IRR coding contract cannot apply the registered evidence policy
 
-**Status:** IMPLEMENTED — candidate renderer/join and gates pass focused tests;
-boundary accepted; prompt/driver integration, golden qualification, and
-independent review pending
+**Status:** IMPLEMENTED — the r005 renderer/prompt/driver/join and gates pass
+focused tests; the exact boundary is accepted and both production AI coders
+passed all 12 current goldens. Human golden completion and final independent
+end-to-end review remain pending
 **Severity:** H2/H4 blocker; measurement validity
 
 `scripts/irr_code.py` gives the rater only the task prompt, binary outcome, and
@@ -892,8 +897,8 @@ is too narrow to support the intended decision.
 | W1 | V2 statistical amendment | IN PROGRESS — evidence drafts in `docs/V2_STATISTICAL_DECISION_MEMO.md` and `docs/D005_FINITE_ROSTER_IRR_MEMO.md`; trace in `docs/HYPOTHESIS_TRACEABILITY_MATRIX.md` | R-001 through R-004 and R-017 through R-020 resolved; new pre-data tag cut |
 | W2 | Pilot blinding and sizing provenance | IN PROGRESS — R-005 is code-complete and independently reviewed but still needs accepted real-run custody/anchor/reconstruction evidence; R-006's signed immutable sizing lock and sizing-lock-derived confirmatory plan passed independent counterexample review; R-016 plan binding is verified | R-005 and R-006 VERIFIED |
 | W3 | Collection scheduler and trial integrity | IN PROGRESS — R-016 plan/runtime/slot binding is verified across five host partitions; final V2 plan/runtime freeze and its outcome-blind partition dry run remain with R-013/D-009 | R-007 and R-013 through R-016 VERIFIED plus final-plan cross-host dry runs |
-| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, and planned-epoch sensitivity implemented; full D-005 recovery/acceptance and A2-A4 remain | R-008, R-014, R-019, and R-021 VERIFIED |
-| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes Codex/Terra as frozen Coder 1 with no adjudication rewrite and Claude/Sonnet as probability-sampled Coder 2; manifest-bound input selection, exact label provenance, immutable resume, and fail-closed missing-label states are implemented. Matched-N, probability-audit, exact finite-population, and joint resource/inference evidence show that the anchor is sparse, plug-in audit intervals fail, B=600-700 is the relevant N=24 review region, and claim scope determines whether H2 is moderately informative or broadly inconclusive. The 35-case human timing exercise is complete, but it exposed identity inferability and weak hard-case representation. The production evidence packet, staged sampler/threshold/cap, human workflow, and analysis join remain open. | R-009, R-017, and R-018 VERIFIED |
+| W4 | Outcome and confirmatory analysis implementation | IN PROGRESS — exact source manifest, fail-closed dataset reconstruction, D-011 cross-checks, finite-roster H1 point estimate, Clopper-Pearson-MOVER candidate, exact sparse fallback, planned-epoch sensitivity, N=36 planning/design locks, and an A2-A4/reporting candidate are implemented. Independent review blocked acceptance of the latter on inferential binding, A3 multiplicity, scarcity, reporting-firewall, evidence-transition, provenance, and epoch issues; it is not frozen. | R-008, R-014, R-019, and R-021 VERIFIED |
+| W5 | IRR and human-anchor pipeline | IN PROGRESS — D-010 fixes Codex/Terra as frozen Coder 1 with no adjudication rewrite and Claude/Sonnet as probability-sampled Coder 2. The r005 evidence packet/prompt, deterministic join, immutable resume, fail-closed missing states, exact 50+150/cap-200 staged audit, and both AI 12-case golden qualifications are implemented. The 35-case human timing exercise is complete and supports the stated 18.3-hour routine cap without a claim of identity blinding. The current 12-case human golden, exact probability-sample manifest, and synthetic end-to-end acceptance remain open. | R-009, R-017, and R-018 VERIFIED |
 | W6 | Five-environment collection qualification | IN PROGRESS — R-010 VERIFIED: exact zero-quota preflight and portable oracles pass in all five environments; a semantic 82/82 audit now requires process return code zero and rejects pre-model authentication failures; corrected macOS, WSL2, Linux-native, and Windows resource evidence passes; agent, coder, and human timing evidence is complete; the agy day-one freeze and final D-004/D-006 caps remain | R-010 plus all collection-start checks VERIFIED |
 | W7 | Documentation consistency | IN PROGRESS — historical V1/current V2 routing repaired and executable V2 digest/version/count checks added; frozen-methodology reconciliation remains | R-011 VERIFIED |
 | W8 | Publication and redaction | OPEN | R-012 VERIFIED |
@@ -918,10 +923,10 @@ agent to choose that parameter silently.
 | D-003 | hierarchical power model and nuisance-parameter re-estimation | ACCEPTED — prospective N=36 target subject to the provider cap; pilot validates instrument/nuisance envelope only | Confirm N=36 against final numeric provider/calendar caps |
 | D-004 | maximum N and per-vendor resource envelope | PARAMETER OPEN — 60/10/30 envelope accepted; authenticated agent, coder, and 35-case human timing/cost evidence complete | Final numeric provider/calendar caps |
 | D-005 | confirmatory model and inference library | ACCEPTED DIRECTION — Family B finite-roster primary; broad models are sensitivities | Synthetic recovery, coverage, exact interval/resampling/fallback |
-| D-006 | IRR invocation surface and budget | ACCEPTED — Codex/Terra primary, Claude/Sonnet secondary, exact 50+150/cap-200 probability audit, completed human timing, and no automatic 600–700-label obligation | Production evidence-contract integration and golden qualification |
+| D-006 | IRR invocation surface and budget | ACCEPTED — Codex/Terra primary, Claude/Sonnet secondary, exact 50+150/cap-200 probability audit, completed human timing, and no automatic 600–700-label obligation | Human r005 golden, exact probability-sample manifest, and end-to-end acceptance |
 | D-007 | E5 credential and execution architecture | QUALIFIED — authenticated ephemeral path, custody, cleanup, and execution-date controls pass; keep E5 closed through final G4 review | Day-one agy freeze and final collection release |
 | D-008 | exact public artifact and redaction policy | ACCEPTED — publication stays closed until tested builder/audit | Sample publication build and artifact inventory |
-| D-009 | collection randomization unit, runtime roster, and temporal-drift controls | ACCEPTED — blocked rounds, four fixed 180-slot epochs, global host order, fail-closed incomplete roster, role-preserving refresh, same-model S6 | D-005 epoch-sensitivity interval, host qualification, and final matrix digest |
+| D-009 | collection randomization unit, runtime roster, and temporal-drift controls | ACCEPTED — blocked rounds, four fixed 180-slot pilot epochs and four fixed 7,245-slot confirmatory epochs, deterministic global rank with per-host subsequences, fail-closed incomplete roster, role-preserving refresh, same-model S6 | D-005 epoch-sensitivity interval, host qualification, and final matrix digest |
 | D-010 | primary H2/H4 label, disagreement, and adjudication rule | ACCEPTED — frozen Codex/Terra Coder 1 primary; Claude/Sonnet Coder 2 and human are sampled audit only; exact gates, D/E boundary, and label masking accepted; no result-favoring replacement | Production join, goldens, interval, and error sensitivities |
 | D-011 | deterministic agy H1/A1d Cwd outcome construction | ACCEPTED — runner implemented and independently challenged | Analysis-builder wiring and dataset reconstruction |
 | D-012 | H4 exact-prompt-set versus generic phrasing claim | ACCEPTED — exact prompt-set exploratory contrast only | Coding/analysis and reporting-template enforcement |
@@ -2324,3 +2329,29 @@ approved methodological decision.
   fresh-human and transcript Q1-Q3 evidence, production IRR integration and
   golden qualification, A2-A4/reporting, final runtime/plan dry runs, and the
   day-one agy/inter-trial resource lock.
+
+### 2026-08-22 — final machine-only pre-registration pass
+
+- Implemented the exact N=36 confirmatory roster (1,890 cells and 28,980
+  valid slots), four 7,245-slot epochs, signed prospective design lock, signed
+  post-pilot release, and a validator for the proposed 60/10/30 provider cap.
+  The numeric 112-day, 1.0-second inter-trial-delay, and 18.33-hour human-cap
+  values remain researcher approvals, not silently frozen parameters.
+- Froze R-018 candidate r005 at prompt SHA-256
+  `f41cb03bb46fe186ae6e2d07837269548602857cfa0e930d8c38d186d28de0f9`
+  and golden-suite SHA-256
+  `40a1844d24464bc53f985fd21fa243725c68fbf5d8f9eaae18f189aa758f8c4f`.
+  Both pinned production AI coders passed 12/12. The human r005 golden and an
+  exact probability-sample manifest for Coder 2/human remain required.
+- Implemented A2-A4/reporting code with fixed-block bootstrap tests, but an
+  independent design review blocked acceptance. Required repairs include
+  exact phase/design-lock binding, H1 recomputation/coherence, the registered
+  A3 family-wise threshold, scarcity and epoch enforcement, complete
+  reporting firewalls, audit/provenance sensitivities, and raw-to-final
+  evidence-transition reporting. This candidate is not frozen.
+- The final focused changed-code slice passed 150 tests. A broader run passed
+  1,495 tests with five skips; its concurrent pre-r005 golden mismatches were
+  subsequently resolved by the focused run. Live WSL checks remain blocked by
+  host error `Wsl/EnumerateDistros/Service/E_ACCESSDENIED`; the service could
+  not be restarted without an elevated Windows session.
+- No pilot or confirmatory benchmark data were collected. G1-G4 remain open.
