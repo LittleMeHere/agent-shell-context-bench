@@ -30,7 +30,13 @@ from analysis.v2_analysis_dataset import (
     AnalysisTrial,
     accepted_family_domains,
 )
-from harness.scheduler import SchedulePlan, validate_plan, v2_pilot_epoch_for_position
+from harness.scheduler import (
+    V2_CONFIRMATORY_PHASE,
+    SchedulePlan,
+    validate_plan,
+    v2_confirmatory_epoch_for_position,
+    v2_pilot_epoch_for_position,
+)
 
 
 LeafKey = tuple[str, str, str, str]
@@ -123,7 +129,11 @@ def expected_h1_leaf_counts_by_v2_pilot_epoch(
             or cell.family_id not in families
         ):
             continue
-        epoch = v2_pilot_epoch_for_position(slot.position)
+        epoch = (
+            v2_confirmatory_epoch_for_position(slot.position)
+            if plan.phase == V2_CONFIRMATORY_PHASE
+            else v2_pilot_epoch_for_position(slot.position)
+        )
         if epoch not in counts:
             raise AnalysisDatasetError(
                 f"schedule slot maps to unregistered epoch {epoch}"

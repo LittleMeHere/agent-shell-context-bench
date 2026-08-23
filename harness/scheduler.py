@@ -58,9 +58,23 @@ from .sizing_lock import (
     sizing_lock_from_dict,
     validate_commitment_anchor,
 )
+from .v2_design_lock import (
+    V2_CAPABILITY_REPETITIONS_PER_INSTANCE,
+    V2_CONFIRMATORY_CELLS,
+    V2_CONFIRMATORY_EPOCH_BOUNDARIES,
+    V2_CONFIRMATORY_VALID_SLOTS,
+    V2_SEEDED_REPETITIONS,
+    V2DesignLock,
+    V2DesignLockError,
+    V2PilotRelease,
+    v2_design_lock_from_dict,
+    v2_pilot_release_from_dict,
+    validate_v2_commitment_anchor,
+)
 
 
-PLAN_SCHEMA_VERSION = "1.3.0"
+PLAN_SCHEMA_VERSION = "1.4.0"
+PREVIOUS_PLAN_SCHEMA_VERSION = "1.3.0"
 LEGACY_PLAN_SCHEMA_VERSION = "1.2.0"
 DEFAULT_ORDER_SEED = 20260525
 V2_PILOT_EPOCH_BOUNDARIES = (180, 360, 540, 720)
@@ -79,12 +93,14 @@ V2_PILOT_PHASE = "v2-pilot"
 CODEX_MINI_PILOT_PHASE = "codex-mini-pilot"
 AGY_MINI_PILOT_PHASE = "agy-mini-pilot"
 CONFIRMATORY_PHASE = "confirmatory"
+V2_CONFIRMATORY_PHASE = "v2-confirmatory"
 PHASES = (
     PILOT_PHASE,
     V2_PILOT_PHASE,
     CODEX_MINI_PILOT_PHASE,
     AGY_MINI_PILOT_PHASE,
     CONFIRMATORY_PHASE,
+    V2_CONFIRMATORY_PHASE,
 )
 
 EXPECTED_CAPABILITY_TASKS = tuple(f"C{i:02d}" for i in range(1, 6))
@@ -126,6 +142,20 @@ def v2_pilot_epoch_for_position(position: int) -> int:
     return next(
         index
         for index, boundary in enumerate(V2_PILOT_EPOCH_BOUNDARIES)
+        if position < boundary
+    )
+
+
+def v2_confirmatory_epoch_for_position(position: int) -> int:
+    """Map a registered fixed-N V2 confirmatory position to its epoch."""
+
+    if isinstance(position, bool) or not isinstance(position, int):
+        raise TypeError("execution position must be an integer")
+    if not 0 <= position < V2_CONFIRMATORY_EPOCH_BOUNDARIES[-1]:
+        raise ValueError("execution position lies outside the V2 confirmatory roster")
+    return next(
+        index
+        for index, boundary in enumerate(V2_CONFIRMATORY_EPOCH_BOUNDARIES)
         if position < boundary
     )
 
@@ -243,6 +273,8 @@ class SchedulePlan:
     execution_slots: tuple[ScheduledSlot, ...] | None
     cells: tuple[Cell, ...]
     digest: str
+    v2_design_lock: V2DesignLock | None = None
+    v2_pilot_release: V2PilotRelease | None = None
 
     def payload(self) -> dict[str, Any]:
         """Hash-bearing content; timestamps do not affect plan identity."""
@@ -267,6 +299,17 @@ class SchedulePlan:
             payload["execution_slots"] = (
                 [dataclasses.asdict(slot) for slot in self.execution_slots]
                 if self.execution_slots is not None
+                else None
+            )
+        if self.schema_version == PLAN_SCHEMA_VERSION:
+            payload["v2_design_lock"] = (
+                self.v2_design_lock.as_dict()
+                if self.v2_design_lock is not None
+                else None
+            )
+            payload["v2_pilot_release"] = (
+                self.v2_pilot_release.as_dict()
+                if self.v2_pilot_release is not None
                 else None
             )
         return payload
@@ -404,6 +447,17 @@ def v2_task_variants() -> tuple[TaskVariant, ...]:
     if len(variants) != 54:
         raise ScheduleError(f"V2 pilot requires 54 variants, found {len(variants)}")
     return tuple(variants)
+
+
+def v2_task_bank_digest() -> str:
+    """Digest the exact V2 task/instance bytes used by a prospective lock."""
+
+    return _digest_payload(
+        {
+            "schema_version": "v2-task-bank-roster-1.0.0",
+            "variants": [dataclasses.asdict(variant) for variant in v2_task_variants()],
+        }
+    )
 
 
 def _agy_configs(agy_cli_version: str | None) -> tuple[ModelConfig, ...]:
@@ -557,6 +611,74 @@ def build_blocked_execution_slots(
     return tuple(result)
 
 
+def build_v2_confirmatory_execution_slots(
+    cells: Sequence[Cell],
+    *,
+    seed: int,
+) -> tuple[ScheduledSlot, ...]:
+    """Build four equally balanced epochs for the fixed N=36 V2 roster."""
+
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ScheduleError("execution-slot seed must be an integer")
+    by_key: dict[tuple[str, str], list[Cell]] = {}
+    for cell in cells:
+        by_key.setdefault((cell.task_id, cell.phrasing), []).append(cell)
+    capability_keys = sorted(key for key in by_key if key[0].startswith("C"))
+    seeded_keys = sorted(key for key in by_key if key[0].startswith("T"))
+    if len(capability_keys) != 36 or len(seeded_keys) != 18:
+        raise ScheduleError("V2 confirmatory order requires 36 capability and 18 seeded variants")
+
+    # Every epoch contains every capability instance once, with the fifth
+    # repetition distributed nine instances per epoch. Every seeded variant
+    # contributes nine of its 36 repetitions per epoch.
+    extras = list(capability_keys)
+    random.Random(seed ^ 0x5632434F4E46).shuffle(extras)
+    result: list[ScheduledSlot] = []
+    block_index = 0
+    for epoch in range(4):
+        blocks: list[tuple[tuple[str, str], int]] = [
+            (key, epoch) for key in capability_keys
+        ]
+        blocks.extend((key, 4) for key in extras[epoch * 9 : (epoch + 1) * 9])
+        blocks.extend(
+            (key, round_index)
+            for key in seeded_keys
+            for round_index in range(epoch * 9, (epoch + 1) * 9)
+        )
+        if len(blocks) != 207:
+            raise ScheduleError("V2 confirmatory epoch must contain exactly 207 blocks")
+        epoch_seed = int.from_bytes(
+            hashlib.sha256(f"{seed}:v2-confirmatory:{epoch}".encode("utf-8")).digest()[:8],
+            "big",
+        )
+        random.Random(epoch_seed).shuffle(blocks)
+        for key, valid_slot_index in blocks:
+            eligible = sorted(
+                by_key[key], key=lambda cell: (cell.env_id, cell.config_id, cell.cell_id)
+            )
+            if len(eligible) != 35 or any(
+                cell.target_valid_trials <= valid_slot_index for cell in eligible
+            ):
+                raise ScheduleError("V2 confirmatory block is not a complete 7x5 crossing")
+            rotation = block_index % len(eligible)
+            eligible = eligible[rotation:] + eligible[:rotation]
+            for cell in eligible:
+                result.append(
+                    ScheduledSlot(
+                        position=len(result),
+                        round_index=valid_slot_index,
+                        block_index=block_index,
+                        valid_slot_index=valid_slot_index,
+                        cell_id=cell.cell_id,
+                    )
+                )
+            block_index += 1
+    if len(result) != V2_CONFIRMATORY_VALID_SLOTS:
+        raise ScheduleError("V2 confirmatory order has the wrong valid-slot count")
+    validate_execution_slots(cells, result)
+    return tuple(result)
+
+
 def validate_execution_slots(
     cells: Sequence[Cell],
     slots: Sequence[ScheduledSlot],
@@ -610,6 +732,8 @@ def build_plan(
     agy_trials_per_cell: int | None = None,
     agy_cli_version: str | None = None,
     runtime_binding: RuntimeBinding | None = None,
+    v2_design_lock: V2DesignLock | None = None,
+    v2_pilot_release: V2PilotRelease | None = None,
     order_seed: int = DEFAULT_ORDER_SEED,
 ) -> SchedulePlan:
     """Build and deterministically shuffle a complete pre-outcome plan."""
@@ -627,6 +751,8 @@ def build_plan(
                 agy_trials_per_cell,
                 agy_cli_version,
                 runtime_binding,
+                v2_design_lock,
+                v2_pilot_release,
             )
         ):
             raise ScheduleError("pilot is fixed at 2 valid trials in Claude cells")
@@ -641,6 +767,8 @@ def build_plan(
                 codex_trials_per_cell,
                 agy_trials_per_cell,
                 agy_cli_version,
+                v2_design_lock,
+                v2_pilot_release,
             )
         ):
             raise ScheduleError(
@@ -667,6 +795,8 @@ def build_plan(
                 agy_trials_per_cell,
                 agy_cli_version,
                 runtime_binding,
+                v2_design_lock,
+                v2_pilot_release,
             )
         ):
             raise ScheduleError("Codex mini-pilot is fixed at 2 valid trials")
@@ -681,12 +811,59 @@ def build_plan(
                 codex_trials_per_cell,
                 agy_trials_per_cell,
                 runtime_binding,
+                v2_design_lock,
+                v2_pilot_release,
             )
         ):
             raise ScheduleError("agy mini-pilot is fixed at 2 valid trials")
         configs = _agy_configs(agy_cli_version)
         targets = {config.config_id: 2 for config in configs}
+    elif phase == V2_CONFIRMATORY_PHASE:
+        if any(
+            value is not None
+            for value in (
+                sizing_lock,
+                codex_trials_per_cell,
+                agy_trials_per_cell,
+                agy_cli_version,
+            )
+        ):
+            raise ScheduleError(
+                "V2 confirmatory planning does not accept legacy sizing inputs"
+            )
+        if (
+            runtime_binding is None
+            or v2_design_lock is None
+            or v2_pilot_release is None
+            or sizing_anchor is None
+        ):
+            raise ScheduleError(
+                "V2 confirmatory planning requires a frozen runtime matrix, "
+                "signed prospective design lock, signed pilot release, and "
+                "the independently anchored pilot commitment"
+            )
+        try:
+            validate_runtime_binding(runtime_binding)
+            v2_design_lock.validate()
+            v2_pilot_release.validate(v2_design_lock)
+            validate_v2_commitment_anchor(v2_design_lock, sizing_anchor)
+        except V2DesignLockError as exc:
+            raise ScheduleError(f"invalid V2 design authorization: {exc}") from exc
+        if runtime_binding.matrix_digest != v2_design_lock.runtime_matrix_digest:
+            raise ScheduleError("V2 design lock uses a different runtime matrix")
+        if order_seed != v2_design_lock.order_seed:
+            raise ScheduleError("V2 order seed differs from the prospective design lock")
+        if v2_task_bank_digest() != v2_design_lock.task_bank_digest:
+            raise ScheduleError("V2 task bank differs from the prospective design lock")
+        configs = runtime_binding.configurations
+        variants = v2_task_variants()
+        targets = {
+            config.config_id: V2_CAPABILITY_REPETITIONS_PER_INSTANCE
+            for config in configs
+        }
     else:
+        if v2_design_lock is not None or v2_pilot_release is not None:
+            raise ScheduleError("legacy confirmatory phase does not accept V2 design artifacts")
         if runtime_binding is not None:
             raise ScheduleError(
                 "legacy confirmatory phase does not accept a V2 runtime matrix"
@@ -756,6 +933,9 @@ def build_plan(
                             2
                             if phase == V2_PILOT_PHASE
                             and variant.task_id in EXPECTED_SEEDED_ERROR_TASKS
+                            else V2_SEEDED_REPETITIONS
+                            if phase == V2_CONFIRMATORY_PHASE
+                            and variant.task_id in EXPECTED_SEEDED_ERROR_TASKS
                             else targets[config.config_id]
                         ),
                     )
@@ -767,6 +947,7 @@ def build_plan(
         CODEX_MINI_PILOT_PHASE: 230,
         AGY_MINI_PILOT_PHASE: 345,
         CONFIRMATORY_PHASE: 805,
+        V2_CONFIRMATORY_PHASE: V2_CONFIRMATORY_CELLS,
     }[phase]
     if len(cells) != expected_cells:
         raise ScheduleError(
@@ -787,6 +968,8 @@ def build_plan(
     execution_slots = (
         build_blocked_execution_slots(cells, seed=order_seed)
         if phase == V2_PILOT_PHASE
+        else build_v2_confirmatory_execution_slots(cells, seed=order_seed)
+        if phase == V2_CONFIRMATORY_PHASE
         else None
     )
     provisional = SchedulePlan(
@@ -800,6 +983,8 @@ def build_plan(
         execution_slots=execution_slots,
         cells=tuple(cells),
         digest="",
+        v2_design_lock=v2_design_lock,
+        v2_pilot_release=v2_pilot_release,
     )
     return dataclasses.replace(
         provisional,
@@ -881,6 +1066,18 @@ def load_plan(path: Path) -> SchedulePlan:
             if slots_raw is None
             else tuple(_slot_from_dict(item) for item in slots_raw)
         )
+        design_raw = raw.get("v2_design_lock")
+        v2_design_lock = (
+            None if design_raw is None else v2_design_lock_from_dict(design_raw)
+        )
+        release_raw = raw.get("v2_pilot_release")
+        if release_raw is not None and v2_design_lock is None:
+            raise ScheduleError("V2 pilot release requires an embedded design lock")
+        v2_pilot_release = (
+            None
+            if release_raw is None
+            else v2_pilot_release_from_dict(release_raw, v2_design_lock)
+        )
         plan = SchedulePlan(
             schema_version=str(raw["schema_version"]),
             created_at=str(raw["created_at"]),
@@ -892,6 +1089,8 @@ def load_plan(path: Path) -> SchedulePlan:
             execution_slots=execution_slots,
             cells=cells,
             digest=str(raw["digest"]),
+            v2_design_lock=v2_design_lock,
+            v2_pilot_release=v2_pilot_release,
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise ScheduleError(f"malformed plan {path}: {exc}") from exc
@@ -906,20 +1105,25 @@ def validate_plan(plan: SchedulePlan) -> SchedulePlan:
         raise ScheduleError("plan must be a SchedulePlan")
     if plan.schema_version not in {
         LEGACY_PLAN_SCHEMA_VERSION,
+        PREVIOUS_PLAN_SCHEMA_VERSION,
         PLAN_SCHEMA_VERSION,
     }:
         raise ScheduleError(
             f"unsupported plan schema {plan.schema_version!r}; "
-            f"expected {LEGACY_PLAN_SCHEMA_VERSION!r} or "
-            f"{PLAN_SCHEMA_VERSION!r}"
+            f"expected {LEGACY_PLAN_SCHEMA_VERSION!r}, "
+            f"{PREVIOUS_PLAN_SCHEMA_VERSION!r}, or {PLAN_SCHEMA_VERSION!r}"
         )
     if (
         plan.schema_version == LEGACY_PLAN_SCHEMA_VERSION
-        and plan.phase == V2_PILOT_PHASE
+        and plan.phase in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}
     ):
         raise ScheduleError(
             "legacy V2 plans lack a frozen runtime binding and cannot be used"
         )
+    if plan.schema_version != PLAN_SCHEMA_VERSION and (
+        plan.v2_design_lock is not None or plan.v2_pilot_release is not None
+    ):
+        raise ScheduleError("older plan schemas cannot embed V2 design artifacts")
     if plan.phase not in PHASES:
         raise ScheduleError(f"unknown phase in plan: {plan.phase!r}")
     if plan.trial_schema_version != TRIAL_SCHEMA_VERSION:
@@ -948,6 +1152,7 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
         CODEX_MINI_PILOT_PHASE: 230,
         AGY_MINI_PILOT_PHASE: 345,
         CONFIRMATORY_PHASE: 805,
+        V2_CONFIRMATORY_PHASE: V2_CONFIRMATORY_CELLS,
     }[plan.phase]
     if len(plan.cells) != expected_count:
         raise ScheduleError(
@@ -962,12 +1167,13 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
         CODEX_MINI_PILOT_PHASE: {"CFG3", "CFG4"},
         AGY_MINI_PILOT_PHASE: {"CFG5", "CFG6", "CFG7"},
         CONFIRMATORY_PHASE: {f"CFG{i}" for i in range(1, 8)},
+        V2_CONFIRMATORY_PHASE: {f"CFG{i}" for i in range(1, 8)},
     }[plan.phase]
     if {cell.config_id for cell in plan.cells} != expected_configs:
         raise ScheduleError("plan configuration roster differs from V1")
     variants = (
         v2_task_variants()
-        if plan.phase == V2_PILOT_PHASE
+        if plan.phase in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}
         else task_variants()
     )
     variant_keys = {(v.task_id, v.phrasing) for v in variants}
@@ -975,7 +1181,7 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
         raise ScheduleError("plan task/phrasing roster differs from its phase")
     variant_map = {(v.task_id, v.phrasing): v for v in variants}
 
-    if plan.phase == V2_PILOT_PHASE:
+    if plan.phase in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}:
         if plan.runtime_binding is None:
             raise ScheduleError("V2 plan is missing its frozen runtime binding")
         validate_runtime_binding(plan.runtime_binding)
@@ -986,13 +1192,36 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
         if plan.execution_slots is None:
             raise ScheduleError("V2 plan is missing its blocked execution slots")
         validate_execution_slots(plan.cells, plan.execution_slots)
-        expected_slots = build_blocked_execution_slots(
-            plan.cells, seed=plan.order_seed
+        expected_slots = (
+            build_blocked_execution_slots(plan.cells, seed=plan.order_seed)
+            if plan.phase == V2_PILOT_PHASE
+            else build_v2_confirmatory_execution_slots(
+                plan.cells, seed=plan.order_seed
+            )
         )
         if plan.execution_slots != expected_slots:
             raise ScheduleError(
                 "V2 execution slots differ from the registered blocked order"
             )
+        if plan.phase == V2_CONFIRMATORY_PHASE:
+            if plan.v2_design_lock is None or plan.v2_pilot_release is None:
+                raise ScheduleError(
+                    "V2 confirmatory plan is missing its design lock or pilot release"
+                )
+            try:
+                plan.v2_design_lock.validate()
+                plan.v2_pilot_release.validate(plan.v2_design_lock)
+            except V2DesignLockError as exc:
+                raise ScheduleError(f"invalid V2 design authorization: {exc}") from exc
+            if (
+                plan.runtime_binding.matrix_digest
+                != plan.v2_design_lock.runtime_matrix_digest
+                or plan.v2_design_lock.task_bank_digest != v2_task_bank_digest()
+                or plan.order_seed != plan.v2_design_lock.order_seed
+            ):
+                raise ScheduleError("V2 confirmatory plan differs from its design lock")
+        elif plan.v2_design_lock is not None or plan.v2_pilot_release is not None:
+            raise ScheduleError("V2 pilot must not embed confirmatory authorization")
     else:
         if plan.runtime_binding is not None:
             raise ScheduleError(
@@ -1081,7 +1310,7 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
     }
     if actual_product != expected_product:
         raise ScheduleError("plan is not the complete phase Cartesian product")
-    if plan.phase != CONFIRMATORY_PHASE:
+    if plan.phase not in {CONFIRMATORY_PHASE, V2_CONFIRMATORY_PHASE}:
         if plan.sizing_lock is not None:
             raise ScheduleError(f"{plan.phase} plan must not contain a sizing lock")
         expected_targets = (
@@ -1101,7 +1330,7 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
             raise ScheduleError(
                 f"{plan.phase} has a target-valid-trial count outside its frozen rule"
             )
-    else:
+    elif plan.phase == CONFIRMATORY_PHASE:
         if plan.sizing_lock is None:
             raise ScheduleError("confirmatory plan is missing its sizing lock")
         try:
@@ -1128,6 +1357,24 @@ def _validate_plan_roster(plan: SchedulePlan) -> None:
             raise ScheduleError("confirmatory Codex N must equal the signed locked N")
         if next(iter(by_agent["agy"])) != claude_n:
             raise ScheduleError("confirmatory agy N must equal the signed locked N")
+    else:
+        if plan.sizing_lock is not None:
+            raise ScheduleError("V2 confirmatory plan must not contain a legacy sizing lock")
+        expected_targets = {
+            cell.task_id: (
+                V2_SEEDED_REPETITIONS
+                if cell.task_id in EXPECTED_SEEDED_ERROR_TASKS
+                else V2_CAPABILITY_REPETITIONS_PER_INSTANCE
+            )
+            for cell in plan.cells
+        }
+        if any(
+            cell.target_valid_trials != expected_targets[cell.task_id]
+            for cell in plan.cells
+        ):
+            raise ScheduleError("V2 confirmatory targets differ from fixed base N=36")
+        if sum(cell.target_valid_trials for cell in plan.cells) != V2_CONFIRMATORY_VALID_SLOTS:
+            raise ScheduleError("V2 confirmatory plan has the wrong valid-slot total")
 
 
 def validate_task_hashes(plan: SchedulePlan) -> None:
@@ -1550,7 +1797,11 @@ def scan_cell_output(
                 f"{cell.cell_id}: valid-slot identity changed within attempt "
                 f"{attempt_id}"
             )
-        expected_valid_slot = valid if plan.phase == V2_PILOT_PHASE else None
+        expected_valid_slot = (
+            valid
+            if plan.phase in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}
+            else None
+        )
         if valid_slot_index != expected_valid_slot:
             raise ScheduleError(
                 f"{cell.cell_id}: attempt {attempt_id} targets valid slot "
@@ -1964,7 +2215,7 @@ def pending_execution_units(
     states: Mapping[str, CellState],
 ) -> list[tuple[Cell, int | None]]:
     """Return pending work in the exact plan-bound execution order."""
-    if plan.phase != V2_PILOT_PHASE:
+    if plan.phase not in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}:
         return [
             (cell, None)
             for cell in selected
@@ -2156,6 +2407,10 @@ def run_schedule(
         raise ScheduleError("batch_size must be >= 1")
     if max_zero_progress_batches < 1:
         raise ScheduleError("max_zero_progress_batches must be >= 1")
+    validate_plan(plan)
+    # Keep the live-byte check explicit at the execution boundary even though
+    # validate_plan() also performs it. This makes the pre-call invariant
+    # obvious and prevents a future validator refactor from weakening it.
     validate_task_hashes(plan)
     validate_output_binding(output_root, plan)
     states = scan_output(output_root, plan)
@@ -2197,7 +2452,17 @@ def run_schedule(
             validate_commitment_anchor(plan.sizing_lock, **sizing_anchor)
         except SizingLockError as exc:
             raise ScheduleError(f"invalid confirmatory sizing anchor: {exc}") from exc
-    if plan.phase == V2_PILOT_PHASE:
+    elif plan.phase == V2_CONFIRMATORY_PHASE:
+        if plan.v2_design_lock is None or sizing_anchor is None:
+            raise ScheduleError(
+                "V2 confirmatory execution requires the independently anchored "
+                "pilot commitment"
+            )
+        try:
+            validate_v2_commitment_anchor(plan.v2_design_lock, sizing_anchor)
+        except V2DesignLockError as exc:
+            raise ScheduleError(f"invalid V2 pilot commitment anchor: {exc}") from exc
+    if plan.phase in {V2_PILOT_PHASE, V2_CONFIRMATORY_PHASE}:
         if runtime_binding is None:
             raise ScheduleError(
                 "V2 execution requires the independently supplied frozen "

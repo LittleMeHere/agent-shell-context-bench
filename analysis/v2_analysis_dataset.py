@@ -26,8 +26,10 @@ from harness.outcomes import construct_agy_outcome_evidence, construct_binary_ou
 from harness.schedule_identity import ScheduleIdentity
 from harness.scheduler import (
     SchedulePlan,
+    V2_CONFIRMATORY_PHASE,
     schedule_identity_for_cell,
     validate_plan,
+    v2_confirmatory_epoch_for_position,
     v2_pilot_epoch_for_position,
 )
 
@@ -308,6 +310,8 @@ def build_analysis_dataset(
 ) -> tuple[AnalysisTrial, ...]:
     """Validate a complete plan roster and return its valid analysis trials."""
 
+    validate_plan(plan)
+
     cells = {cell.cell_id: cell for cell in plan.cells}
     rows: list[AnalysisTrial] = []
     identities: set[tuple[str, str, int, str]] = set()
@@ -357,7 +361,11 @@ def build_analysis_dataset(
                 dataclasses.replace(
                     row,
                     execution_position=position,
-                    collection_epoch=v2_pilot_epoch_for_position(position),
+                    collection_epoch=(
+                        v2_confirmatory_epoch_for_position(position)
+                        if plan.phase == V2_CONFIRMATORY_PHASE
+                        else v2_pilot_epoch_for_position(position)
+                    ),
                 )
             )
 

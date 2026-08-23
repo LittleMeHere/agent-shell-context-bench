@@ -475,6 +475,8 @@ def test_legacy_v1_plan_remains_readable_but_legacy_v2_is_rejected(
         raw["schema_version"] = "1.2.0"
         raw.pop("runtime_binding")
         raw.pop("execution_slots")
+        raw.pop("v2_design_lock")
+        raw.pop("v2_pilot_release")
         payload = {key: value for key, value in raw.items() if key not in {
             "created_at", "digest"
         }}

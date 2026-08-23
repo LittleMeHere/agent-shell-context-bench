@@ -122,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=[
             "pilot",
             "v2-pilot",
+            "v2-confirmatory",
             "codex-mini-pilot",
             "agy-mini-pilot",
             "confirmatory",
@@ -139,6 +140,18 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help="verified R-006 sizing lock (required for confirmatory plans)",
+    )
+    schedule_plan.add_argument(
+        "--v2-design-lock",
+        type=Path,
+        default=None,
+        help="signed prospective N=36 design lock (required for v2-confirmatory)",
+    )
+    schedule_plan.add_argument(
+        "--v2-pilot-release",
+        type=Path,
+        default=None,
+        help="signed plan-bound pilot release (required for v2-confirmatory)",
     )
     schedule_plan.add_argument(
         "--blinding-commitment",
@@ -277,6 +290,11 @@ def main(argv: list[str] | None = None) -> int:
             write_plan,
         )
         from .sizing_lock import SizingLockError, load_sizing_lock
+        from .v2_design_lock import (
+            V2DesignLockError,
+            load_v2_design_lock,
+            load_v2_pilot_release,
+        )
         from .blinding import BlindingError, load_commitment
 
         try:
@@ -293,6 +311,21 @@ def main(argv: list[str] | None = None) -> int:
                     if args.sizing_lock is not None
                     else None
                 )
+                v2_design_lock = (
+                    load_v2_design_lock(args.v2_design_lock)
+                    if args.v2_design_lock is not None
+                    else None
+                )
+                v2_pilot_release = (
+                    load_v2_pilot_release(args.v2_pilot_release, v2_design_lock)
+                    if args.v2_pilot_release is not None
+                    and v2_design_lock is not None
+                    else None
+                )
+                if args.v2_pilot_release is not None and v2_design_lock is None:
+                    raise V2DesignLockError(
+                        "--v2-pilot-release requires --v2-design-lock"
+                    )
                 sizing_anchor = None
                 if args.blinding_commitment is not None:
                     commitment, commitment_sha256 = load_commitment(
@@ -309,6 +342,8 @@ def main(argv: list[str] | None = None) -> int:
                     sizing_anchor=sizing_anchor,
                     agy_cli_version=args.agy_cli_version,
                     runtime_binding=runtime_binding,
+                    v2_design_lock=v2_design_lock,
+                    v2_pilot_release=v2_pilot_release,
                     order_seed=args.seed,
                 )
                 write_plan(plan, Path(args.manifest))
@@ -384,7 +419,13 @@ def main(argv: list[str] | None = None) -> int:
                 f"new_attempts={summary.executed_attempts}"
             )
             return 0
-        except (BlindingError, ScheduleError, SizingLockError, ValueError) as exc:
+        except (
+            BlindingError,
+            ScheduleError,
+            SizingLockError,
+            V2DesignLockError,
+            ValueError,
+        ) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
 
