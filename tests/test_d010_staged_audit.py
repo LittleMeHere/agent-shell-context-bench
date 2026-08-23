@@ -9,6 +9,7 @@ from analysis.d010_staged_audit import (
     StagedAuditError,
     estimate_human_hours,
     load_staged_audit_policy,
+    select_staged_audit,
     staged_gate_decision,
 )
 
@@ -91,9 +92,9 @@ def _gate(policy, **overrides):
         "primary_completeness_by_stratum": {"s1": 0.95, "s2": 1.0},
         "design_weighted_ai_kappa": 0.75,
         "minimum_design_weighted_human_ai_kappa": 0.70,
-        "focal_failures_by_context": {
-            "windows_powershell": 8,
-            "linux_native": 8,
+        "eligible_nonanchor_focal_failures_by_context": {
+            "windows_powershell": 100,
+            "linux_native": 100,
         },
     }
     values.update(overrides)
@@ -107,15 +108,31 @@ def test_gate_precedence_and_sparse_boundaries():
     assert _gate(
         policy,
         evidence_contract_qualified=False,
-        focal_failures_by_context={"windows_powershell": 0, "linux_native": 0},
+        eligible_nonanchor_focal_failures_by_context={
+            "windows_powershell": 0,
+            "linux_native": 0,
+        },
     ) == "stop_invalid"
     assert _gate(
         policy,
-        focal_failures_by_context={"windows_powershell": 4, "linux_native": 6},
+        eligible_nonanchor_focal_failures_by_context={
+            "windows_powershell": 4,
+            "linux_native": 146,
+        },
     ) == "stop_sparse"
     assert _gate(
         policy,
-        focal_failures_by_context={"windows_powershell": 5, "linux_native": 5},
+        eligible_nonanchor_focal_failures_by_context={
+            "windows_powershell": 5,
+            "linux_native": 144,
+        },
+    ) == "stop_sparse"
+    assert _gate(
+        policy,
+        eligible_nonanchor_focal_failures_by_context={
+            "windows_powershell": 5,
+            "linux_native": 145,
+        },
     ) == "run_bounded_audit"
 
 
@@ -131,3 +148,157 @@ def test_gate_rejects_nonboolean_contract_status():
     policy = load_staged_audit_policy(POLICY)
     with pytest.raises(StagedAuditError, match="must be boolean"):
         _gate(policy, evidence_contract_qualified=1)
+
+
+def _identities(prefix: str, count: int) -> list[str]:
+    return [f"{prefix}-{index:04d}" for index in range(count)]
+
+
+def _select(
+    policy,
+    *,
+    windows: int,
+    linux: int,
+    anchors: list[str] | None = None,
+    seeded: list[str] | None = None,
+):
+    return select_staged_audit(
+        policy,
+        anchor_identities=anchors or _identities("anchor", 50),
+        eligible_failed_identities_by_context={
+            "windows_powershell": _identities("windows", windows),
+            "linux_native": _identities("linux", linux),
+        },
+        policy_digest="a" * 64,
+        analysis_manifest_digest="b" * 64,
+        seeded_error_identities=seeded or (),
+    )
+
+
+def test_focal_stage_is_exact_disjoint_srswor_with_recorded_probabilities():
+    policy = load_staged_audit_policy(POLICY)
+    selection = _select(policy, windows=200, linux=100)
+
+    assert selection.outcome == "run_bounded_audit"
+    assert selection.focal_allocation_by_context == {
+        "windows_powershell": 99,
+        "linux_native": 51,
+    }
+    assert selection.conditional_inclusion_probability_by_context == {
+        "windows_powershell": pytest.approx(99 / 200),
+        "linux_native": pytest.approx(51 / 100),
+    }
+    assert len(selection.anchor_identities) == 50
+    assert len(selection.focal_identities) == 150
+    assert len(selection.overall_identities) == 200
+    assert len(set(selection.overall_identities)) == 200
+    assert not set(selection.anchor_identities) & set(selection.focal_identities)
+
+    record = selection.as_record()
+    assert record["stage_identities"]["anchor"] == list(
+        selection.anchor_identities
+    )
+    assert record["stage_identities"]["focal"] == list(selection.focal_identities)
+    assert record["overall_identities"] == list(selection.overall_identities)
+
+
+def test_anchor_identities_are_excluded_before_scarcity_and_sampling():
+    policy = load_staged_audit_policy(POLICY)
+    anchors = _identities("anchor", 50)
+    eligible = {
+        "windows_powershell": anchors[:20] + _identities("windows", 100),
+        "linux_native": anchors[20:30] + _identities("linux", 50),
+    }
+    selection = select_staged_audit(
+        policy,
+        anchor_identities=anchors,
+        eligible_failed_identities_by_context=eligible,
+        policy_digest="a" * 64,
+        analysis_manifest_digest="b" * 64,
+    )
+    assert selection.eligible_nonanchor_by_context == {
+        "windows_powershell": 100,
+        "linux_native": 50,
+    }
+    assert len(selection.overall_identities) == 200
+    assert not set(anchors) & set(selection.focal_identities)
+
+
+@pytest.mark.parametrize(
+    ("windows", "linux", "reason"),
+    [
+        (100, 49, "fewer_than_150_eligible_unique_nonanchor_failures"),
+        (4, 200, "fewer_than_5_in_windows_powershell"),
+    ],
+)
+def test_scarcity_stops_at_anchor_without_census_or_replacement(
+    windows: int, linux: int, reason: str
+):
+    policy = load_staged_audit_policy(POLICY)
+    selection = _select(policy, windows=windows, linux=linux)
+    assert selection.outcome == "stop_sparse"
+    assert selection.focal_identities == ()
+    assert len(selection.overall_identities) == 50
+    assert selection.focal_allocation_by_context == {
+        "windows_powershell": 0,
+        "linux_native": 0,
+    }
+    assert reason in selection.scarcity_reasons
+
+
+def test_hamilton_tie_break_is_stable_by_context_name():
+    policy = load_staged_audit_policy(POLICY)
+    selection = _select(policy, windows=146, linux=144)
+    # Remaining capacities are 141 and 139. Both Hamilton remainders are 0.5;
+    # linux_native wins the stable lexical tie break.
+    assert selection.focal_allocation_by_context == {
+        "windows_powershell": 75,
+        "linux_native": 75,
+    }
+
+
+def test_selection_is_deterministic_and_seed_bound():
+    policy = load_staged_audit_policy(POLICY)
+    first = _select(policy, windows=200, linux=100)
+    second = _select(policy, windows=200, linux=100)
+    changed = select_staged_audit(
+        policy,
+        anchor_identities=_identities("anchor", 50),
+        eligible_failed_identities_by_context={
+            "windows_powershell": _identities("windows", 200),
+            "linux_native": _identities("linux", 100),
+        },
+        policy_digest="c" * 64,
+        analysis_manifest_digest="b" * 64,
+    )
+    assert first.focal_identities == second.focal_identities
+    assert first.focal_identities != changed.focal_identities
+
+
+def test_cross_context_duplicates_fail_closed():
+    policy = load_staged_audit_policy(POLICY)
+    with pytest.raises(StagedAuditError, match="more than one focal context"):
+        select_staged_audit(
+            policy,
+            anchor_identities=_identities("anchor", 50),
+            eligible_failed_identities_by_context={
+                "windows_powershell": ["shared"] + _identities("windows", 100),
+                "linux_native": ["shared"] + _identities("linux", 100),
+            },
+            policy_digest="a" * 64,
+            analysis_manifest_digest="b" * 64,
+        )
+
+
+def test_h4_assurance_is_exploratory_anchor_plus_selected_seeded_focal_only():
+    policy = load_staged_audit_policy(POLICY)
+    seeded = _identities("windows", 200)
+    selection = _select(policy, windows=200, linux=100, seeded=seeded)
+    assert selection.h4_assurance_scope == (
+        "exploratory_anchor_plus_any_seeded_focal_coverage"
+    )
+    assert set(selection.h4_seeded_focal_identities) == (
+        set(selection.focal_identities) & set(seeded)
+    )
+    record = selection.as_record()
+    assert record["h4_assurance"]["scope"] == selection.h4_assurance_scope

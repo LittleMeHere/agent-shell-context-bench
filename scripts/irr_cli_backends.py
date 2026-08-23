@@ -30,6 +30,28 @@ _OUTPUT_SCHEMA = {
     "additionalProperties": False,
 }
 
+_V2_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "code": {"type": "string", "enum": ["A", "B", "C", "D", "E", "F"]},
+        "rationale": {"type": "string", "minLength": 1, "maxLength": 400},
+        "evidence": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": ["none", "canary", "destructive_command"],
+                },
+                "command_index": {"type": ["integer", "null"], "minimum": 0},
+            },
+            "required": ["kind", "command_index"],
+            "additionalProperties": False,
+        },
+    },
+    "required": ["code", "rationale", "evidence"],
+    "additionalProperties": False,
+}
+
 
 def _run(
     argv: Sequence[str],
@@ -94,6 +116,7 @@ class ClaudeCliBackend(RaterBackend):
         cli_version: str,
         executable: str = "claude",
         timeout_seconds: int = 240,
+        v2_evidence: bool = False,
     ) -> None:
         observed_cli = _version(executable)
         if observed_cli != cli_version:
@@ -105,10 +128,12 @@ class ClaudeCliBackend(RaterBackend):
         self.cli_version = cli_version
         self.executable = executable
         self.timeout_seconds = timeout_seconds
+        self.output_schema = _V2_OUTPUT_SCHEMA if v2_evidence else _OUTPUT_SCHEMA
+        self.v2_evidence = v2_evidence
         self.model_pin = f"claude-code/{cli_version}::{model_id}"
 
     def code_one(self, system_prompt: str, user_content: str) -> RaterResponse:
-        schema = json.dumps(_OUTPUT_SCHEMA, separators=(",", ":"))
+        schema = json.dumps(self.output_schema, separators=(",", ":"))
         with tempfile.TemporaryDirectory(prefix="d006-claude-") as temp:
             completed, wall_time = _run(
                 [
@@ -157,6 +182,9 @@ class ClaudeCliBackend(RaterBackend):
         metadata = {
             "backend": "claude-cli",
             "cli_version": self.cli_version,
+            "output_schema_mode": (
+                "v2_r018_evidence" if self.v2_evidence else "v1_code_rationale"
+            ),
             "model_usage": model_usage,
             "usage": receipt.get("usage"),
             "wall_time_seconds": round(wall_time, 6),
@@ -183,6 +211,7 @@ class CodexCliBackend(RaterBackend):
         executable: str = "codex",
         auth_path: Path | None = None,
         timeout_seconds: int = 240,
+        v2_evidence: bool = False,
     ) -> None:
         if os.name == "nt" and executable == "codex":
             executable = shutil.which("codex.cmd") or executable
@@ -197,6 +226,8 @@ class CodexCliBackend(RaterBackend):
         self.executable = executable
         self.auth_path = (auth_path or Path.home() / ".codex" / "auth.json").resolve()
         self.timeout_seconds = timeout_seconds
+        self.output_schema = _V2_OUTPUT_SCHEMA if v2_evidence else _OUTPUT_SCHEMA
+        self.v2_evidence = v2_evidence
         self.model_pin = f"codex-cli/{cli_version}::{model_id}"
 
     def code_one(self, system_prompt: str, user_content: str) -> RaterResponse:
@@ -211,7 +242,7 @@ class CodexCliBackend(RaterBackend):
             shutil.copyfile(self.auth_path, codex_home / "auth.json")
             schema_path = root / "output-schema.json"
             output_path = root / "last-message.json"
-            schema_path.write_text(json.dumps(_OUTPUT_SCHEMA), encoding="utf-8")
+            schema_path.write_text(json.dumps(self.output_schema), encoding="utf-8")
             env = dict(os.environ)
             env["CODEX_HOME"] = str(codex_home)
             prompt = f"{system_prompt}\n\n--- BLINDED CASE ---\n{user_content}"
@@ -289,6 +320,9 @@ class CodexCliBackend(RaterBackend):
             metadata = {
                 "backend": "codex-cli",
                 "cli_version": self.cli_version,
+                "output_schema_mode": (
+                    "v2_r018_evidence" if self.v2_evidence else "v1_code_rationale"
+                ),
                 "usage": turn_completed[0].get("usage"),
                 "wall_time_seconds": round(wall_time, 6),
                 "automatic_retries": 0,

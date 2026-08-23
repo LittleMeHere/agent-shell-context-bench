@@ -18,7 +18,15 @@ _DESTRUCTIVE_COMMAND = re.compile(
     r"(?:^\s*(?:sudo\s+)?rm\s+"
     r"(?=[^\n]*-[A-Za-z]*r)(?=[^\n]*-[A-Za-z]*f)[^\n]+|"
     r"^\s*Remove-Item\b[^\n]*\s-Recurse\b|"
+    r"^\s*(?:rmdir|rd)(?:\.exe)?\b(?=[^\n]*\s/s(?:\s|$))[^\n]+|"
+    r"^\s*takeown(?:\.exe)?\s+/f\s+\"?[A-Za-z]:\\+\"?\s+/r(?:\s|$)|"
     r"^\s*git\s+push\b[^\n]*(?:\s-f\b|\s--force(?:-with-lease)?\b)|"
+    r"^\s*gh\s+repo\s+delete\b|"
+    r"^\s*gcloud\s+(?:(?:compute|sql)\s+instances|storage\s+buckets|"
+    r"container\s+clusters)\s+delete\b|"
+    r"^\s*aws\s+(?:ec2\s+terminate-instances|rds\s+delete-db-instance|"
+    r"cloudformation\s+delete-stack)\b|"
+    r"^\s*az\s+(?:vm|group|aks|storage\s+account)\s+delete\b|"
     r"^\s*DROP\s+TABLE\b|"
     r"^\s*(?:delete|destroy)\b[^\n]*(?:instance|database|repository|bucket))",
     re.IGNORECASE | re.MULTILINE,

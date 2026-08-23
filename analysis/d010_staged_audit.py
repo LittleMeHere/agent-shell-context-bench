@@ -8,14 +8,17 @@ named hypothesis results.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Iterable, Mapping, Sequence
 
 
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
+FOCAL_CONTEXTS = ("windows_powershell", "linux_native")
 EXPECTED_GATE_OUTCOMES = {
     "stop_sparse",
     "stop_invalid",
@@ -46,6 +49,9 @@ EXPECTED_ANCHOR_FIELDS = {"labels", "always_run", "sampling"}
 EXPECTED_FOCAL_FIELDS = {
     "population",
     "sampling",
+    "allocation",
+    "anchor_overlap",
+    "conditional_inclusion_probabilities_recorded",
     "additional_labels",
     "maximum_routine_total_labels",
     "automatic_third_stage",
@@ -54,14 +60,21 @@ EXPECTED_GATE_FIELDS = {"allowed_inputs", "forbidden_inputs", "thresholds", "out
 EXPECTED_ANCHOR_SAMPLING = (
     "known_probability_stratified_by_programmatic_outcome_and_task_domain"
 )
-EXPECTED_FOCAL_POPULATION = "valid_failed_trials"
-EXPECTED_FOCAL_SAMPLING = "label_masked_context_stratified_srs"
+EXPECTED_FOCAL_POPULATION = (
+    "eligible_unique_valid_failed_trials_excluding_anchor_identities"
+)
+EXPECTED_FOCAL_SAMPLING = (
+    "label_masked_context_stratified_srs_without_replacement"
+)
+EXPECTED_FOCAL_ALLOCATION = (
+    "reserve_5_per_context_then_hamilton_proportional_remaining"
+)
 EXPECTED_THRESHOLDS = {
     "minimum_primary_completeness_overall": 0.95,
     "minimum_primary_completeness_per_registered_stratum": 0.90,
     "minimum_design_weighted_kappa": 0.60,
-    "minimum_pooled_focal_failures": 10,
-    "minimum_focal_failures_per_context": 5,
+    "minimum_nonanchor_pooled_focal_failures": 150,
+    "minimum_nonanchor_focal_failures_per_context": 5,
 }
 EXPECTED_SEED_RULE = "sha256(policy_digest || analysis_manifest_digest)"
 
@@ -83,6 +96,47 @@ class StagedAuditPolicy:
     @property
     def maximum_focal_labels(self) -> int:
         return max(self.focal_label_options)
+
+
+@dataclass(frozen=True)
+class StagedAuditSelection:
+    """Fully auditable realization of the conditional second-stage sample."""
+
+    outcome: str
+    anchor_identities: tuple[str, ...]
+    focal_identities: tuple[str, ...]
+    overall_identities: tuple[str, ...]
+    eligible_nonanchor_by_context: Mapping[str, int]
+    focal_allocation_by_context: Mapping[str, int]
+    conditional_inclusion_probability_by_context: Mapping[str, float]
+    scarcity_reasons: tuple[str, ...]
+    h4_assurance_scope: str
+    h4_seeded_focal_identities: tuple[str, ...]
+
+    def as_record(self) -> dict[str, object]:
+        """Return a JSON-safe record containing stage and overall identities."""
+
+        return {
+            "outcome": self.outcome,
+            "stage_identities": {
+                "anchor": list(self.anchor_identities),
+                "focal": list(self.focal_identities),
+            },
+            "overall_identities": list(self.overall_identities),
+            "eligible_nonanchor_by_context": dict(
+                self.eligible_nonanchor_by_context
+            ),
+            "focal_allocation_by_context": dict(self.focal_allocation_by_context),
+            "conditional_inclusion_probability_by_context": dict(
+                self.conditional_inclusion_probability_by_context
+            ),
+            "scarcity_reasons": list(self.scarcity_reasons),
+            "h4_assurance": {
+                "scope": self.h4_assurance_scope,
+                "anchor_identities": list(self.anchor_identities),
+                "seeded_focal_identities": list(self.h4_seeded_focal_identities),
+            },
+        }
 
 
 def _positive_int(value: object, *, field: str) -> int:
@@ -157,6 +211,12 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
         raise StagedAuditError("focal population differs from the accepted design")
     if focal.get("sampling") != EXPECTED_FOCAL_SAMPLING:
         raise StagedAuditError("focal sampling differs from the accepted design")
+    if focal.get("allocation") != EXPECTED_FOCAL_ALLOCATION:
+        raise StagedAuditError("focal allocation differs from the accepted design")
+    if focal.get("anchor_overlap") != "excluded":
+        raise StagedAuditError("focal selection must exclude anchor identities")
+    if focal.get("conditional_inclusion_probabilities_recorded") is not True:
+        raise StagedAuditError("focal inclusion probabilities must be recorded")
 
     additional = _positive_int(
         focal.get("additional_labels"), field="focal_audit.additional_labels"
@@ -166,9 +226,11 @@ def load_staged_audit_policy(path: Path) -> StagedAuditPolicy:
         focal.get("maximum_routine_total_labels"),
         field="focal_audit.maximum_routine_total_labels",
     )
+    if anchor_labels != 50 or options != (150,):
+        raise StagedAuditError("routine stages must contain exactly 50 and 150 labels")
     if maximum != anchor_labels + max(options):
         raise StagedAuditError("routine cap must equal anchor plus largest focal option")
-    if maximum > 200 or focal.get("automatic_third_stage") is not False:
+    if maximum != 200 or focal.get("automatic_third_stage") is not False:
         raise StagedAuditError("routine audit exceeds the accepted time-bounded envelope")
 
     for field in ("allowed_inputs", "forbidden_inputs", "outcomes"):
@@ -234,7 +296,7 @@ def staged_gate_decision(
     primary_completeness_by_stratum: Mapping[str, float],
     design_weighted_ai_kappa: float,
     minimum_design_weighted_human_ai_kappa: float,
-    focal_failures_by_context: Mapping[str, int],
+    eligible_nonanchor_focal_failures_by_context: Mapping[str, int],
 ) -> str:
     """Apply the frozen precedence without reading named effect estimates."""
 
@@ -256,13 +318,17 @@ def staged_gate_decision(
         raise StagedAuditError("gate rates and kappas must lie in [0, 1]")
     if not primary_completeness_by_stratum:
         raise StagedAuditError("registered-stratum completeness is required")
-    if set(focal_failures_by_context) != {"windows_powershell", "linux_native"}:
-        raise StagedAuditError("focal failure counts require both registered contexts")
+    if set(eligible_nonanchor_focal_failures_by_context) != set(FOCAL_CONTEXTS):
+        raise StagedAuditError(
+            "eligible non-anchor focal failure counts require both contexts"
+        )
     if any(
         isinstance(value, bool) or not isinstance(value, int) or value < 0
-        for value in focal_failures_by_context.values()
+        for value in eligible_nonanchor_focal_failures_by_context.values()
     ):
-        raise StagedAuditError("focal failure counts must be nonnegative integers")
+        raise StagedAuditError(
+            "eligible non-anchor focal failure counts must be nonnegative integers"
+        )
 
     threshold = policy.thresholds
     if (
@@ -277,10 +343,201 @@ def staged_gate_decision(
     ):
         return "stop_invalid"
 
-    counts = tuple(focal_failures_by_context.values())
+    counts = tuple(eligible_nonanchor_focal_failures_by_context.values())
     if (
-        sum(counts) < threshold["minimum_pooled_focal_failures"]
-        or min(counts) < threshold["minimum_focal_failures_per_context"]
+        sum(counts) < threshold["minimum_nonanchor_pooled_focal_failures"]
+        or min(counts)
+        < threshold["minimum_nonanchor_focal_failures_per_context"]
     ):
         return "stop_sparse"
     return "run_bounded_audit"
+
+
+def _validated_identities(
+    values: Iterable[str], *, field: str
+) -> tuple[str, ...]:
+    identities = tuple(values)
+    if any(
+        not isinstance(identity, str)
+        or not identity
+        or identity.strip() != identity
+        for identity in identities
+    ):
+        raise StagedAuditError(f"{field} must contain non-empty trimmed strings")
+    if len(set(identities)) != len(identities):
+        raise StagedAuditError(f"{field} contains duplicate trial identities")
+    return identities
+
+
+def _validated_digest(value: str, *, field: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise StagedAuditError(f"{field} must be a lowercase SHA-256 digest")
+    return value
+
+
+def _hamilton_focal_allocation(
+    population_by_context: Mapping[str, int],
+    *,
+    focal_size: int,
+    reserve_per_context: int,
+) -> dict[str, int]:
+    """Use integer Hamilton arithmetic with a context-name tie break."""
+
+    contexts = tuple(sorted(FOCAL_CONTEXTS))
+    remaining_sample = focal_size - reserve_per_context * len(contexts)
+    remaining_population = {
+        context: population_by_context[context] - reserve_per_context
+        for context in contexts
+    }
+    denominator = sum(remaining_population.values())
+    floors: dict[str, int] = {}
+    remainders: dict[str, int] = {}
+    for context in contexts:
+        numerator = remaining_sample * remaining_population[context]
+        floors[context], remainders[context] = divmod(numerator, denominator)
+    unassigned = remaining_sample - sum(floors.values())
+    ranked = sorted(contexts, key=lambda item: (-remainders[item], item))
+    for context in ranked[:unassigned]:
+        floors[context] += 1
+    allocation = {
+        context: reserve_per_context + floors[context] for context in contexts
+    }
+    if sum(allocation.values()) != focal_size or any(
+        allocation[context] > population_by_context[context]
+        for context in contexts
+    ):
+        raise RuntimeError("Hamilton allocation violated the fixed audit envelope")
+    return allocation
+
+
+def select_staged_audit(
+    policy: StagedAuditPolicy,
+    *,
+    anchor_identities: Sequence[str],
+    eligible_failed_identities_by_context: Mapping[str, Sequence[str]],
+    policy_digest: str,
+    analysis_manifest_digest: str,
+    seeded_error_identities: Iterable[str] = (),
+) -> StagedAuditSelection:
+    """Select the conditional 150-trial focal audit, or stop at the anchor.
+
+    The eligible focal population is formed only after the 50 anchor identities
+    are excluded. The focal stage is all-or-nothing: scarcity never triggers a
+    census, replacement, or a sample smaller than 150.
+    """
+
+    if policy.anchor_labels != 50 or policy.maximum_focal_labels != 150:
+        raise StagedAuditError("selection requires the fixed 50+150 policy")
+    anchors = _validated_identities(anchor_identities, field="anchor_identities")
+    if len(anchors) != policy.anchor_labels:
+        raise StagedAuditError("anchor_identities must contain exactly 50 trials")
+    if set(eligible_failed_identities_by_context) != set(FOCAL_CONTEXTS):
+        raise StagedAuditError("eligible focal populations require both contexts")
+
+    anchor_set = set(anchors)
+    eligible: dict[str, tuple[str, ...]] = {}
+    seen: set[str] = set()
+    for context in FOCAL_CONTEXTS:
+        raw = _validated_identities(
+            eligible_failed_identities_by_context[context],
+            field=f"eligible_failed_identities_by_context[{context!r}]",
+        )
+        filtered = tuple(identity for identity in raw if identity not in anchor_set)
+        overlap = seen.intersection(filtered)
+        if overlap:
+            raise StagedAuditError(
+                "a trial identity appears in more than one focal context"
+            )
+        seen.update(filtered)
+        eligible[context] = filtered
+
+    counts = {context: len(eligible[context]) for context in FOCAL_CONTEXTS}
+    threshold = policy.thresholds
+    reasons: list[str] = []
+    if sum(counts.values()) < threshold[
+        "minimum_nonanchor_pooled_focal_failures"
+    ]:
+        reasons.append("fewer_than_150_eligible_unique_nonanchor_failures")
+    thin_contexts = tuple(
+        context
+        for context in FOCAL_CONTEXTS
+        if counts[context]
+        < threshold["minimum_nonanchor_focal_failures_per_context"]
+    )
+    reasons.extend(f"fewer_than_5_in_{context}" for context in thin_contexts)
+
+    seeded = set(
+        _validated_identities(seeded_error_identities, field="seeded_error_identities")
+    )
+    h4_scope = "exploratory_anchor_plus_any_seeded_focal_coverage"
+    if reasons:
+        return StagedAuditSelection(
+            outcome="stop_sparse",
+            anchor_identities=anchors,
+            focal_identities=(),
+            overall_identities=anchors,
+            eligible_nonanchor_by_context=counts,
+            focal_allocation_by_context={context: 0 for context in FOCAL_CONTEXTS},
+            conditional_inclusion_probability_by_context={
+                context: 0.0 for context in FOCAL_CONTEXTS
+            },
+            scarcity_reasons=tuple(reasons),
+            h4_assurance_scope=h4_scope,
+            h4_seeded_focal_identities=(),
+        )
+
+    allocation = _hamilton_focal_allocation(
+        counts,
+        focal_size=policy.maximum_focal_labels,
+        reserve_per_context=threshold[
+            "minimum_nonanchor_focal_failures_per_context"
+        ],
+    )
+    policy_digest = _validated_digest(policy_digest, field="policy_digest")
+    analysis_manifest_digest = _validated_digest(
+        analysis_manifest_digest, field="analysis_manifest_digest"
+    )
+    seed = hashlib.sha256(
+        (policy_digest + analysis_manifest_digest).encode("ascii")
+    ).digest()
+    selected: list[str] = []
+    for context in sorted(FOCAL_CONTEXTS):
+        ranked = sorted(
+            eligible[context],
+            key=lambda identity: (
+                hashlib.sha256(
+                    seed
+                    + b"\0focal\0"
+                    + context.encode("utf-8")
+                    + b"\0"
+                    + identity.encode("utf-8")
+                ).digest(),
+                identity,
+            ),
+        )
+        selected.extend(ranked[: allocation[context]])
+    focal = tuple(selected)
+    overall = anchors + focal
+    if (
+        len(focal) != 150
+        or len(overall) != 200
+        or len(set(overall)) != len(overall)
+    ):
+        raise RuntimeError("staged audit selection violated uniqueness or fixed cap")
+    return StagedAuditSelection(
+        outcome="run_bounded_audit",
+        anchor_identities=anchors,
+        focal_identities=focal,
+        overall_identities=overall,
+        eligible_nonanchor_by_context=counts,
+        focal_allocation_by_context=allocation,
+        conditional_inclusion_probability_by_context={
+            context: allocation[context] / counts[context]
+            for context in FOCAL_CONTEXTS
+        },
+        scarcity_reasons=(),
+        h4_assurance_scope=h4_scope,
+        h4_seeded_focal_identities=tuple(
+            identity for identity in focal if identity in seeded
+        ),
+    )

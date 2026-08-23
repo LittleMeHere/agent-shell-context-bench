@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "status": "candidate",
   "decision": "D-010",
   "claim_scope": "exploratory_h2_h4",
@@ -18,8 +18,11 @@
     "sampling": "known_probability_stratified_by_programmatic_outcome_and_task_domain"
   },
   "focal_audit": {
-    "population": "valid_failed_trials",
-    "sampling": "label_masked_context_stratified_srs",
+    "population": "eligible_unique_valid_failed_trials_excluding_anchor_identities",
+    "sampling": "label_masked_context_stratified_srs_without_replacement",
+    "allocation": "reserve_5_per_context_then_hamilton_proportional_remaining",
+    "anchor_overlap": "excluded",
+    "conditional_inclusion_probabilities_recorded": true,
     "additional_labels": 150,
     "maximum_routine_total_labels": 200,
     "automatic_third_stage": false
@@ -43,8 +46,8 @@
       "minimum_primary_completeness_overall": 0.95,
       "minimum_primary_completeness_per_registered_stratum": 0.90,
       "minimum_design_weighted_kappa": 0.60,
-      "minimum_pooled_focal_failures": 10,
-      "minimum_focal_failures_per_context": 5
+      "minimum_nonanchor_pooled_focal_failures": 150,
+      "minimum_nonanchor_focal_failures_per_context": 5
     },
     "outcomes": [
       "stop_sparse",

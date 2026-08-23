@@ -167,3 +167,105 @@ def test_codex_backend_rejects_tool_use(
     )
     with pytest.raises(RuntimeError, match="prohibited tools"):
         backend.code_one("rubric", "case")
+
+
+def test_claude_v2_schema_is_explicit_and_v1_schema_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(cli, "_version", lambda _exe: "2.1.231 (Claude Code)")
+    observed_schemas = []
+    receipt = {
+        "is_error": False,
+        "subtype": "success",
+        "stop_reason": "end_turn",
+        "structured_output": {
+            "code": "D",
+            "rationale": "command evidence",
+            "evidence": {"kind": "destructive_command", "command_index": 0},
+        },
+        "modelUsage": {"claude-sonnet-4-6": {}},
+    }
+
+    def fake_run(argv, **_kwargs):
+        observed_schemas.append(json.loads(argv[argv.index("--json-schema") + 1]))
+        return _completed(json.dumps(receipt)), 1.0
+
+    monkeypatch.setattr(cli, "_run", fake_run)
+    v2 = cli.ClaudeCliBackend(
+        "coder2",
+        model_id="claude-sonnet-4-6",
+        cli_version="2.1.231 (Claude Code)",
+        v2_evidence=True,
+    )
+    response = v2.code_one("v2 rubric", "case")
+    assert observed_schemas == [cli._V2_OUTPUT_SCHEMA]
+    assert json.loads(response.raw_response)["evidence"]["command_index"] == 0
+    assert response.backend_metadata["output_schema_mode"] == "v2_r018_evidence"
+
+    v1 = cli.ClaudeCliBackend(
+        "coder2",
+        model_id="claude-sonnet-4-6",
+        cli_version="2.1.231 (Claude Code)",
+    )
+    assert v1.output_schema is cli._OUTPUT_SCHEMA
+    assert set(cli._OUTPUT_SCHEMA["properties"]) == {"code", "rationale"}
+
+
+def test_codex_v2_schema_file_is_selected_explicitly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth = tmp_path / "auth.json"
+    auth.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(cli, "_version", lambda _exe: "codex-cli 0.147.0")
+
+    def fake_run(argv, *, cwd, input_text, env, timeout_seconds):
+        del cwd, input_text, timeout_seconds
+        assert json.loads(
+            Path(argv[argv.index("--output-schema") + 1]).read_text(encoding="utf-8")
+        ) == cli._V2_OUTPUT_SCHEMA
+        home = Path(env["CODEX_HOME"])
+        session = home / "sessions" / "rollout.jsonl"
+        session.parent.mkdir(parents=True)
+        session.write_text(
+            json.dumps(
+                {"type": "turn_context", "payload": {"model": "gpt-5.6-terra"}}
+            ),
+            encoding="utf-8",
+        )
+        Path(argv[argv.index("--output-last-message") + 1]).write_text(
+            json.dumps(
+                {
+                    "code": "D",
+                    "rationale": "command evidence",
+                    "evidence": {
+                        "kind": "destructive_command",
+                        "command_index": 0,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        stdout = "\n".join(
+            [
+                json.dumps({"type": "thread.started", "thread_id": "thread-v2"}),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {"type": "agent_message", "text": "ok"},
+                    }
+                ),
+                json.dumps({"type": "turn.completed", "usage": {}}),
+            ]
+        )
+        return _completed(stdout), 1.0
+
+    monkeypatch.setattr(cli, "_run", fake_run)
+    backend = cli.CodexCliBackend(
+        "coder1",
+        model_id="gpt-5.6-terra",
+        cli_version="codex-cli 0.147.0",
+        auth_path=auth,
+        v2_evidence=True,
+    )
+    response = backend.code_one("v2 rubric", "case")
+    assert response.backend_metadata["output_schema_mode"] == "v2_r018_evidence"
